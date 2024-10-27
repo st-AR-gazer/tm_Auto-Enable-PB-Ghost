@@ -51,8 +51,18 @@ namespace ReplayManager {
             log(tostring(task.Ghosts.Length), LogLevel::Info, 51, "LoadReplayFromPath");
         }
 
+        uint timeout = 15000;
+        uint startTime = Time::Now;
+        while (cast<CSmArenaRulesMode@>(GetApp().PlaygroundScript).GhostMgr is null) {
+            if (Time::Now - startTime > timeout) { return; }
+            yield();
+        }
+
         auto ghostMgr = cast<CSmArenaRulesMode@>(GetApp().PlaygroundScript).GhostMgr;
         for (uint i = 0; i < task.Ghosts.Length; i++) {
+            task.Ghosts[i].IdName = "Personal best";
+            task.Ghosts[i].Nickname = "Personal best";
+            task.Ghosts[i].Trigram = "PB";
             ghostMgr.Ghost_Add(task.Ghosts[i]);
         }
 
