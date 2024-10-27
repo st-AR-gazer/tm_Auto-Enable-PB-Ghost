@@ -68,7 +68,7 @@ namespace ReplayManager {
 
         if (task.Ghosts.Length == 0) {
             NotifyWarn("No ghosts found in the replay file!");
-            log("No ghosts found in the replay file!", LogLevel::Warn, 61, "LoadReplayFromPath");
+            log("No ghosts found in the replay file!", LogLevel::Warn, 71, "LoadReplayFromPath");
             return;
         }
     }
