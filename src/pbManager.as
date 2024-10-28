@@ -15,9 +15,6 @@ namespace PBManager {
 
     void Initialize(CGameCtnApp@ app) {
         @ghostMgr = GhostClipsMgr::Get(app);
-        if (ghostMgr is null) {
-            print("Ghost Manager is not available.");
-        }
     }
 
     bool IsPBLoaded() {
@@ -28,10 +25,27 @@ namespace PBManager {
         return pbClipPlayer !is null;
     }
 
+    bool IsLocalPBLoaded() {
+        auto net = cast<CGameCtnNetwork>(GetApp().Network);
+        if (net is null) return false;
+        auto cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
+        if (cmap is null) return false;
+        auto dfm = cmap.DataFileMgr;
+        if (dfm is null) return false;
+        
+        for (uint i = 0; i < dfm.Ghosts.Length; i++) {
+            print(dfm.Ghosts[i].IdName);
+            if (dfm.Ghosts[i].IdName == "Personal best") {
+                return true;
+            }
+        }
+        return false;
+    }
+
     void LoadPBFromIndex() {
         string loadPath = IO::FromStorageFolder("autosaves_index.json");
         if (!IO::FileExists(loadPath)) {
-            log("PBManager: Autosaves index file does not exist. Indexing will be performed on map load.", LogLevel::Info, 34, "LoadPBFromIndex");
+            log("PBManager: Autosaves index file does not exist. Indexing can be done manually with the button in the settings menu labled 're-index autosaves folder manually'.", LogLevel::Info, 48, "LoadPBFromIndex");
             return;
         }
 
@@ -53,7 +67,9 @@ namespace PBManager {
         auto currentMapPBRecords = GetPBRecordsForCurrentMap();
 
         for (uint i = 0; i < currentMapPBRecords.Length; i++) {
-            ReplayManager::ProcessSelectedFile(currentMapPBRecords[i].FullFilePath);
+            if (IO::FileExists(currentMapPBRecords[i].FullFilePath)) {
+                ReplayManager::ProcessSelectedFile(currentMapPBRecords[i].FullFilePath);
+            }
         }
     }
 

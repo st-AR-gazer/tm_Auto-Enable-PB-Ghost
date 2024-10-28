@@ -1,10 +1,10 @@
 namespace ReplayManager {
     void ProcessSelectedFile(const string &in filePath) {
-        if (PBManager::IsPBLoaded()) { 
+        if (PBManager::IsPBLoaded() || PBManager::IsLocalPBLoaded()) { 
             log("PB is already loaded, doing nothing", LogLevel::Info, 4, "ProcessSelectedFile"); 
             return; 
         }
-        
+
         startnew(CoroutineFuncUserdataString(Coro_ProcessSelectedFile), filePath);
     }
 
@@ -59,16 +59,22 @@ namespace ReplayManager {
         }
 
         auto ghostMgr = cast<CSmArenaRulesMode@>(GetApp().PlaygroundScript).GhostMgr;
+
+        if (PBManager::IsPBLoaded() || PBManager::IsLocalPBLoaded()) {
+            log("PB is already loaded, doing nothing", LogLevel::Info, 64, "LoadReplayFromPath");
+            return;
+        }
+
         for (uint i = 0; i < task.Ghosts.Length; i++) {
-            task.Ghosts[i].IdName = "Personal best";
-            task.Ghosts[i].Nickname = "Personal best";
+            task.Ghosts[i].IdName = "\\$5c8" + "Personal best";
+            task.Ghosts[i].Nickname = "\\$5c8" + "Personal best";
             task.Ghosts[i].Trigram = "PB";
             ghostMgr.Ghost_Add(task.Ghosts[i]);
         }
 
         if (task.Ghosts.Length == 0) {
             NotifyWarn("No ghosts found in the replay file!");
-            log("No ghosts found in the replay file!", LogLevel::Warn, 71, "LoadReplayFromPath");
+            log("No ghosts found in the replay file!", LogLevel::Warn, 77, "LoadReplayFromPath");
             return;
         }
     }
