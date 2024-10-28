@@ -66,8 +66,8 @@ namespace ReplayManager {
         }
 
         for (uint i = 0; i < task.Ghosts.Length; i++) {
-            task.Ghosts[i].IdName = "\\$5c8" + "Personal best";
-            task.Ghosts[i].Nickname = "\\$5c8" + "Personal best";
+            task.Ghosts[i].IdName = "Personal best";
+            task.Ghosts[i].Nickname = "\\$5d8" + "Personal best";
             task.Ghosts[i].Trigram = "PB";
             ghostMgr.Ghost_Add(task.Ghosts[i]);
         }

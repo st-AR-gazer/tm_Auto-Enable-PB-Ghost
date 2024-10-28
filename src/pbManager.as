@@ -34,7 +34,7 @@ namespace PBManager {
         if (dfm is null) return false;
         
         for (uint i = 0; i < dfm.Ghosts.Length; i++) {
-            print(dfm.Ghosts[i].IdName);
+            // print(dfm.Ghosts[i].IdName);
             if (dfm.Ghosts[i].IdName == "Personal best") {
                 return true;
             }
