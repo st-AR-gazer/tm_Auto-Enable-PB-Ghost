@@ -1,4 +1,4 @@
-string pluginName = "Remove Favorite Maps";
+string pluginName = "Auto Load PB Ghost";
 
 void NotifyInfo(const string &in overwritePluginName = pluginName, const string &in msg = "", int time = 6000) {
     UI::ShowNotification(overwritePluginName, msg, vec4(.2, .8, .5, .3), time);
@@ -22,7 +22,7 @@ enum LogLevel {
 
 //////////// CHANGE TO "true" ON RELEASE  ////////////
 [Setting category="z~DEV" name="Show default OP logs"]
-bool S_showDefaultLogs = false;
+bool S_showDefaultLogs = true;
 //////////////////////////////////////////////////////
 
 [Setting category="z~DEV" name="Show Debug logs"]
