@@ -1,28 +1,20 @@
 void Main() {
+    PBVisibilityHook::InitializeHook();
     if (!IO::FileExists(autosaves_index)) {
         IndexAndSaveToFile();
     }
     MapTracker::MapMonitor();
+
+    // Initialize PB Manager and visibility hook
+    PBManager::Initialize(GetApp());
+    PBManager::LoadPBFromIndex();
 }
 
-[Setting category="General" name="Re-index Autosaves folder manually"]
-bool reindexAutosaves = false;
-
-void Update(float dt) {
-    if (reindexAutosaves) {
-        IndexAndSaveToFile();
-        reindexAutosaves = false;
-    }
+void OnDisabled() {
+    PBVisibilityHook::UninitializeHook();
+    PBManager::UnloadPB();
 }
 
-// void Render() {
-//     if (UI::Begin("Main")) {
-//         if (UI::Button("Is PB Loaded")) {
-//             print(PBManager::IsPBLoaded());
-//         }
-//         if (UI::Button("Load Map")) {
-//             PBManager::Initialize(GetApp());
-//         }
-//     }
-//     UI::End();
-// }
+void OnDestroyed() {
+    OnDisabled();
+}

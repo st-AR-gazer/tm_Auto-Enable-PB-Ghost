@@ -11,7 +11,23 @@ class PBRecord {
 }
 
 namespace PBManager {
+    class PBRecord {
+        string MapUid;
+        string FileName;
+        string FullFilePath;
+
+        PBRecord(const string &in mapUid, const string &in fileName, const string &in fullFilePath) {
+            MapUid = mapUid;
+            FileName = fileName;
+            FullFilePath = fullFilePath;
+        }
+    }
+
+    array<PBRecord@> pbRecords;
+    string autosaves_index = IO::FromStorageFolder("autosaves_index.json");
+
     NGameGhostClips_SMgr@ ghostMgr;
+    CGameCtnMediaClipPlayer@ currentPBGhostPlayer;
 
     void Initialize(CGameCtnApp@ app) {
         @ghostMgr = GhostClipsMgr::Get(app);
@@ -34,7 +50,6 @@ namespace PBManager {
         if (dfm is null) return false;
         
         for (uint i = 0; i < dfm.Ghosts.Length; i++) {
-            // print(dfm.Ghosts[i].IdName);
             if (dfm.Ghosts[i].IdName == "Personal best") {
                 return true;
             }
@@ -42,15 +57,16 @@ namespace PBManager {
         return false;
     }
 
+    array<PBRecord@> currentMapPBRecords;
+    
     void LoadPBFromIndex() {
-        string loadPath = IO::FromStorageFolder("autosaves_index.json");
+        string loadPath = autosaves_index;
         if (!IO::FileExists(loadPath)) {
-            log("PBManager: Autosaves index file does not exist. Indexing can be done manually with the button in the settings menu labled 're-index autosaves folder manually'.", LogLevel::Info, 48, "LoadPBFromIndex");
+            log("PBManager: Autosaves index file does not exist. Indexing can be done manually with the button in the settings menu labeled 'Re-index autosaves folder manually'.", LogLevel::Info, 48, "LoadPBFromIndex");
             return;
         }
 
         string str_jsonData = _IO::File::ReadFileToEnd(loadPath);
-
         Json::Value jsonData = Json::Parse(str_jsonData);
 
         pbRecords.RemoveRange(0, pbRecords.Length);
@@ -64,13 +80,43 @@ namespace PBManager {
             pbRecords.InsertLast(pbRecord);
         }
 
-        auto currentMapPBRecords = GetPBRecordsForCurrentMap();
+        currentMapPBRecords = GetPBRecordsForCurrentMap();
 
         for (uint i = 0; i < currentMapPBRecords.Length; i++) {
             if (IO::FileExists(currentMapPBRecords[i].FullFilePath)) {
                 ReplayManager::ProcessSelectedFile(currentMapPBRecords[i].FullFilePath);
             }
         }
+    }
+
+    void LoadPBFromCache() {
+        for (uint i = 0; i < currentMapPBRecords.Length; i++) {
+            if (IO::FileExists(currentMapPBRecords[i].FullFilePath)) {
+                ReplayManager::ProcessSelectedFile(currentMapPBRecords[i].FullFilePath);
+            }
+        }
+    }
+
+    void LoadPB() {
+        startnew(LoadPBFromCache);
+    }
+
+    void UnloadPB() {
+        auto ghostMgr = cast<CSmArenaRulesMode@>(GetApp().PlaygroundScript).GhostMgr;
+        if (ghostMgr is null) return;
+
+        auto dfm = cast<CGameManiaAppPlayground>(GetApp().Network.ClientManiaAppPlayground).DataFileMgr;
+        if (dfm is null) return;
+
+        for (uint i = 0; i < dfm.Ghosts.Length; i++) {
+            print(dfm.Ghosts[i].Nickname);
+            ghostMgr.Ghost_Remove(dfm.Ghosts[i].Id);
+            log("PBManager: Removed PB ghost with MwId " + dfm.Ghosts[i].IdName, LogLevel::Info, 100, "RemovePBGhost");
+            if (dfm.Ghosts[i].IdName.ToLower().Contains(" ")) {
+            }
+        }
+
+        log("PBManager: PB ghost unloaded.", LogLevel::Info, 201, "UnloadPB");
     }
 
     array<PBRecord@>@ GetPBRecordsForCurrentMap() {
@@ -87,6 +133,10 @@ namespace PBManager {
         return currentMapRecords;
     }
 }
+
+
+
+
 
 // Thanks for the code XertroV :peepoLove:
 

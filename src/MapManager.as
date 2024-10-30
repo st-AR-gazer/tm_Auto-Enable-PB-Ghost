@@ -13,11 +13,10 @@ namespace MapTracker {
             if (HasMapChanged()) {
                 AllowCheck::InitializeAllowCheck();
 
-
                 uint timeout = 10000;
                 uint startTime = Time::Now;
                 while (!AllowCheck::ConditionCheckMet()) {
-                    if (Time::Now - startTime > timeout) { NotifyWarn("Condition check timed out ("+timeout+" ms was given), assuming invalid state."); break; }
+                    if (Time::Now - startTime > timeout) { NotifyWarn("Condition check timed out (" + timeout + " ms was given), assuming invalid state."); break; }
                     yield();
                 }
 

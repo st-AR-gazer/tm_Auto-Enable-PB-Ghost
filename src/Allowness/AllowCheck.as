@@ -1,68 +1,100 @@
-
 namespace AllowCheck {
-    void InitializeAllowCheck() {
-        startnew(Chester::OnMapLoad);
+    interface IAllownessCheck {
+        void Initialize();
+        bool IsConditionMet();
+        string GetDisallowReason();
     }
 
-    string[] GameModeBlackList = {
-        "TM_COTDQualifications_Online"/*, "TM_KnockoutDaily_Online"*/ // ghosts are loaded in TM_KnockoutDaily_Online, thanks @TNTree :peepoLove:
-    };
-    
-    bool canLoadRecords = true;
-    bool gamemode_AllowCheckIsOk = true;
+    array<IAllownessCheck@> allownessModules;
+
+    void InitializeAllowCheck() {
+        allownessModules.InsertLast(GamemodeAllowness::CreateInstance());
+
+        if (allownessModules.Length > 0) startnew(InitializeWrapper0);
+    }
+    void InitializeWrapper0() { allownessModules[0].Initialize(); }
+
 
     bool ConditionCheckMet() {
-        return gamemode_AllowCheckIsOk;
+        for (uint i = 0; i < allownessModules.Length; i++) {
+            if (!allownessModules[i].IsConditionMet()) {
+                return false;
+            }
+        }
+        return true;
     }
 
-    bool AllowdToLoadRecords() {
+    bool AllowedToLoadRecords() {
         if (!ConditionCheckMet()) {
-            log("Not all conditions have been checked or passed, records cannot be loaded.", LogLevel::Warn, 20, "AllowdToLoadRecords");
+            log("Not all conditions have been checked or passed, records cannot be loaded.", LogLevel::Warn, 20, "AllowedToLoadRecords");
             return false;
         }
-        return canLoadRecords;
+        return true;
     }
 
     string DissalowReason() {
-        auto net = cast<CGameCtnNetwork>(GetApp().Network);
-        auto cnsi = cast<CGameCtnNetServerInfo>(net.ServerInfo);
-        if (!gamemode_AllowCheckIsOk) {
-            return "You cannot loab maps in the blacklisted game mode: " + cnsi.ModeName;
-        }
-        if (!canLoadRecords) {
-            return "General error | you cannot load records on this map.";
-        }
-        return "Unknown reason.";
-    }
-
-    namespace Chester {
-        bool IsBlacklisted(const string &in mode) {
-            for (uint i = 0; i < GameModeBlackList.Length; i++) {
-                if (mode.ToLower().Contains(GameModeBlackList[i].ToLower())) {
-                    return true;
-                }
+        string reason = "";
+        for (uint i = 0; i < allownessModules.Length; i++) {
+            if (!allownessModules[i].IsConditionMet()) {
+                reason += allownessModules[i].GetDisallowReason() + " ";
             }
-            return false;
+        }
+        return reason.Trim().Length > 0 ? reason.Trim() : "Unknown reason.";
+    }
+}
+
+//       ___           ___           ___                    ___           ___           ___           ___           ___           ___           ___           ___                    ___           ___       ___       ___           ___           ___           ___           ___           ___                    ___           ___           ___     
+//      /\__\         /\  \         /\  \                  /\  \         /\  \         /\__\         /\  \         /\__\         /\  \         /\  \         /\  \                  /\  \         /\__\     /\__\     /\  \         /\__\         /\__\         /\  \         /\  \         /\  \                  /\__\         /\  \         /\  \    
+//     /::|  |       /::\  \       /::\  \                /::\  \       /::\  \       /::|  |       /::\  \       /::|  |       /::\  \       /::\  \       /::\  \                /::\  \       /:/  /    /:/  /    /::\  \       /:/ _/_       /::|  |       /::\  \       /::\  \       /::\  \                /::|  |       /::\  \       /::\  \   
+//    /:|:|  |      /:/\:\  \     /:/\:\  \              /:/\:\  \     /:/\:\  \     /:|:|  |      /:/\:\  \     /:|:|  |      /:/\:\  \     /:/\:\  \     /:/\:\  \              /:/\:\  \     /:/  /    /:/  /    /:/\:\  \     /:/ /\__\     /:|:|  |      /:/\:\  \     /:/\ \  \     /:/\ \  \              /:|:|  |      /:/\:\  \     /:/\:\  \  
+//   /:/|:|__|__   /::\~\:\  \   /::\~\:\  \            /:/  \:\  \   /::\~\:\  \   /:/|:|__|__   /::\~\:\  \   /:/|:|__|__   /:/  \:\  \   /:/  \:\__\   /::\~\:\  \            /::\~\:\  \   /:/  /    /:/  /    /:/  \:\  \   /:/ /:/ _/_   /:/|:|  |__   /::\~\:\  \   _\:\~\ \  \   _\:\~\ \  \            /:/|:|__|__   /:/  \:\  \   /:/  \:\__\ 
+//  /:/ |::::\__\ /:/\:\ \:\__\ /:/\:\ \:\__\          /:/__/_\:\__\ /:/\:\ \:\__\ /:/ |::::\__\ /:/\:\ \:\__\ /:/ |::::\__\ /:/__/ \:\__\ /:/__/ \:|__| /:/\:\ \:\__\          /:/\:\ \:\__\ /:/__/    /:/__/    /:/__/ \:\__\ /:/_/:/ /\__\ /:/ |:| /\__\ /:/\:\ \:\__\ /\ \:\ \ \__\ /\ \:\ \ \__\          /:/ |::::\__\ /:/__/ \:\__\ /:/__/ \:|__|
+//  \/__/~~/:/  / \/__\:\/:/  / \/__\:\/:/  /          \:\  /\ \/__/ \/__\:\/:/  / \/__/~~/:/  / \:\~\:\ \/__/ \/__/~~/:/  / \:\  \ /:/  / \:\  \ /:/  / \:\~\:\ \/__/          \/__\:\/:/  / \:\  \    \:\  \    \:\  \ /:/  / \:\/:/ /:/  / \/__|:|/:/  / \:\~\:\ \/__/ \:\ \:\ \/__/ \:\ \:\ \/__/          \/__/~~/:/  / \:\  \ /:/  / \:\  \ /:/  /
+//        /:/  /       \::/  /       \::/  /            \:\ \:\__\        \::/  /        /:/  /   \:\ \:\__\         /:/  /   \:\  /:/  /   \:\  /:/  /   \:\ \:\__\                 \::/  /   \:\  \    \:\  \    \:\  /:/  /   \::/_/:/  /      |:/:/  /   \:\ \:\__\    \:\ \:\__\    \:\ \:\__\                  /:/  /   \:\  /:/  /   \:\  /:/  / 
+//       /:/  /        /:/  /         \/__/              \:\/:/  /        /:/  /        /:/  /     \:\ \/__/        /:/  /     \:\/:/  /     \:\/:/  /     \:\ \/__/                 /:/  /     \:\  \    \:\  \    \:\/:/  /     \:\/:/  /       |::/  /     \:\ \/__/     \:\/:/  /     \:\/:/  /                 /:/  /     \:\/:/  /     \:\/:/  /  
+//      /:/  /        /:/  /                              \::/  /        /:/  /        /:/  /       \:\__\         /:/  /       \::/  /       \::/__/       \:\__\                  /:/  /       \:\__\    \:\__\    \::/  /       \::/  /        /:/  /       \:\__\        \::/  /       \::/  /                 /:/  /       \::/  /       \::/__/   
+//      \/__/         \/__/                                \/__/         \/__/         \/__/         \/__/         \/__/         \/__/         ~~            \/__/                  \/__/         \/__/     \/__/     \/__/         \/__/         \/__/         \/__/         \/__/         \/__/                  \/__/         \/__/                
+// MAP GAMEMODE ALLOWNESS MOD
+
+namespace GamemodeAllowness {
+    string[] GameModeBlackList = {
+        "TM_COTDQualifications_Online", "TM_KnockoutDaily_Online"
+    };
+
+    class GamemodeAllownessCheck : AllowCheck::IAllownessCheck {
+        bool isAllowed = false;
+        
+        void Initialize() {
+            OnMapLoad();
         }
 
         void OnMapLoad() {
             auto net = cast<CGameCtnNetwork>(GetApp().Network);
             if (net is null) return;
-
             auto cnsi = cast<CGameCtnNetServerInfo>(net.ServerInfo);
             if (cnsi is null) return;
+            string mode = cnsi.ModeName;
 
-            wstring mode = cnsi.ModeName;
-            if (mode.Length == 0) return;
-
-            if (IsBlacklisted(mode)) {
-                log("Map loading disabled due to blacklisted mode: " + mode + "'", LogLevel::Warn, 59, "OnMapLoad");
-                canLoadRecords = false;
-                return;
+            if (mode.Length == 0 || !IsBlacklisted(mode)) {
+                isAllowed = true;
+            } else {
+                log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 59, "OnMapLoad");
+                isAllowed = false;
             }
-
-            gamemode_AllowCheckIsOk = true;
-            canLoadRecords = true;
         }
+
+        bool IsConditionMet() { return isAllowed; }
+
+        string GetDisallowReason() {
+            return isAllowed ? "" : "You cannot load maps in the blacklisted game mode.";
+        }
+
+        bool IsBlacklisted(const string &in mode) {
+            return GameModeBlackList.Find(mode) >= 0;
+        }
+    }
+
+    AllowCheck::IAllownessCheck@ CreateInstance() {
+        return GamemodeAllownessCheck();
     }
 }
