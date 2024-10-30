@@ -11,17 +11,27 @@ namespace MapTracker {
             if (!enableGhosts) continue;
 
             if (HasMapChanged()) {
-                AllowCheck::InitializeAllowCheck();
+                while (!_Game::IsPlayingMap()) yield();
 
-                uint timeout = 10000;
+                uint timeout = 500;
                 uint startTime = Time::Now;
-                while (!AllowCheck::ConditionCheckMet()) {
-                    if (Time::Now - startTime > timeout) { NotifyWarn("Condition check timed out (" + timeout + " ms was given), assuming invalid state."); break; }
-                    yield();
+                AllowCheck::InitializeAllowCheck();
+                bool conditionMet = false;
+                while (!conditionMet) { 
+                    if (Time::Now - startTime > timeout) { NotifyWarn("Condition check timed out ("+timeout+" ms was given), assuming invalid state."); break; }
+                    yield(); 
+                    conditionMet = AllowCheck::ConditionCheckMet();
                 }
+                if (AllowCheck::ConditionCheckMet()) {
+                    // 
 
-                PBManager::Initialize(GetApp());
-                PBManager::LoadPBFromIndex();
+                    PBManager::Initialize(GetApp());
+                    PBManager::LoadPBFromIndex();
+                    
+                    // 
+                } else {
+                    NotifyWarn("You cannot load records on this map : " + AllowCheck::DissalowReason());
+                }
             }
 
             if (HasMapChanged()) oldMapUid = get_CurrentMapUID();
