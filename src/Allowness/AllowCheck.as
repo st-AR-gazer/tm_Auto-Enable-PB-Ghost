@@ -62,7 +62,7 @@ namespace AllowCheck {
 
 namespace GamemodeAllowness {
     string[] GameModeBlackList = {
-        "TM_COTDQualifications_Online", "TM_KnockoutDaily_Online"
+        /*"TM_COTDQualifications_Online", */"TM_KnockoutDaily_Online" // You can apperently load PB ghosts in the COTD Qualifications mode, thank you TNTree :peepoLove:
     };
 
     class GamemodeAllownessCheck : AllowCheck::IAllownessCheck {
