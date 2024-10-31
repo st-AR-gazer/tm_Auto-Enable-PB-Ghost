@@ -3,16 +3,15 @@ void Main() {
     if (!IO::FileExists(autosaves_index)) {
         IndexAndSaveToFile();
     }
-    MapTracker::MapMonitor();
+    startnew(MapTracker::MapMonitor);
 
-    // Initialize PB Manager and visibility hook
     PBManager::Initialize(GetApp());
-    PBManager::LoadPBFromIndex();
+    PBManager::LoadPB();
 }
 
 void OnDisabled() {
     PBVisibilityHook::UninitializeHook();
-    PBManager::UnloadPB();
+    PBManager::UnloadAllPBs();
 }
 
 void OnDestroyed() {

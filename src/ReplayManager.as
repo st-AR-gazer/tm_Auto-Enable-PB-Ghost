@@ -1,10 +1,5 @@
 namespace ReplayManager {
     void ProcessSelectedFile(const string &in filePath) {
-        if (PBManager::IsPBLoaded() || PBManager::IsLocalPBLoaded()) { 
-            log("PB is already loaded, doing nothing", LogLevel::Info, 4, "ProcessSelectedFile"); 
-            return; 
-        }
-
         startnew(CoroutineFuncUserdataString(Coro_ProcessSelectedFile), filePath);
     }
 
@@ -67,7 +62,7 @@ namespace ReplayManager {
 
         for (uint i = 0; i < task.Ghosts.Length; i++) {
             task.Ghosts[i].IdName = "Personal best";
-            task.Ghosts[i].Nickname = /*"$5d8" +*/ "Personal best";
+            task.Ghosts[i].Nickname = "$5d8" + "Personal best";
             task.Ghosts[i].Trigram = "PB";
             ghostMgr.Ghost_Add(task.Ghosts[i]);
         }

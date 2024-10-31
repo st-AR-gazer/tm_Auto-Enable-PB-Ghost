@@ -9,11 +9,9 @@ namespace PBVisibilityHook {
         void OnEvent(MLHook::PendingEvent@ event) override {
             if (this.type == "TMGame_Record_TogglePB") {
                 pbToggleReceived = true;
-                log("PBVisibilityHook: Received TMGame_Record_TogglePB event.", LogLevel::Info, 100, "OnEvent");
             }
             else if (this.type == "TMGame_Record_UpdatePBGhostVisibility") {
                 if (!pbToggleReceived) {
-                    log("PBVisibilityHook: Ignoring TMGame_Record_UpdatePBGhostVisibility event without prior PB toggle.", LogLevel::Info, 101, "OnEvent");
                     return;
                 }
 
@@ -22,11 +20,9 @@ namespace PBVisibilityHook {
                 bool shouldShow = tostring(event.data[0]).ToLower().Contains("true");
 
                 if (shouldShow) {
-                    PBManager::LoadPB();
-                    log("PBVisibilityHook: PB ghost set to visible.", LogLevel::Info, 101, "PBVisibilityUpdateHook");
+                    startnew(PBManager::LoadPB);
                 } else {
-                    PBManager::UnloadPB();
-                    log("PBVisibilityHook: PB ghost set to hidden.", LogLevel::Info, 102, "PBVisibilityUpdateHook");
+                    startnew(PBManager::UnloadAllPBs);
                 }
             }
         }
