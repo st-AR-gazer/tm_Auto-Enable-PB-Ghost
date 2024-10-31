@@ -16,18 +16,17 @@ namespace PBManager {
 
     NGameGhostClips_SMgr@ ghostMgr;
     CGameCtnMediaClipPlayer@ currentPBGhostPlayer;
-
+    array<PBRecord@> currentMapPBRecords;
     array<uint> saving;
 
     void Initialize(CGameCtnApp@ app) {
         @ghostMgr = GhostClipsMgr::Get(app);
+        needsRefresh = true;
     }
 
     bool IsPBLoaded() {
         if (ghostMgr is null) return false;
-        
         CGameCtnMediaClipPlayer@ pbClipPlayer = GhostClipsMgr::GetPBClipPlayer(ghostMgr);
-        
         return pbClipPlayer !is null;
     }
 
@@ -47,7 +46,13 @@ namespace PBManager {
         return false;
     }
 
-    array<PBRecord@> currentMapPBRecords;
+    bool needsRefresh = true;
+    void LoadPB() {
+        UnloadAllPBs();
+        if (needsRefresh) LoadPBFromIndex();
+        needsRefresh = false;
+        LoadPBFromCache();
+    }
     
     void LoadPBFromIndex() {
         string loadPath = autosaves_index;
@@ -65,51 +70,36 @@ namespace PBManager {
             string fullFilePath = j["FullFilePath"];
             PBRecord@ pbRecord = PBRecord(mapUid, fileName, fullFilePath);
             pbRecords.InsertLast(pbRecord);
-            // log("LoadPBFromIndex: Loaded PBRecord for MapUid: " + mapUid + ", FileName: " + fileName, LogLevel::Dark, 48, "LoadPBFromIndex");
+            // log("LoadPBFromIndex: Loaded PBRecord for MapUid: " + mapUid + ", FileName: " + fileName, LogLevel::Dark, 73, "LoadPBFromIndex");
         }
 
         currentMapPBRecords = GetPBRecordsForCurrentMap();
     }
 
     void LoadPBFromCache() {
+        currentMapPBRecords = GetPBRecordsForCurrentMap();
+        auto ghostMgr = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
+
         for (uint i = 0; i < currentMapPBRecords.Length; i++) {
             if (IO::FileExists(currentMapPBRecords[i].FullFilePath)) {
-                ReplayManager::ProcessSelectedFile(currentMapPBRecords[i].FullFilePath);
-                log("LoadPBFromCache: Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 48, "LoadPBFromCache");
+                auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(currentMapPBRecords[i].FullFilePath);
+                while (task.IsProcessing) { yield(); }
+
+                if (task.HasFailed || !task.HasSucceeded) {
+                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].FullFilePath, LogLevel::Error, 89, "LoadPBFromCache");
+                    continue;
+                }
+
+                for (uint j = 0; j < task.Ghosts.Length; j++) {
+                    auto ghost = task.Ghosts[j];
+                    ghost.IdName = "Personal best";
+                    ghost.Nickname = "$5d8" + "Personal best";
+                    ghost.Trigram = "PB";
+                    ghostMgr.Ghost_Add(ghost);
+                }
+                
+                log("Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 101, "LoadPBFromCache");
             }
-        }
-    }
-
-    void LoadPB() {
-        UnloadAllPBs();
-        LoadPBFromIndex();
-        LoadPBFromCache();
-    }
-
-    const string SetFocusedRecord_PageUID = "SetFocusedRecord";
-
-    dictionary ghostWsidsLoaded;
-
-    void Update_ML_SetGhostUnloaded(const string &in wsid) {
-        if (ghostWsidsLoaded.Exists(wsid)) {
-            ghostWsidsLoaded.Delete(wsid);
-        }
-        MLHook::Queue_MessageManialinkPlayground(SetFocusedRecord_PageUID, {"SetGhostUnloaded", wsid});
-    }
-
-    string LoginToWSID(const string &in login) {
-        try {
-            auto buf = MemoryBuffer();
-            buf.WriteFromBase64(login, true);
-            string hex = Utils::BufferToHex(buf);
-            string wsid = hex.SubStr(0, 8)
-                + "-" + hex.SubStr(8, 4)
-                + "-" + hex.SubStr(12, 4)
-                + "-" + hex.SubStr(16, 4)
-                + "-" + hex.SubStr(20);
-            return wsid;
-        } catch {
-            return login;
         }
     }
 
@@ -124,7 +114,7 @@ namespace PBManager {
             try {
                 ghostNickname = mgr.Ghosts[i].GhostModel.GhostNickname;
             } catch {
-                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 48, "UnloadAllPBs");
+                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 117, "UnloadAllPBs");
                 continue;
             }
 
@@ -193,6 +183,32 @@ namespace PBManager {
         }
 
         return currentMapRecords;
+    }
+
+    const string SetFocusedRecord_PageUID = "SetFocusedRecord";
+    dictionary ghostWsidsLoaded;
+
+    void Update_ML_SetGhostUnloaded(const string &in wsid) {
+        if (ghostWsidsLoaded.Exists(wsid)) {
+            ghostWsidsLoaded.Delete(wsid);
+        }
+        MLHook::Queue_MessageManialinkPlayground(SetFocusedRecord_PageUID, {"SetGhostUnloaded", wsid});
+    }
+
+    string LoginToWSID(const string &in login) {
+        try {
+            auto buf = MemoryBuffer();
+            buf.WriteFromBase64(login, true);
+            string hex = Utils::BufferToHex(buf);
+            string wsid = hex.SubStr(0, 8)
+                + "-" + hex.SubStr(8, 4)
+                + "-" + hex.SubStr(12, 4)
+                + "-" + hex.SubStr(16, 4)
+                + "-" + hex.SubStr(20);
+            return wsid;
+        } catch {
+            return login;
+        }
     }
 }
 

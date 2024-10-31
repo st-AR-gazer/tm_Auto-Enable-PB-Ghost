@@ -26,7 +26,7 @@ namespace MapTracker {
                     // 
 
                     PBManager::Initialize(GetApp());
-                    PBManager::LoadPBFromIndex();
+                    PBManager::LoadPB();
                     
                     // 
                 } else {
