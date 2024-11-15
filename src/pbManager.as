@@ -59,7 +59,7 @@ namespace PBManager {
         if (needsRefresh) LoadPBFromIndex();
         needsRefresh = false;
         LoadPBFromCache();
-        if (!IsLocalPBLoaded() && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers.", LogLevel::Error, 56, "LoadPB"); }
+        if (!IsLocalPBLoaded() && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers.", LogLevel::Error, 62, "LoadPB"); }
         LoadPBFromLeaderboards();
     }
     
@@ -95,7 +95,7 @@ namespace PBManager {
                 while (task.IsProcessing) { yield(); }
 
                 if (task.HasFailed || !task.HasSucceeded) {
-                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].FullFilePath, LogLevel::Error, 93, "LoadPBFromCache");
+                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].FullFilePath, LogLevel::Error, 98, "LoadPBFromCache");
                     continue;
                 }
 
@@ -107,7 +107,7 @@ namespace PBManager {
                     ghostMgr.Ghost_Add(ghost);
                 }
                 
-                log("Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 105, "LoadPBFromCache");
+                log("Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 110, "LoadPBFromCache");
             }
         }
     }
@@ -135,7 +135,7 @@ namespace PBManager {
         while (task.IsProcessing) { yield(); }
 
         if (task.HasFailed || !task.HasSucceeded) {
-            log('Ghost_Download failed: ' + task.ErrorCode + ", " + task.ErrorType + ", " + task.ErrorDescription + " Url used: " + url, LogLevel::Error, 132, "Coro_LoadPBFromLeaderboards");
+            log('Ghost_Download failed: ' + task.ErrorCode + ", " + task.ErrorType + ", " + task.ErrorDescription + " Url used: " + url, LogLevel::Error, 138, "Coro_LoadPBFromLeaderboards");
             return;
         }
 
@@ -145,7 +145,7 @@ namespace PBManager {
 
         CGameGhostMgrScript@ gm = ps.GhostMgr;
         MwId instId = gm.Ghost_Add(task.Ghost, true);
-        log('Instance ID: ' + instId.GetName() + " / " + Text::Format("%08x", instId.Value), LogLevel::Info, 138, "Coro_LoadPBFromLeaderboards");
+        log('Instance ID: ' + instId.GetName() + " / " + Text::Format("%08x", instId.Value), LogLevel::Info, 148, "Coro_LoadPBFromLeaderboards");
 
         dfm.TaskResult_Release(task.Id);
     }
@@ -176,7 +176,7 @@ namespace PBManager {
 
         string GetUrlForCurrentMap() {
             string currentMapUid = get_CurrentMapUID();
-            if (currentMapUid.Length == 0) { log("Current map UID not found.", LogLevel::Error, 164, "GetUrlForCurrentMap"); return ""; }
+            if (currentMapUid.Length == 0) { log("Current map UID not found.", LogLevel::Error, 179, "GetUrlForCurrentMap"); return ""; }
 
             mapUid = currentMapUid;
 
@@ -194,7 +194,7 @@ namespace PBManager {
             fetchGhostUrl = "https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList=" + accountId + "&mapId=" + mapId;
 
             startnew(CoroutineFunc(Coro_FetchGhostUrl));
-            log("Found ghost URL: " + ghostUrl, LogLevel::Info, 186, "GetUrlForCurrentMap");
+            log("Found ghost URL: " + ghostUrl, LogLevel::Info, 197, "GetUrlForCurrentMap");
 
             while (ghostUrl.Length == 0) { yield(); }
 
@@ -222,12 +222,12 @@ namespace PBManager {
 
         void FetchAccountId() {
             auto app = cast<CGameCtnApp>(GetApp());
-            if (app is null) { log("Failed to fetch account ID, app not found.", LogLevel::Error, 194, "FetchAccountId"); return; }
+            if (app is null) { log("Failed to fetch account ID, app not found.", LogLevel::Error, 225, "FetchAccountId"); return; }
             auto net = cast<CTrackManiaNetwork>(app.Network);
-            if (net is null) { log("Failed to fetch account ID, network not found.", LogLevel::Error, 196, "FetchAccountId"); return; }
+            if (net is null) { log("Failed to fetch account ID, network not found.", LogLevel::Error, 227, "FetchAccountId"); return; }
             accountId = net.PlayerInfo.WebServicesUserId;
 
-            log("Found account ID: " + accountId, LogLevel::Info, 199, "FetchAccountId");
+            log("Found account ID: " + accountId, LogLevel::Info, 230, "FetchAccountId");
         }
 
         void FetchMapId(const string &in mapUid) {
@@ -239,16 +239,16 @@ namespace PBManager {
             while (!req.Finished()) { yield(); }
 
             if (req.ResponseCode() != 200) {
-                log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 211, "FetchMapId");
+                log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 242, "FetchMapId");
             } else {
                 Json::Value data = Json::Parse(req.String());
                 if (data.GetType() == Json::Type::Null) {
-                    log("Failed to parse response for map ID.", LogLevel::Error, 215, "FetchMapId");
+                    log("Failed to parse response for map ID.", LogLevel::Error, 246, "FetchMapId");
                 } else {
                     if (data.GetType() != Json::Type::Array || data.Length == 0) {
-                        log("Invalid map data in response.", LogLevel::Error, 218, "FetchMapId");
+                        log("Invalid map data in response.", LogLevel::Error, 249, "FetchMapId");
                     } else {
-                        log("Found map ID: " + string(data[0]["mapId"]), LogLevel::Info, 220, "FetchMapId");
+                        log("Found map ID: " + string(data[0]["mapId"]), LogLevel::Info, 251, "FetchMapId");
                         mapId = data[0]["mapId"];
                     }
                 }
@@ -278,7 +278,7 @@ namespace PBManager {
 
                         ghostUrlFetched = true;
 
-                        log(url, LogLevel::Info, 248, "FetchedGhostLink");
+                        log(url, LogLevel::Info, 281, "FetchGhostUrl");
                     }
                 }
             }
@@ -296,7 +296,7 @@ namespace PBManager {
             try {
                 ghostNickname = mgr.Ghosts[i].GhostModel.GhostNickname;
             } catch {
-                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 239, "UnloadAllPBs");
+                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 299, "UnloadAllPBs");
                 continue;
             }
 
