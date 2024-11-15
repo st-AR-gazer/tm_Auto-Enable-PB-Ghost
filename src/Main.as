@@ -6,7 +6,7 @@ void Main() {
     startnew(MapTracker::MapMonitor);
 
     PBManager::Initialize(GetApp());
-    PBManager::LoadPB();
+    // PBManager::LoadPB();
 }
 
 void OnDisabled() {
@@ -16,4 +16,11 @@ void OnDisabled() {
 
 void OnDestroyed() {
     OnDisabled();
+}
+
+void Update(float dt) {
+    if (reindexAutosaves) {
+        reindexAutosaves = false;
+        IndexAndSaveToFile();
+    }
 }

@@ -1,3 +1,9 @@
+[Setting name="Special Ghost Plugin Indicator" category="General"]
+string S_specialGhostPluginIdicator = ".";
+
+[Setting name="Use leaderboard as a last resort for loading a pb" category="General"]
+bool S_useLeaderboardAsLastResort = true;
+
 class PBRecord {
     string MapUid;
     string FileName;
@@ -48,10 +54,13 @@ namespace PBManager {
 
     bool needsRefresh = true;
     void LoadPB() {
+        if (!_Game::IsPlayingMap()) { return; }
         UnloadAllPBs();
         if (needsRefresh) LoadPBFromIndex();
         needsRefresh = false;
         LoadPBFromCache();
+        if (!IsLocalPBLoaded() && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers.", LogLevel::Error, 56, "LoadPB"); }
+        LoadPBFromLeaderboards();
     }
     
     void LoadPBFromIndex() {
@@ -70,7 +79,6 @@ namespace PBManager {
             string fullFilePath = j["FullFilePath"];
             PBRecord@ pbRecord = PBRecord(mapUid, fileName, fullFilePath);
             pbRecords.InsertLast(pbRecord);
-            // log("LoadPBFromIndex: Loaded PBRecord for MapUid: " + mapUid + ", FileName: " + fileName, LogLevel::Dark, 73, "LoadPBFromIndex");
         }
 
         currentMapPBRecords = GetPBRecordsForCurrentMap();
@@ -78,6 +86,7 @@ namespace PBManager {
 
     void LoadPBFromCache() {
         currentMapPBRecords = GetPBRecordsForCurrentMap();
+        if (cast<CSmArenaRulesMode>(GetApp().PlaygroundScript) is null) { return; }
         auto ghostMgr = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
 
         for (uint i = 0; i < currentMapPBRecords.Length; i++) {
@@ -86,7 +95,7 @@ namespace PBManager {
                 while (task.IsProcessing) { yield(); }
 
                 if (task.HasFailed || !task.HasSucceeded) {
-                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].FullFilePath, LogLevel::Error, 89, "LoadPBFromCache");
+                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].FullFilePath, LogLevel::Error, 93, "LoadPBFromCache");
                     continue;
                 }
 
@@ -94,11 +103,184 @@ namespace PBManager {
                     auto ghost = task.Ghosts[j];
                     ghost.IdName = "Personal best";
                     ghost.Nickname = "$5d8" + "Personal best";
-                    ghost.Trigram = "PB";
+                    ghost.Trigram = "PB" + S_specialGhostPluginIdicator;
                     ghostMgr.Ghost_Add(ghost);
                 }
                 
-                log("Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 101, "LoadPBFromCache");
+                log("Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 105, "LoadPBFromCache");
+            }
+        }
+    }
+
+    void LoadPBFromLeaderboards() {
+        startnew(Coro_LoadPBFromLeaderboards);
+    }
+    
+    void Coro_LoadPBFromLeaderboards() {
+        NadeoServices::AddAudience("NadeoServices");
+        while (!NadeoServices::IsAuthenticated("NadeoServices")) { yield(); }
+
+        auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
+        if (ps is null) { return; }
+        CGameDataFileManagerScript@ dfm = ps.DataFileMgr;
+        if (dfm is null) { return; }
+
+        LeaderboardManager lbmgr;
+        string url = lbmgr.GetUrlForCurrentMap();
+
+        while (url.Length == 0) { yield(); }
+
+        CWebServicesTaskResult_GhostScript@ task = dfm.Ghost_Download("", url);
+
+        while (task.IsProcessing) { yield(); }
+
+        if (task.HasFailed || !task.HasSucceeded) {
+            log('Ghost_Download failed: ' + task.ErrorCode + ", " + task.ErrorType + ", " + task.ErrorDescription + " Url used: " + url, LogLevel::Error, 132, "Coro_LoadPBFromLeaderboards");
+            return;
+        }
+
+        task.Ghost.IdName = "Personal best";
+        task.Ghost.Nickname = "$5d8" + "Personal best";
+        task.Ghost.Trigram = "PB" + S_specialGhostPluginIdicator;
+
+        CGameGhostMgrScript@ gm = ps.GhostMgr;
+        MwId instId = gm.Ghost_Add(task.Ghost, true);
+        log('Instance ID: ' + instId.GetName() + " / " + Text::Format("%08x", instId.Value), LogLevel::Info, 138, "Coro_LoadPBFromLeaderboards");
+
+        dfm.TaskResult_Release(task.Id);
+    }
+
+    class LeaderboardManager {
+        string accountId;
+        string mapId;
+        string fetchGhostUrl;
+
+        string ghostUrl;
+
+        string mapUid;
+
+        bool accountIdFetched;
+        bool mapIdFetched;
+        bool ghostUrlFetched;
+
+        string get_CurrentMapUID() {
+            if (_Game::IsMapLoaded()) {
+                CTrackMania@ app = cast<CTrackMania>(GetApp());
+                if (app is null) return "";
+                CGameCtnChallenge@ map = app.RootMap;
+                if (map is null) return "";
+                return map.MapInfo.MapUid;
+            }
+            return "";
+        }
+
+        string GetUrlForCurrentMap() {
+            string currentMapUid = get_CurrentMapUID();
+            if (currentMapUid.Length == 0) { log("Current map UID not found.", LogLevel::Error, 164, "GetUrlForCurrentMap"); return ""; }
+
+            mapUid = currentMapUid;
+
+            accountIdFetched = false;
+            mapIdFetched = false;
+
+            startnew(CoroutineFunc(Coro_FetchAccountId));
+            startnew(CoroutineFunc(Coro_FetchMapId));
+
+            while (!(accountIdFetched && mapIdFetched)) { yield(); }
+
+            accountIdFetched = false;
+            mapIdFetched = false;
+
+            fetchGhostUrl = "https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList=" + accountId + "&mapId=" + mapId;
+
+            startnew(CoroutineFunc(Coro_FetchGhostUrl));
+            log("Found ghost URL: " + ghostUrl, LogLevel::Info, 186, "GetUrlForCurrentMap");
+
+            while (ghostUrl.Length == 0) { yield(); }
+
+            string t_ghostUrl = ghostUrl;
+            ghostUrl = "";
+
+
+            return t_ghostUrl;
+        }
+
+        void Coro_FetchAccountId() {
+            FetchAccountId();
+            accountIdFetched = true;
+        }
+
+        void Coro_FetchMapId() {
+            FetchMapId(mapUid);
+            mapIdFetched = true;
+        }
+
+        void Coro_FetchGhostUrl() {
+            FetchGhostUrl(fetchGhostUrl);
+            ghostUrlFetched = true;
+        }
+
+        void FetchAccountId() {
+            auto app = cast<CGameCtnApp>(GetApp());
+            if (app is null) { log("Failed to fetch account ID, app not found.", LogLevel::Error, 194, "FetchAccountId"); return; }
+            auto net = cast<CTrackManiaNetwork>(app.Network);
+            if (net is null) { log("Failed to fetch account ID, network not found.", LogLevel::Error, 196, "FetchAccountId"); return; }
+            accountId = net.PlayerInfo.WebServicesUserId;
+
+            log("Found account ID: " + accountId, LogLevel::Info, 199, "FetchAccountId");
+        }
+
+        void FetchMapId(const string &in mapUid) {
+            string url = "https://prod.trackmania.core.nadeo.online/maps/?mapUidList=" + mapUid;
+            auto req = NadeoServices::Get("NadeoServices", url);
+
+            req.Start();
+
+            while (!req.Finished()) { yield(); }
+
+            if (req.ResponseCode() != 200) {
+                log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 211, "FetchMapId");
+            } else {
+                Json::Value data = Json::Parse(req.String());
+                if (data.GetType() == Json::Type::Null) {
+                    log("Failed to parse response for map ID.", LogLevel::Error, 215, "FetchMapId");
+                } else {
+                    if (data.GetType() != Json::Type::Array || data.Length == 0) {
+                        log("Invalid map data in response.", LogLevel::Error, 218, "FetchMapId");
+                    } else {
+                        log("Found map ID: " + string(data[0]["mapId"]), LogLevel::Info, 220, "FetchMapId");
+                        mapId = data[0]["mapId"];
+                    }
+                }
+            }
+        }
+
+        void FetchGhostUrl(const string &in url) {
+            auto request = NadeoServices::Get("NadeoServices", url);
+
+            request.Start();
+
+            while (!request.Finished()) { yield(); }
+
+            print(request.ResponseCode());
+
+            if (request.ResponseCode() == 200) {
+                Json::Value data = Json::Parse(request.String());
+
+                print(request.String());
+
+                if (data.GetType() == Json::Type::Array) {
+                    for (uint i = 0; i < data.Length; i++) {
+                        auto record = data[i];
+                        string url = string(record["url"]);
+
+                        ghostUrl = url;
+
+                        ghostUrlFetched = true;
+
+                        log(url, LogLevel::Info, 248, "FetchedGhostLink");
+                    }
+                }
             }
         }
     }
@@ -114,7 +296,7 @@ namespace PBManager {
             try {
                 ghostNickname = mgr.Ghosts[i].GhostModel.GhostNickname;
             } catch {
-                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 117, "UnloadAllPBs");
+                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 239, "UnloadAllPBs");
                 continue;
             }
 
