@@ -59,7 +59,7 @@ namespace PBManager {
         if (needsRefresh) LoadPBFromIndex();
         needsRefresh = false;
         LoadPBFromCache();
-        if (!IsLocalPBLoaded() && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers.", LogLevel::Error, 62, "LoadPB"); }
+        if ((IsLocalPBLoaded() || IsPBLoaded()) && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers (if applicable).", LogLevel::Error, 62, "LoadPB"); return; } 
         LoadPBFromLeaderboards();
     }
     
