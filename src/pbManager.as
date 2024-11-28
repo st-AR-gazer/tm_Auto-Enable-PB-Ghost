@@ -4,15 +4,20 @@ string S_specialGhostPluginIdicator = ".";
 [Setting name="Use leaderboard as a last resort for loading a pb" category="General"]
 bool S_useLeaderboardAsLastResort = true;
 
-class PBRecord {
-    string MapUid;
-    string FileName;
-    string FullFilePath;
+[Setting name="Only Load One PB Ghost If Multiple Are Found" category="General"]
+bool S_onlyLoadFastestPB = true;
 
-    PBRecord(const string &in mapUid, const string &in fileName, const string &in fullFilePath) {
-        MapUid = mapUid;
-        FileName = fileName;
-        FullFilePath = fullFilePath;
+class PBRecord {
+    string mapUid;
+    string fileName;
+    string fullFilePath;
+    string score; // will be empty unless S_onlyLoadFastestPB is true (as we only need it for this case, and setting it causes a small delay with processing tasks)
+
+    PBRecord(const string &in _mapUid, const string &in _fileName, const string &in _fullFilePath, const string &in _score = "") {
+        mapUid = _mapUid;
+        fileName = _fileName;
+        fullFilePath = _fullFilePath;
+        score = _score;
     }
 }
 
@@ -59,7 +64,7 @@ namespace PBManager {
         if (needsRefresh) LoadPBFromIndex();
         needsRefresh = false;
         LoadPBFromCache();
-        if ((IsLocalPBLoaded() || IsPBLoaded()) && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers (if applicable).", LogLevel::Error, 62, "LoadPB"); return; } 
+        if ((IsLocalPBLoaded() || IsPBLoaded()) && !S_useLeaderboardAsLastResort) { log("Failed to load local PB ghosts, trying from nadeo servers (if applicable).", LogLevel::Error, 67, "LoadPB"); return; } 
         LoadPBFromLeaderboards();
     }
     
@@ -77,7 +82,11 @@ namespace PBManager {
             string mapUid = j["MapUid"];
             string fileName = j["FileName"];
             string fullFilePath = j["FullFilePath"];
-            PBRecord@ pbRecord = PBRecord(mapUid, fileName, fullFilePath);
+
+            // We need to get the score from the replay file itself, so we'll just leave this empty for now...
+            string score = j[""];
+            
+            PBRecord@ pbRecord = PBRecord(mapUid, fileName, fullFilePath, score);
             pbRecords.InsertLast(pbRecord);
         }
 
@@ -89,13 +98,49 @@ namespace PBManager {
         if (cast<CSmArenaRulesMode>(GetApp().PlaygroundScript) is null) { return; }
         auto ghostMgr = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
 
+        if (S_onlyLoadFastestPB) {
+            array<CWebServicesTaskResult_GhostListScript@> tasks;
+            for (uint j = 0; j < currentMapPBRecords.Length; j++) {
+                auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(currentMapPBRecords[j].fullFilePath);
+                tasks.InsertLast(task);
+            }
+
+            for (uint i = 0; i < tasks.Length; i++) {
+                while (tasks[i].IsProcessing) { yield(); }
+
+                if (tasks[i].HasFailed || !tasks[i].HasSucceeded) {
+                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].fullFilePath, LogLevel::Error, 112, "LoadPBFromCache");
+                    continue;
+                }
+
+                currentMapPBRecords[i].score = tasks[i].Ghosts[i].Result.Score;
+            }
+            
+            PBRecord@ fastestPB = null;
+
+            for (uint i = 0; i < currentMapPBRecords.Length; i++) {
+                if (fastestPB is null) {
+                    @fastestPB = currentMapPBRecords[i];
+                } else {
+                    if (fastestPB.score < currentMapPBRecords[i].score) {
+                        @fastestPB = currentMapPBRecords[i];
+                    }
+                }
+            }
+
+            if (fastestPB !is null) {
+                currentMapPBRecords.RemoveRange(0, currentMapPBRecords.Length);
+                currentMapPBRecords.InsertLast(fastestPB);
+            }
+        }
+
         for (uint i = 0; i < currentMapPBRecords.Length; i++) {
-            if (IO::FileExists(currentMapPBRecords[i].FullFilePath)) {
-                auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(currentMapPBRecords[i].FullFilePath);
+            if (IO::FileExists(currentMapPBRecords[i].fullFilePath)) {
+                auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(currentMapPBRecords[i].fullFilePath);
                 while (task.IsProcessing) { yield(); }
 
                 if (task.HasFailed || !task.HasSucceeded) {
-                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].FullFilePath, LogLevel::Error, 98, "LoadPBFromCache");
+                    log("Failed to load replay file from cache: " + currentMapPBRecords[i].fullFilePath, LogLevel::Error, 143, "LoadPBFromCache");
                     continue;
                 }
 
@@ -107,7 +152,11 @@ namespace PBManager {
                     ghostMgr.Ghost_Add(ghost);
                 }
                 
-                log("Loaded PB ghost from " + currentMapPBRecords[i].FullFilePath, LogLevel::Info, 110, "LoadPBFromCache");
+                log("Loaded PB ghost from " + currentMapPBRecords[i].fullFilePath, LogLevel::Info, 155, "LoadPBFromCache");
+
+                if (S_onlyLoadFastestPB) {
+                    break;
+                }
             }
         }
     }
@@ -135,7 +184,7 @@ namespace PBManager {
         while (task.IsProcessing) { yield(); }
 
         if (task.HasFailed || !task.HasSucceeded) {
-            log('Ghost_Download failed: ' + task.ErrorCode + ", " + task.ErrorType + ", " + task.ErrorDescription + " Url used: " + url, LogLevel::Error, 138, "Coro_LoadPBFromLeaderboards");
+            log('Ghost_Download failed: ' + task.ErrorCode + ", " + task.ErrorType + ", " + task.ErrorDescription + " Url used: " + url, LogLevel::Error, 187, "Coro_LoadPBFromLeaderboards");
             return;
         }
 
@@ -145,7 +194,7 @@ namespace PBManager {
 
         CGameGhostMgrScript@ gm = ps.GhostMgr;
         MwId instId = gm.Ghost_Add(task.Ghost, true);
-        log('Instance ID: ' + instId.GetName() + " / " + Text::Format("%08x", instId.Value), LogLevel::Info, 148, "Coro_LoadPBFromLeaderboards");
+        log('Instance ID: ' + instId.GetName() + " / " + Text::Format("%08x", instId.Value), LogLevel::Info, 197, "Coro_LoadPBFromLeaderboards");
 
         dfm.TaskResult_Release(task.Id);
     }
@@ -176,7 +225,7 @@ namespace PBManager {
 
         string GetUrlForCurrentMap() {
             string currentMapUid = get_CurrentMapUID();
-            if (currentMapUid.Length == 0) { log("Current map UID not found.", LogLevel::Error, 179, "GetUrlForCurrentMap"); return ""; }
+            if (currentMapUid.Length == 0) { log("Current map UID not found.", LogLevel::Error, 228, "GetUrlForCurrentMap"); return ""; }
 
             mapUid = currentMapUid;
 
@@ -194,7 +243,7 @@ namespace PBManager {
             fetchGhostUrl = "https://prod.trackmania.core.nadeo.online/v2/mapRecords/?accountIdList=" + accountId + "&mapId=" + mapId;
 
             startnew(CoroutineFunc(Coro_FetchGhostUrl));
-            log("Found ghost URL: " + ghostUrl, LogLevel::Info, 197, "GetUrlForCurrentMap");
+            log("Found ghost URL: " + ghostUrl, LogLevel::Info, 246, "GetUrlForCurrentMap");
 
             while (ghostUrl.Length == 0) { yield(); }
 
@@ -222,12 +271,12 @@ namespace PBManager {
 
         void FetchAccountId() {
             auto app = cast<CGameCtnApp>(GetApp());
-            if (app is null) { log("Failed to fetch account ID, app not found.", LogLevel::Error, 225, "FetchAccountId"); return; }
+            if (app is null) { log("Failed to fetch account ID, app not found.", LogLevel::Error, 274, "FetchAccountId"); return; }
             auto net = cast<CTrackManiaNetwork>(app.Network);
-            if (net is null) { log("Failed to fetch account ID, network not found.", LogLevel::Error, 227, "FetchAccountId"); return; }
+            if (net is null) { log("Failed to fetch account ID, network not found.", LogLevel::Error, 276, "FetchAccountId"); return; }
             accountId = net.PlayerInfo.WebServicesUserId;
 
-            log("Found account ID: " + accountId, LogLevel::Info, 230, "FetchAccountId");
+            log("Found account ID: " + accountId, LogLevel::Info, 279, "FetchAccountId");
         }
 
         void FetchMapId(const string &in mapUid) {
@@ -239,16 +288,16 @@ namespace PBManager {
             while (!req.Finished()) { yield(); }
 
             if (req.ResponseCode() != 200) {
-                log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 242, "FetchMapId");
+                log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 291, "FetchMapId");
             } else {
                 Json::Value data = Json::Parse(req.String());
                 if (data.GetType() == Json::Type::Null) {
-                    log("Failed to parse response for map ID.", LogLevel::Error, 246, "FetchMapId");
+                    log("Failed to parse response for map ID.", LogLevel::Error, 295, "FetchMapId");
                 } else {
                     if (data.GetType() != Json::Type::Array || data.Length == 0) {
-                        log("Invalid map data in response.", LogLevel::Error, 249, "FetchMapId");
+                        log("Invalid map data in response.", LogLevel::Error, 298, "FetchMapId");
                     } else {
-                        log("Found map ID: " + string(data[0]["mapId"]), LogLevel::Info, 251, "FetchMapId");
+                        log("Found map ID: " + string(data[0]["mapId"]), LogLevel::Info, 300, "FetchMapId");
                         mapId = data[0]["mapId"];
                     }
                 }
@@ -278,7 +327,7 @@ namespace PBManager {
 
                         ghostUrlFetched = true;
 
-                        log(url, LogLevel::Info, 281, "FetchGhostUrl");
+                        log(url, LogLevel::Info, 330, "FetchGhostUrl");
                     }
                 }
             }
@@ -296,7 +345,7 @@ namespace PBManager {
             try {
                 ghostNickname = mgr.Ghosts[i].GhostModel.GhostNickname;
             } catch {
-                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 299, "UnloadAllPBs");
+                log("UnloadAllPBs: Failed to access GhostNickname for ghost at index " + i, LogLevel::Warn, 348, "UnloadAllPBs");
                 continue;
             }
 
@@ -347,8 +396,8 @@ namespace PBManager {
         if (ix >= 0) { saving.RemoveAt(ix); }
 
         if (i < currentMapPBRecords.Length) {
-            string removedMapUid = currentMapPBRecords[i].MapUid;
-            string removedFilePath = currentMapPBRecords[i].FullFilePath;
+            string removedMapUid = currentMapPBRecords[i].mapUid;
+            string removedFilePath = currentMapPBRecords[i].fullFilePath;
             currentMapPBRecords.RemoveAt(i);
         }
     }
@@ -359,7 +408,7 @@ namespace PBManager {
         currentMapRecords.Resize(0);
 
         for (uint i = 0; i < pbRecords.Length; i++) {
-            if (pbRecords[i].MapUid == currentMapUid) {
+            if (pbRecords[i].mapUid == currentMapUid) {
                 currentMapRecords.InsertLast(pbRecords[i]);
             }
         }
