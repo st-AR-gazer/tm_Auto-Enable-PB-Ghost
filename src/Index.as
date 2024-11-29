@@ -32,9 +32,9 @@ void SavePBRecordsToFile() {
 
     for (uint i = 0; i < pbRecords.Length; i++) {
         Json::Value@ record = Json::Object();
-        record["MapUid"] = pbRecords[i].MapUid;
-        record["FileName"] = pbRecords[i].FileName;
-        record["FullFilePath"] = pbRecords[i].FullFilePath;
+        record["MapUid"] = pbRecords[i].mapUid;
+        record["FileName"] = pbRecords[i].fileName;
+        record["FullFilePath"] = pbRecords[i].fullFilePath;
         jsonData.Add(record);
     }
 
