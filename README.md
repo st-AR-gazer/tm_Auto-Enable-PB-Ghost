@@ -1,4 +1,4 @@
-![Signed](https://img.shields.io/badge/Signed-Yes-33FF33)
+![Signed](https://img.shields.io/badge/Signed-Yes-33BB33)
 ![Trackmania2020](https://img.shields.io/badge/Game-Trackmania-blue)
 
 # Auto Enable PB Ghost
