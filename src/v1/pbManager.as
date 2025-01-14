@@ -39,7 +39,7 @@ namespace PBManager {
     }
 
     void Update(float dt) {
-
+        UnloadSlowestPBs();
     }
 
     bool IsPBLoaded() {
@@ -413,10 +413,6 @@ namespace PBManager {
             string removedFilePath = currentMapPBRecords[i].fullFilePath;
             currentMapPBRecords.RemoveAt(i);
         }
-    }
-
-    void UnloadSlowestPBs() {
-
     }
 
     array<PBRecord@>@ GetPBRecordsForCurrentMap() {

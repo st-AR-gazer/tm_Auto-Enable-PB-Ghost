@@ -14,6 +14,8 @@ void IndexAndSaveToFile() {
         if (path.StartsWith("Autosaves\\")) {
             string mapUid = record.MapUid;
             string fileName = record.FileName;
+            string login = record.PlayerLogin;
+            string x = record.BestTime;
 
             string relativePath = "Replays/" + fileName;
             string fullFilePath = IO::FromUserGameFolder(relativePath);
@@ -46,7 +48,7 @@ void SavePBRecordsToFile() {
 void LoadPBRecordsFromFile() {
     string loadPath = autosaves_index;
     if (!IO::FileExists(loadPath)) {
-        log("PBManager: Autosaves index file does not exist. Indexing will be performed on map load.", LogLevel::Info, 49, "LoadPBRecordsFromFile");
+        log("PBManager: Autosaves index file does not exist. Indexing will be performed on map load.", LogLevel::Info, 51, "LoadPBRecordsFromFile");
         return;
     }
 
@@ -65,5 +67,5 @@ void LoadPBRecordsFromFile() {
         pbRecords.InsertLast(pbRecord);
     }
 
-    log("PBManager: Successfully loaded autosaves index from " + loadPath, LogLevel::Info, 68, "LoadPBRecordsFromFile");
+    log("PBManager: Successfully loaded autosaves index from " + loadPath, LogLevel::Info, 70, "LoadPBRecordsFromFile");
 }
