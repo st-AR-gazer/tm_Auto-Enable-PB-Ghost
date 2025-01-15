@@ -18,11 +18,14 @@ namespace PBVisibilityHook {
                 pbToggleReceived = false;
 
                 bool shouldShow = tostring(event.data[0]).ToLower().Contains("true");
+                Loader::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
-                    startnew(PBManager::LoadPB);
+                    Loader::LoadPB();
+                    log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info);
                 } else {
-                    startnew(PBManager::UnloadAllPBs);
+                    Loader::HidePBs();
+                    log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Info);
                 }
             }
         }
@@ -38,7 +41,7 @@ namespace PBVisibilityHook {
         @updateVisibilityHook = PBVisibilityUpdateHook("TMGame_Record_UpdatePBGhostVisibility");
         MLHook::RegisterMLHook(updateVisibilityHook, "TMGame_Record_UpdatePBGhostVisibility", true);
 
-        log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 41, "InitializeHook");
+        log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info);
     }
 
     void UninitializeHook() {
@@ -50,6 +53,6 @@ namespace PBVisibilityHook {
             MLHook::UnregisterMLHookFromAll(updateVisibilityHook);
             @updateVisibilityHook = null;
         }
-        log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 53, "UninitializeHook");
+        log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info);
     }
 }

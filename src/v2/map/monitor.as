@@ -23,11 +23,7 @@ namespace MapTracker {
                     conditionMet = AllowCheck::ConditionCheckMet();
                 }
                 if (AllowCheck::ConditionCheckMet()) {
-                    // 
-
-                    // LoadPBGhostCallFunctionHere();
-                    
-                    // 
+                    Loader::LoadPersonalBestGhost(get_CurrentMapUID);
                 } else {
                     NotifyWarn("You cannot load records on this map : " + AllowCheck::DissalowReason());
                 }

@@ -38,32 +38,6 @@ namespace PBManager {
         needsRefresh = true;
     }
 
-    void Update(float dt) {
-        UnloadSlowestPBs();
-    }
-
-    bool IsPBLoaded() {
-        if (ghostMgr is null) return false;
-        CGameCtnMediaClipPlayer@ pbClipPlayer = GhostClipsMgr::GetPBClipPlayer(ghostMgr);
-        return pbClipPlayer !is null;
-    }
-
-    bool IsLocalPBLoaded() {
-        auto net = cast<CGameCtnNetwork>(GetApp().Network);
-        if (net is null) return false;
-        auto cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
-        if (cmap is null) return false;
-        auto dfm = cmap.DataFileMgr;
-        if (dfm is null) return false;
-        
-        for (uint i = 0; i < dfm.Ghosts.Length; i++) {
-            if (dfm.Ghosts[i].IdName.ToLower().Contains("personal best")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     bool needsRefresh = true;
     void LoadPB() {
         if (!_Game::IsPlayingMap()) { return; }
