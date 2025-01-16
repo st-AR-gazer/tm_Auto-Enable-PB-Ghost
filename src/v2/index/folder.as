@@ -90,8 +90,9 @@ namespace Index {
             return "Replays/zzAutoLoadPBGhost/" + replay.ReplayHash + ".Replay.gbx";
         }
 
-        if (!IO::Move(filePath, destinationPath)) {
-            log("Failed to move file: " + filePath + " to " + destinationPath, LogLevel::Warn, 94, "MoveFileToReplays");
+        IO::Move(filePath, destinationPath);
+        if (!IO::FileExists(destinationPath)) {
+            log("Failed to move file: " + filePath + " to: " + destinationPath, LogLevel::Error, 96, "MoveFileToReplays");
             return "";
         }
 

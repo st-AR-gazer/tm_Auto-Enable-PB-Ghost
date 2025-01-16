@@ -200,6 +200,14 @@ namespace _Game {
         return !(playground is null || playground.Arena.Players.Length == 0);
     }
 
+    bool IsPlayingLocal() {
+
+    }
+
+    bool IsPlayingOnServer() {
+        
+    }
+
     bool IsInEditor() {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
         if (app is null) return false;

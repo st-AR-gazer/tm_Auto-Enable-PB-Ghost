@@ -13,4 +13,15 @@ namespace Loader {
             return;
         }
     }
+
+    void RemovePBs() {
+        if (_Game::IsPlayingLocal()) {
+            RemoveLocalPBGhosts();
+            return;
+        }
+        if (_Game::IsPlayingOnServer()) {
+            RemoveServerPBGhost();
+            return;
+        }
+    }
 }

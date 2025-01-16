@@ -95,7 +95,7 @@ class ReplayRecord {
     uint BestTime;
     string FoundThrough;
 
-    void CalculateHash() {
+    void CalculateHash() const {
         string file = _IO::File::ReadFileToEnd(Path);
         ReplayHash = Crypto::MD5(file);
     }
