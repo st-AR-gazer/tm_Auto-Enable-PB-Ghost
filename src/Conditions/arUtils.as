@@ -201,11 +201,23 @@ namespace _Game {
     }
 
     bool IsPlayingLocal() {
+        if (!IsPlayingMap()) return false;
 
+        CTrackMania@ app = cast<CTrackMania>(GetApp());
+        if (app is null) return false;
+        CGamePlaygroundScript@ ps = app.PlaygroundScript;
+        if (ps is null) return false;
+        return true;
     }
 
     bool IsPlayingOnServer() {
-        
+        if (!IsPlayingMap()) return false;
+
+        CTrackMania@ app = cast<CTrackMania>(GetApp());
+        if (app is null) return false;
+        CGamePlaygroundScript@ ps = app.PlaygroundScript;
+        if (ps is null) return true; // temp messure until I know of a better way to detect this...
+        return true;
     }
 
     bool IsInEditor() {

@@ -25,7 +25,7 @@ namespace Index {
         db.Execute(createTableQuery);
     }
 
-    void SaveReplayToDB(const ReplayRecord@ replay) {
+    void SaveReplayToDB(ReplayRecord@ replay) {
         const uint MAX_VALID_TIME = 2147480000;
 
         if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) return;
@@ -95,8 +95,8 @@ class ReplayRecord {
     uint BestTime;
     string FoundThrough;
 
-    void CalculateHash() const {
-        string file = _IO::File::ReadFileToEnd(Path);
-        ReplayHash = Crypto::MD5(file);
+    void CalculateHash() {
+        const string fileContent = _IO::File::ReadFileToEnd(Path);
+        ReplayHash = Crypto::MD5(fileContent);
     }
 }

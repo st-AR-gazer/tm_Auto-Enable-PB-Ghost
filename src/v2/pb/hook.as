@@ -24,7 +24,7 @@ namespace PBVisibilityHook {
                     Loader::LoadPB();
                     log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info);
                 } else {
-                    Loader::HidePBs();
+                    Loader::RemovePBs();
                     log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Info);
                 }
             }
