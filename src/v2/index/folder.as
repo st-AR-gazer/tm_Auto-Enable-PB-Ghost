@@ -20,6 +20,11 @@ namespace Index {
         isIndexing = true;
     }
 
+    void StartCustomFolderIndexing(const string&in folderPath) {
+        EnqueueFiles(folderPath);
+        isIndexing = true;
+    }
+
     void EnqueueFiles(const string&in path) {
         string[]@ files = IO::IndexFolder(path, true);
         for (uint i = 0; i < files.Length; i++) {
@@ -113,4 +118,6 @@ namespace Index {
         }
         log("All moved files have been deleted.", LogLevel::Notice, 113, "DeleteMovedFiles");
     }
+
+    
 }

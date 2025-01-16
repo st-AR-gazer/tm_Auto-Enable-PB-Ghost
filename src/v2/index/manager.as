@@ -83,6 +83,12 @@ namespace Index {
 
         return results;
     }
+
+    void RebuildDatabaseFromScratch() {
+        string dbPath = GetDatabasePath();
+        if (IO::FileExists(dbPath)) { IO::Delete(dbPath); }
+        InitializeDatabase();
+    }
 }
 
 class ReplayRecord {
