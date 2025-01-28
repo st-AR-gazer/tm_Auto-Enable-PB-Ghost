@@ -8,18 +8,18 @@ namespace Loader {
     void ToggleLeaderboardPB() {
         string pid = GetApp().LocalPlayerInfo.WebServicesUserId;
         if (pid == "") {
-            log("pid is empty. Cannot toggle leaderboard PB ghost.", LogLevel::Error);
+            log("pid is empty. Cannot toggle leaderboard PB ghost.", LogLevel::Error, 11, "ToggleLeaderboardPB");
             return;
         }
 
         MLHook::Queue_SH_SendCustomEvent("TMGame_Record_ToggleGhost", {pid});
         isLeacerboardPBVisible = !isLeacerboardPBVisible;
-        log("Toggled PB ghost visibility to: " + (isLeacerboardPBVisible ? "Visible" : "Hidden"), LogLevel::Info);
+        log("Toggled PB ghost visibility to: " + (isLeacerboardPBVisible ? "Visible" : "Hidden"), LogLevel::Info, 17, "ToggleLeaderboardPB");
     }
 
     void SetPBVisibility(bool shouldShow) {
         isLeacerboardPBVisible = shouldShow;
-        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info);
+        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 22, "SetPBVisibility");
     }
 
     int GetPlayerPBFromWidget(CControlFrame@ widget, const string&in playerName) {
@@ -43,11 +43,11 @@ namespace Loader {
 
     CControlFrame@ GetRecordsList_RecordsWidgetUI() {
         CGameCtnApp@ app = GetApp();
-        if (app is null) { log("App is null", LogLevel::Error); return CControlFrame(); }
+        if (app is null) { log("App is null", LogLevel::Error, 46, "GetPlayerPBFromWidget"); return CControlFrame(); }
         CDx11Viewport@ viewport = cast<CDx11Viewport>(app.Viewport);
-        if (viewport is null) { log("Viewport is null", LogLevel::Error); return CControlFrame(); }
+        if (viewport is null) { log("Viewport is null", LogLevel::Error, 48, "GetPlayerPBFromWidget"); return CControlFrame(); }
         CHmsZoneOverlay@ widgetOverlay = viewport.Overlays[7];
-        if (widgetOverlay is null) { log("Widget overlay is null", LogLevel::Error); return CControlFrame(); }
+        if (widgetOverlay is null) { log("Widget overlay is null", LogLevel::Error, 50, "GetPlayerPBFromWidget"); return CControlFrame(); }
         CSceneSector@ sector = cast<CSceneSector>(widgetOverlay.UserData);
         CScene2d@ scene = cast<CScene2d>(sector.Scene);
         CControlFrame@ InterfaceRoot = cast<CControlFrame>(scene.Mobils[1]); // 14738

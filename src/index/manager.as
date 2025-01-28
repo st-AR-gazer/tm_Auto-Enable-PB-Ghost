@@ -23,12 +23,16 @@ namespace Index {
         """;
 
         db.Execute(createTableQuery);
+        log("Database initialized. Path: " + dbPath, LogLevel::Info, 26, "InitializeDatabase");
     }
 
     void SaveReplayToDB(ReplayRecord@ replay) {
         const uint MAX_VALID_TIME = 2147480000;
 
-        if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) return;
+        if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) {
+            log("Replay skipped due to invalid BestTime: " + replay.BestTime, LogLevel::Warn, 33, "SaveReplayToDB");
+            return;
+        }
 
         replay.CalculateHash();
 
@@ -50,13 +54,8 @@ namespace Index {
         stmt.Bind(7, replay.BestTime);
         stmt.Bind(8, replay.FoundThrough);
         stmt.Execute();
-    }
 
-    array<ReplayRecord@>@ GetReplays(string mapUid) {
-        if (replayRecords.Exists(mapUid)) {
-            return cast<array<ReplayRecord@>>(replayRecords[mapUid]);
-        }
-        return array<ReplayRecord@>();
+        // log("Replay saved to DB: " + replay.ReplayHash, LogLevel::Info, 58, "SaveReplayToDB");
     }
 
     array<ReplayRecord@>@ GetReplaysFromDB(string mapUid) {
@@ -102,7 +101,7 @@ class ReplayRecord {
     string FoundThrough;
 
     void CalculateHash() {
-        const string fileContent = _IO::File::ReadFileToEnd(Path);
+        string fileContent = _IO::File::ReadFileToEnd(Path);
         ReplayHash = Crypto::MD5(fileContent);
     }
 }

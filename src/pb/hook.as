@@ -22,10 +22,10 @@ namespace PBVisibilityHook {
 
                 if (shouldShow) {
                     Loader::LoadPB();
-                    log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info);
+                    log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info, 25, "UnknownFunction");
                 } else {
                     Loader::RemovePBs();
-                    log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Info);
+                    log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Info, 28, "UnknownFunction");
                 }
             }
         }
@@ -41,7 +41,7 @@ namespace PBVisibilityHook {
         @updateVisibilityHook = PBVisibilityUpdateHook("TMGame_Record_UpdatePBGhostVisibility");
         MLHook::RegisterMLHook(updateVisibilityHook, "TMGame_Record_UpdatePBGhostVisibility", true);
 
-        log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info);
+        log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 44, "InitializeHook");
     }
 
     void UninitializeHook() {
@@ -53,6 +53,6 @@ namespace PBVisibilityHook {
             MLHook::UnregisterMLHookFromAll(updateVisibilityHook);
             @updateVisibilityHook = null;
         }
-        log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info);
+        log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 56, "UninitializeHook");
     }
 }

@@ -58,7 +58,7 @@ namespace DEV {
 
 //////////// CHANGE TO "true" ON RELEASE  ////////////
 [Setting category="z~DEV" name="Show default OP logs" hidden]
-bool S_showDefaultLogs = true;
+bool S_showDefaultLogs = false;
 //////////////////////////////////////////////////////
 
 [Setting category="z~DEV" name="Show Debug logs" hidden]
@@ -115,7 +115,6 @@ void log(const string &in msg, LogLevel level = LogLevel::Info, int line = -1, s
         case LogLevel::Critical: doLog = DEV_S_sCritical;    break;
     }
 
-    if (!S_showDefaultLogs) return;
     if (!S_showFunctionNameInLogs) {_functionName = "";}
 
     if (doLog) {

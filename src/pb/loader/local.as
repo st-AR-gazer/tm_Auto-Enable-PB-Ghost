@@ -5,7 +5,7 @@ namespace Loader {
         CControlFrame@ widget = GetRecordsList_RecordsWidgetUI();
 
         if (widget is null) {
-            log("Could not find the records widget. Attempting to load record without important comparison data.", LogLevel::Warn);
+            log("Could not find the records widget. Attempting to load record without important comparison data.", LogLevel::Warn, 8, "LoadPBFromDB");
             FallbackLoadPB(mapUid);
             return;
         }
@@ -14,10 +14,10 @@ namespace Loader {
         int playerPBTime = GetPlayerPBFromWidget(widget, playerName);
 
         if (playerPBTime >= 0) {
-            log("Found PB in the widget. Attempting to match local record.", LogLevel::Info);
+            log("Found PB in the widget. Attempting to match local record.", LogLevel::Info, 17, "LoadPBFromDB");
             LoadPersonalBestGhostFromTime(mapUid, playerPBTime);
         } else {
-            log("Player PB not found in the widget. Falling back to fastest local record.", LogLevel::Warn);
+            log("Player PB not found in the widget. Falling back to fastest local record.", LogLevel::Warn, 20, "LoadPBFromDB");
             FallbackLoadPB(mapUid);
         }
     }
@@ -26,7 +26,7 @@ namespace Loader {
         auto replays = Index::GetReplaysFromDB(mapUid);
 
         if (replays.Length == 0) {
-            log("No local PB ghost found for map UID: " + mapUid, LogLevel::Warn);
+            log("No local PB ghost found for map UID: " + mapUid, LogLevel::Warn, 29, "LoadPersonalBestGhostFromTime");
             ToggleLeaderboardPB();
             return;
         }
@@ -39,7 +39,7 @@ namespace Loader {
             }
         }
 
-        log("Could not find a matching local replay for time: " + playerPBTime + " ms.", LogLevel::Warn);
+        log("Could not find a matching local replay for time: " + playerPBTime + " ms.", LogLevel::Warn, 42, "LoadPersonalBestGhostFromTime");
         FallbackLoadPB(mapUid);
     }
 
@@ -47,12 +47,12 @@ namespace Loader {
         auto replays = Index::GetReplaysFromDB(mapUid);
 
         if (replays.Length == 0) {
-            log("No local records found for map UID: " + mapUid + ". Using leaderboard toggle.", LogLevel::Warn);
+            log("No local records found for map UID: " + mapUid + ". Using leaderboard toggle.", LogLevel::Warn, 50, "FallbackLoadPB");
             ToggleLeaderboardPB();
             return;
         }
 
-        log("Loading fastest local record for map UID: " + mapUid, LogLevel::Info);
+        log("Loading fastest local record for map UID: " + mapUid, LogLevel::Info, 55, "FallbackLoadPB");
         auto bestReplay = FindBestReplay(replays);
         if (bestReplay !is null) {
             string fullPath = IO::FromUserGameFolder(bestReplay.Path);
@@ -62,7 +62,7 @@ namespace Loader {
 
     void LoadLocalGhost(const string&in filePath) {
         if (!filePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
-            log("File is not in the Replays folder. Moving File there temporarily, and set it for deletion after loading...", LogLevel::Warn);
+            log("File is not in the Replays folder. Moving File there temporarily, and set it for deletion after loading...", LogLevel::Warn, 65, "LoadLocalGhost");
             _IO::File::CopyFileTo(filePath, IO::FromUserGameFolder("Replays/" + Path::GetFileName(filePath)));
             return;
         }
@@ -70,9 +70,9 @@ namespace Loader {
         auto app = GetApp();
         if (app.Network.ClientManiaAppPlayground !is null) {
             app.Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(filePath);
-            log("Loaded local ghost: " + filePath, LogLevel::Info);
+            log("Loaded local ghost: " + filePath, LogLevel::Info, 73, "LoadLocalGhost");
         } else {
-            log("Failed to load ghost: ClientManiaAppPlayground is null.", LogLevel::Error);
+            log("Failed to load ghost: ClientManiaAppPlayground is null.", LogLevel::Error, 75, "LoadLocalGhost");
         }
     }
     

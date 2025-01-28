@@ -32,7 +32,7 @@ namespace Loader {
     }
     void RemoveServerPBGhost() {
         if (isLeacerboardPBVisible) { ToggleLeaderboardPB(); }
-        else { log("Attempted to remove leaderboard PB but it was already hidden.", LogLevel::Notice); }
+        else { log("Attempted to remove leaderboard PB but it was already hidden.", LogLevel::Notice, 35, "RemoveServerPBGhost"); }
     }
     void RemoveLocalPBGhosts() {
         auto dataFileMgr = GetApp().Network.ClientManiaAppPlayground.DataFileMgr;
@@ -45,7 +45,7 @@ namespace Loader {
 
                 auto gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
                 gm.Ghost_Remove(ghost.Id);
-                log("Record with the MwID of: " + ghost.Id.GetName() + " removed.", LogLevel::Info, 27, "RemoveInstanceRecord");
+                log("Record with the MwID of: " + ghost.Id.GetName() + " removed.", LogLevel::Info, 48, "RemoveLocalPBGhosts");
             }
         }
     }
@@ -55,7 +55,7 @@ namespace Loader {
         if (_Game::IsPlayingLocal()) {
             RemoveSlowestLocalPBGhost();
         } else if (_Game::IsPlayingOnServer()) {
-            log("On a server ghosts can only be loaded through the Leaderboard widget, there isn't a 'slowest' pb ghost to remove, use 'RemoveServerPBGhost' for removing a server pb.", LogLevel::Warn);
+            log("On a server ghosts can only be loaded through the Leaderboard widget, there isn't a 'slowest' pb ghost to remove, use 'RemoveServerPBGhost' for removing a server pb.", LogLevel::Warn, 58, "RemoveSlowestPBGhost");
         }
     }
     void RemoveSlowestLocalPBGhost() {
@@ -77,7 +77,7 @@ namespace Loader {
         }
 
         if (slowestGhost is null) {
-            log("No personal best ghosts found to remove.", LogLevel::Warn);
+            log("No personal best ghosts found to remove.", LogLevel::Warn, 80, "RemoveSlowestLocalPBGhost");
             return;
         }
 
@@ -85,7 +85,7 @@ namespace Loader {
 
         auto gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
         gm.Ghost_Remove(slowestGhost.Id);
-        log("Record with the MwID of: " + slowestGhost.Id.GetName() + " removed.", LogLevel::Info, 27, "RemoveInstanceRecord");
+        log("Record with the MwID of: " + slowestGhost.Id.GetName() + " removed.", LogLevel::Info, 88, "RemoveSlowestLocalPBGhost");
     }
 
     // Misc

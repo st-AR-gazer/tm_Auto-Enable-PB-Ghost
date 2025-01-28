@@ -6,6 +6,8 @@ namespace Index {
 
         uint indexedCount = 0;
         uint skippedCount = 0;
+        uint processedThisFrame = 0;
+        const uint PROCESS_LIMIT = 2;
 
         for (uint i = 0; i < app.ReplayRecordInfos.Length; i++) {
             auto record = app.ReplayRecordInfos[i];
@@ -22,14 +24,18 @@ namespace Index {
 
             string key = record.MapUid;
 
+            string ProperPath = IO::FromUserGameFolder("Replays/" + record.FileName);
+            string ProperFoundThrough = record.FileName;
+            ProperFoundThrough = ProperFoundThrough.SubStr(0, ProperFoundThrough.LastIndexOf("\\"));
+
             auto replay = ReplayRecord();
             replay.MapUid = record.MapUid;
             replay.PlayerLogin = record.PlayerLogin;
             replay.PlayerNickname = record.PlayerNickname;
             replay.FileName = record.FileName;
-            replay.Path = record.Path;
+            replay.Path = ProperPath;
             replay.BestTime = record.BestTime;
-            replay.FoundThrough = "Replays/";
+            replay.FoundThrough = ProperFoundThrough;
             replay.CalculateHash();
 
             if (!replayRecords.Exists(key)) {
@@ -43,8 +49,14 @@ namespace Index {
             SaveReplayToDB(replay);
 
             indexedCount++;
+            processedThisFrame++;
+
+            if (processedThisFrame >= PROCESS_LIMIT) {
+                processedThisFrame = 0;
+                yield();
+            }
         }
 
-        log("Indexed " + indexedCount + " replays. Skipped " + skippedCount + " invalid or non-relevant replays.", LogLevel::Info, 48, "IndexReplays");
+        log("Indexed " + indexedCount + " replays. Skipped " + skippedCount + " invalid or non-relevant replays.", LogLevel::Info, 60, "IndexReplays");
     }
 }

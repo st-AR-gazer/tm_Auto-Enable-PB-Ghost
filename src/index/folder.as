@@ -46,7 +46,7 @@ namespace Index {
 
         if (pendingFiles.Length == 0) {
             isIndexing = false;
-            log("Folder indexing complete!", LogLevel::Info, 44, "ProcessFolderFiles");
+            log("Folder indexing complete!", LogLevel::Info, 50, "ProcessFolderFiles");
         }
     }
 
@@ -57,13 +57,13 @@ namespace Index {
         if (relativePath == "") return;
 
         CSystemFidFile@ fid = Fids::GetUser(relativePath);
-        if (fid is null) { log("Failed to get fid for file: " + filePath, LogLevel::Error, 55, "ProcessFile"); return; }
+        if (fid is null) { log("Failed to get fid for file: " + filePath, LogLevel::Error, 61, "ProcessFile"); return; }
 
         CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + filePath, LogLevel::Error, 58, "ProcessFile"); return; }
+        if (nod is null) { log("Failed to preload nod for file: " + filePath, LogLevel::Error, 64, "ProcessFile"); return; }
 
         CGameCtnReplayRecordInfo@ record = cast<CGameCtnReplayRecordInfo>(nod);
-        if (record is null) { log("Failed to cast nod to CGameCtnReplayRecordInfo for file: " + filePath, LogLevel::Error, 61, "ProcessFile"); return; }
+        if (record is null) { log("Failed to cast nod to CGameCtnReplayRecordInfo for file: " + filePath, LogLevel::Error, 67, "ProcessFile"); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = record.MapUid;
@@ -91,13 +91,13 @@ namespace Index {
         string destinationPath = destinationFolder + "/" + replay.ReplayHash + ".Replay.gbx";
 
         if (IO::FileExists(destinationPath)) {
-            log("File already exists: " + destinationPath, LogLevel::Warn, 89, "MoveFileToReplays");
+            log("File already exists: " + destinationPath, LogLevel::Warn, 95, "MoveFileToReplays");
             return "Replays/zzAutoLoadPBGhost/" + replay.ReplayHash + ".Replay.gbx";
         }
 
         IO::Move(filePath, destinationPath);
         if (!IO::FileExists(destinationPath)) {
-            log("Failed to move file: " + filePath + " to: " + destinationPath, LogLevel::Error, 96, "MoveFileToReplays");
+            log("Failed to move file: " + filePath + " to: " + destinationPath, LogLevel::Error, 101, "MoveFileToReplays");
             return "";
         }
 
@@ -116,7 +116,7 @@ namespace Index {
         for (uint i = 0; i < files.Length; i++) {
             IO::Delete(files[i]);
         }
-        log("All moved files have been deleted.", LogLevel::Notice, 113, "DeleteMovedFiles");
+        log("All moved files have been deleted.", LogLevel::Notice, 120, "DeleteMovedFiles");
     }
 
     

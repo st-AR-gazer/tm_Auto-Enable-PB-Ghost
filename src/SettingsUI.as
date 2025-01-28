@@ -10,11 +10,14 @@ void RT_Settings() {
         S_markPluginLoadedPBs = UI::InputText("Special Ghost Plugin Indicator", S_markPluginLoadedPBs);
         S_onlyUseLocalPBs = UI::Checkbox("Use leaderboard as a last resort for loading a pb", S_onlyUseLocalPBs);
         S_onlyLoadFastestPB = UI::Checkbox("Only Load One PB Ghost If Multiple Are Found", S_onlyLoadFastestPB);
+        S_enableGhosts = UI::Checkbox("Load Ghost On Map Enter", S_enableGhosts);
 
         UI::Separator();
         UI::Text("Indexing");
 
-        if (UI::Button("Reindex Replays folder")) { Index::IndexReplays(); }
+        if (UI::Button("ReInitialize Database")) { Index::InitializeDatabase(); }
+
+        if (UI::Button("Reindex Replays folder")) { startnew(Index::IndexReplays); }
 
         if (UI::Button("Reindex entire game dirs")) { Index::StartFolderIndexing(); }
 
@@ -38,3 +41,22 @@ bool S_onlyLoadFastestPB = true;
 
 [Setting hidden]
 string S_customIndexLocation = IO::FromUserGameFolder("Replays/Autosaves/");
+
+
+[Setting hidden]
+bool S_enableGhosts = true;
+
+[SettingsTab name="Testing" icon="DevTo" order="10"]
+void RT_Testing() {
+    if (!Meta::IsDeveloperMode()) return;
+
+    if (UI::BeginChild("Testing Settings", vec2(0, 0), true)) {
+        UI::Text("Testing Options");
+        UI::Separator();
+
+        if (UI::Button("Load PB")) { Loader::LoadPB(); }
+        if (UI::Button("Remove PB")) { Loader::RemovePBs(); }
+
+        UI::EndChild();
+    }
+}
