@@ -73,7 +73,7 @@ void RT_Settings() {
 [Setting hidden]
 bool S_loadPBs = true;
 [Setting hidden]
-string S_markPluginLoadedPBs = GetApp().LocalPlayerInfo.Trigram.SubStr(0, 1);
+string S_markPluginLoadedPBs = "very secret id";
 [Setting hidden]
 bool S_onlyUseLocalPBs = false;
 [Setting hidden]

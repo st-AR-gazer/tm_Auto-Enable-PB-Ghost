@@ -21,7 +21,7 @@ namespace PBVisibilityHook {
                 Loader::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
-                    Loader::LoadLocalPBsUntillNextMapForEasyLoading();
+                    startnew(Loader::LoadPB);
                     log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info, 25, "UnknownFunction");
                 } else {
                     Loader::UnloadPBGhost();
