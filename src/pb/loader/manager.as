@@ -5,6 +5,7 @@ namespace Loader {
         if (!_Game::IsPlayingMap()) return;
 
         if (_Game::IsPlayingLocal()) {
+            if (IsPBLoaded()) { log("PB already loaded", LogLevel::Info, 0, "LoadPB"); return; }
             LoadPBFromDB();
             return;
         }
@@ -14,14 +15,7 @@ namespace Loader {
         }
     }
 
-    void RemovePBs() {
-        if (_Game::IsPlayingLocal()) {
-            RemoveLocalPBGhosts();
-            return;
-        }
-        if (_Game::IsPlayingOnServer()) {
-            RemoveServerPBGhost();
-            return;
-        }
+    void HidePB() {
+        UnloadPBGhost();
     }
 }

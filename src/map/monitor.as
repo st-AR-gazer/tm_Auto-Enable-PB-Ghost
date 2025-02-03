@@ -2,7 +2,7 @@ namespace MapTracker {
     string oldMapUid = "";
 
     void MapMonitor() {
-        while (true) {    
+        while (true) {
             sleep(273);
 
             if (!S_enableGhosts) continue;
@@ -20,7 +20,9 @@ namespace MapTracker {
                     conditionMet = AllowCheck::ConditionCheckMet();
                 }
                 if (AllowCheck::ConditionCheckMet()) {
+                    Loader::RemoveLocalPBsUntillNextMapForEasyLoading();
                     Loader::LoadPB();
+                    Loader::CullPBsWithSameTime();
                 } else {
                     NotifyWarn("You cannot load records on this map : " + AllowCheck::DissalowReason());
                 }

@@ -21,10 +21,10 @@ namespace PBVisibilityHook {
                 Loader::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
-                    Loader::LoadPB();
+                    Loader::LoadLocalPBsUntillNextMapForEasyLoading();
                     log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info, 25, "UnknownFunction");
                 } else {
-                    Loader::RemovePBs();
+                    Loader::UnloadPBGhost();
                     log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Info, 28, "UnknownFunction");
                 }
             }
@@ -43,7 +43,7 @@ namespace PBVisibilityHook {
 
         log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 44, "InitializeHook");
     }
-
+    
     void UninitializeHook() {
         if (togglePBHook !is null) {
             MLHook::UnregisterMLHookFromAll(togglePBHook);

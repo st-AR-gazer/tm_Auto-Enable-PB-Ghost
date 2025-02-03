@@ -1,5 +1,12 @@
 namespace Index {
+    bool isIndexingReplaysFolder = false;
+    int totalReplaysFileNumber = 0;
+    int currentReplaysFileNumber = 0;
+
+    uint NOD_INDEXING_PROCESS_LIMIT = 2;
     void IndexReplays() {
+        isIndexingReplaysFolder = true;
+
         auto app = GetApp();
         string currentPlayerLogin = app.LocalPlayerInfo.Login;
         const uint MAX_VALID_TIME = 2147480000;
@@ -7,7 +14,8 @@ namespace Index {
         uint indexedCount = 0;
         uint skippedCount = 0;
         uint processedThisFrame = 0;
-        const uint PROCESS_LIMIT = 2;
+
+        totalReplaysFileNumber = app.ReplayRecordInfos.Length;
 
         for (uint i = 0; i < app.ReplayRecordInfos.Length; i++) {
             auto record = app.ReplayRecordInfos[i];
@@ -51,12 +59,17 @@ namespace Index {
             indexedCount++;
             processedThisFrame++;
 
-            if (processedThisFrame >= PROCESS_LIMIT) {
+            if (processedThisFrame >= NOD_INDEXING_PROCESS_LIMIT) {
                 processedThisFrame = 0;
                 yield();
             }
+            currentReplaysFileNumber++;
+            // print(currentReplaysFileNumber);
         }
 
-        log("Indexed " + indexedCount + " replays. Skipped " + skippedCount + " invalid or non-relevant replays.", LogLevel::Info, 60, "IndexReplays");
+        currentReplaysFileNumber = 0;
+        isIndexingReplaysFolder = false;
+
+        log("Indexed " + indexedCount + " replays. Skipped " + skippedCount + " invalid or non-relevant replays.", LogLevel::Info, 73, "IndexReplays");
     }
 }

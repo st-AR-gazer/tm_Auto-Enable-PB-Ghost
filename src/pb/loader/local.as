@@ -26,14 +26,14 @@ namespace Loader {
         auto replays = Index::GetReplaysFromDB(mapUid);
 
         if (replays.Length == 0) {
-            log("No local PB ghost found for map UID: " + mapUid, LogLevel::Warn, 29, "LoadPersonalBestGhostFromTime");
-            ToggleLeaderboardPB();
+            log("No local PB ghost found for map UID: " + mapUid + " | attempting to download from leaderboard.", LogLevel::Warn, 29, "LoadPersonalBestGhostFromTime");
+            DownloadPBFromLeaderboardAndLoadLocal(mapUid);
             return;
         }
 
         for (uint i = 0; i < replays.Length; i++) {
             if (replays[i].BestTime == uint(playerPBTime)) {
-                string fullPath = IO::FromUserGameFolder(replays[i].Path);
+                string fullPath = replays[i].Path;
                 LoadLocalGhost(fullPath);
                 return;
             }
@@ -47,15 +47,15 @@ namespace Loader {
         auto replays = Index::GetReplaysFromDB(mapUid);
 
         if (replays.Length == 0) {
-            log("No local records found for map UID: " + mapUid + ". Using leaderboard toggle.", LogLevel::Warn, 50, "FallbackLoadPB");
-            ToggleLeaderboardPB();
+            log("No local records found for map UID: " + mapUid + " | attempting to download from leaderboard.", LogLevel::Warn, 50, "FallbackLoadPB");
+            DownloadPBFromLeaderboardAndLoadLocal(mapUid);
             return;
         }
 
         log("Loading fastest local record for map UID: " + mapUid, LogLevel::Info, 55, "FallbackLoadPB");
         auto bestReplay = FindBestReplay(replays);
         if (bestReplay !is null) {
-            string fullPath = IO::FromUserGameFolder(bestReplay.Path);
+            string fullPath = bestReplay.Path;
             LoadLocalGhost(fullPath);
         }
     }
@@ -64,16 +64,49 @@ namespace Loader {
         if (!filePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
             log("File is not in the Replays folder. Moving File there temporarily, and set it for deletion after loading...", LogLevel::Warn, 65, "LoadLocalGhost");
             _IO::File::CopyFileTo(filePath, IO::FromUserGameFolder("Replays/" + Path::GetFileName(filePath)));
-            return;
         }
 
-        auto app = GetApp();
-        if (app.Network.ClientManiaAppPlayground !is null) {
-            app.Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(filePath);
-            log("Loaded local ghost: " + filePath, LogLevel::Info, 73, "LoadLocalGhost");
-        } else {
-            log("Failed to load ghost: ClientManiaAppPlayground is null.", LogLevel::Error, 75, "LoadLocalGhost");
+        yield();
+
+        if (!IO::FileExists(filePath)) { 
+            log("Failed to load ghost: File does not exist.", LogLevel::Error, 71, "LoadLocalGhost"); 
+            Index::DeleteEntryFromDatabaseBasedOnFilePath(filePath);
+            if (_Game::HasPersonalBest()) { LoadPB(); }
+            return; 
         }
+
+        auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(filePath);
+        while (task.IsProcessing) { yield(); }
+
+        if (task.HasFailed || !task.HasSucceeded) { log("Failed to load ghost: " + filePath, LogLevel::Error, 76, "LoadLocalGhost"); return; }
+
+        CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
+        for (uint i = 0; i < task.Ghosts.Length; i++) {
+            CGameGhostScript@ ghost = task.Ghosts[i];
+            ghost.IdName = "Personal best";
+            ghost.Nickname = "$5d8" + "Personal best";
+            ghost.Trigram = "PB" + S_markPluginLoadedPBs;
+            gm.Ghost_Add(ghost);
+            SaveLocalPBsUntillNextMapForEasyLoading(ghost);
+        }
+
+        log("Loaded PB ghost from " + filePath, LogLevel::Info, 87, "LoadLocalGhost");
+
+
+
+        // for (uint i = 0; i < GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Ghosts.Length; i++) {
+        //     print(GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Ghosts[i].Nickname);
+        // }
+    }
+
+    void LoadGhost(CGameGhostScript@ ghost) {
+        if (ghost is null) { log("Ghost is null.", LogLevel::Error, 95, "LoadGhost"); return; }
+
+        CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
+        ghost.IdName = "Personal best";
+        ghost.Nickname = "$5d8" + "Personal best";
+        ghost.Trigram = "PB" + S_markPluginLoadedPBs;
+        gm.Ghost_Add(ghost);
     }
     
     ReplayRecord@ FindBestReplay(const array<ReplayRecord@>@ replays) {

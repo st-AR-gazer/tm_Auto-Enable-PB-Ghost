@@ -2,51 +2,51 @@ namespace Loader {
 
     // Is Loaded
     bool IsPBLoaded() {
-        return IsClipPBLoaded() || IsLocalPBLoaded();
+        return IsPBLoaded_Clips();
     }
-    bool IsClipPBLoaded() {
-        if (ghostClipMgr is null) return false;
-        CGameCtnMediaClipPlayer@ pbClipPlayer = GhostClipsMgr::GetPBClipPlayer(ghostClipMgr);
-        return pbClipPlayer !is null;
-    }
-    bool IsLocalPBLoaded() {
-        auto net = cast<CGameCtnNetwork>(GetApp().Network);
-        if (net is null) return false;
-        auto cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
-        if (cmap is null) return false;
-        auto dfm = cmap.DataFileMgr;
-        if (dfm is null) return false;
-        
-        for (uint i = 0; i < dfm.Ghosts.Length; i++) {
-            if (dfm.Ghosts[i].IdName.ToLower().Contains("personal best")) {
+    bool IsPBLoaded_Clips() {
+        auto mgr = GhostClipsMgr::Get(GetApp());
+        if (mgr is null) return false;
+        for (uint i = 0; i < mgr.Ghosts.Length; i++) {
+            string gName = mgr.Ghosts[i].GhostModel.GhostNickname;
+            if (gName.ToLower().Contains("personal best")) {
                 return true;
             }
         }
         return false;
     }
+    // This is unreliable... and clip gets both the ones loded through clips and the ones loaded through Replay_Add (or whatever it was called xdd)
+    // bool IsPBLoaded_Local() {
+    //     auto net = cast<CGameCtnNetwork>(GetApp().Network);
+    //     if (net is null) return false;
+    //     auto cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
+    //     if (cmap is null) return false;
+    //     auto dfm = cmap.DataFileMgr;
+    //     if (dfm is null) return false;
+        
+    //     for (uint i = 0; i < dfm.Ghosts.Length; i++) {
+    //         if (dfm.Ghosts[i].IdName.ToLower().Contains("personal best")) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 
-    // Remove
-    void RemovePBGhosts() {
-             if (_Game::IsPlayingLocal())    { RemoveLocalPBGhosts(); }
-        else if (_Game::IsPlayingOnServer()) { RemoveServerPBGhost(); }
+    // Save
+    array<CGameGhostScript@> tempLocalPBsForCurrentMap = array<CGameGhostScript@>();
+    void SaveLocalPBsUntillNextMapForEasyLoading(CGameGhostScript@ ghost = null) {
+        if (ghost !is null) {
+            tempLocalPBsForCurrentMap.InsertLast(ghost);
+        }
     }
-    void RemoveServerPBGhost() {
-        if (isLeacerboardPBVisible) { ToggleLeaderboardPB(); }
-        else { log("Attempted to remove leaderboard PB but it was already hidden.", LogLevel::Notice, 35, "RemoveServerPBGhost"); }
+
+    void RemoveLocalPBsUntillNextMapForEasyLoading() {
+        tempLocalPBsForCurrentMap.RemoveRange(0, tempLocalPBsForCurrentMap.Length);
     }
-    void RemoveLocalPBGhosts() {
-        auto dataFileMgr = GetApp().Network.ClientManiaAppPlayground.DataFileMgr;
-        auto newGhosts = dataFileMgr.Ghosts;
 
-        for (uint i = 0; i < newGhosts.Length; i++) {
-            CGameGhostScript@ ghost = cast<CGameGhostScript>(newGhosts[i]);
-            if (ghost.IdName.ToLower().Contains("personal best")) {
-                if (GetApp().PlaygroundScript is null) return;
-
-                auto gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
-                gm.Ghost_Remove(ghost.Id);
-                log("Record with the MwID of: " + ghost.Id.GetName() + " removed.", LogLevel::Info, 48, "RemoveLocalPBGhosts");
-            }
+    void LoadLocalPBsUntillNextMapForEasyLoading() {
+        for (uint i = 0; i < tempLocalPBsForCurrentMap.Length; i++) {
+            LoadGhost(tempLocalPBsForCurrentMap[i]);
         }
     }
 
@@ -102,4 +102,35 @@ namespace Loader {
 
         return (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
     }
+
+    string MapUidToMapId(const string&in mapUid) {
+        string mapId;
+        string url = "https://prod.trackmania.core.nadeo.online/maps/?mapUidList=" + mapUid;
+        auto req = NadeoServices::Get("NadeoServices", url);
+
+        req.Start();
+
+        while (!req.Finished()) { yield(); }
+
+        if (req.ResponseCode() != 200) {
+            log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 116, "MapUidToMapId");
+            mapId = "";
+        } else {
+            Json::Value data = Json::Parse(req.String());
+            if (data.GetType() == Json::Type::Null) {
+                log("Failed to parse response for map ID.", LogLevel::Error, 121, "MapUidToMapId");
+                mapId = "";
+            } else {
+                if (data.GetType() != Json::Type::Array || data.Length == 0) {
+                    log("Invalid map data in response.", LogLevel::Error, 125, "MapUidToMapId");
+                    mapId = "";
+                } else {
+                    mapId = data[0]["mapId"];
+                    log("Found map ID: " + mapId, LogLevel::Info, 129, "MapUidToMapId");
+                }
+            }
+        }
+        return mapId;
+    }
+
 }
