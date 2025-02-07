@@ -6,7 +6,7 @@ namespace Loader {
     }
 
     void ToggleLeaderboardPB() {
-        if (!_Game::HasPersonalBest()) {
+        if (!_Game::HasPersonalBest(CurrentMapUID)) {
             log("No personal best found. Cannot toggle leaderboard PB ghost.", LogLevel::Warn, 10, "ToggleLeaderboardPB");
             return;
         }
@@ -22,7 +22,7 @@ namespace Loader {
     }
 
     void DownloadPBFromLeaderboardAndLoadLocal(const string&in mapUid) {
-        if (!_Game::HasPersonalBest()) { log("No personal best found. Cannot download leaderboard PB ghost.", LogLevel::Warn, 26, "DownloadPBFromLeaderboardAndLoadLocal"); return; }
+        if (!_Game::HasPersonalBest(CurrentMapUID)) { log("No personal best found. Cannot download leaderboard PB ghost.", LogLevel::Warn, 25, "DownloadPBFromLeaderboardAndLoadLocal"); return; }
 
         string pid = GetApp().LocalPlayerInfo.WebServicesUserId;
         string mapId = MapUidToMapId(mapUid);
@@ -38,33 +38,34 @@ namespace Loader {
         while (!req.Finished()) { yield(); }
 
         if (req.ResponseCode() != 200) {
-            log("Failed to fetch replay record, response code: " + req.ResponseCode(), LogLevel::Error, 44, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Failed to fetch replay record, response code: " + req.ResponseCode(), LogLevel::Error, 41, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         Json::Value data = Json::Parse(req.String());
         if (data.GetType() == Json::Type::Null) {
-            log("Failed to parse response for replay record.", LogLevel::Error, 51, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Failed to parse response for replay record.", LogLevel::Error, 48, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         if (data.GetType() != Json::Type::Array || data.Length == 0) {
-            log("Invalid replay data in response.", LogLevel::Error, 57, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Invalid replay data in response.", LogLevel::Error, 54, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         string fileUrl = data[0]["url"];
+        string mapRecordId = data[0]["mapRecordId"];
 
-        Index::AddReplayToDB(fileUrl); // this has to be done through a url in this case... Need to implement a way for it to be done though a local url for ghost files
-                                       // too at some point, but idk how that would be done with how conversion between CGameCtnGhost and CGameGhostScript is done...
+        Index::AddReplayToDB(fileUrl, mapRecordId); // this has to be done through a url in this case... Need to implement a way for it to be done though a local url for ghost files
+                                                    // too at some point, but idk how that would be done with how conversion between CGameCtnGhost and CGameGhostScript is done...
     }
 
     void SetPBVisibility(bool shouldShow) {
         isLeacerboardPBVisible = shouldShow;
-        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 85, "SetPBVisibility");
+        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 70, "SetPBVisibility");
     }
 
     int GetPlayerPBFromWidget(CControlFrame@ widget, const string&in playerName) {

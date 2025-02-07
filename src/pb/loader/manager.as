@@ -5,7 +5,14 @@ namespace Loader {
         if (!_Game::IsPlayingMap()) return;
 
         if (_Game::IsPlayingLocal()) {
-            if (IsPBLoaded()) { log("PB already loaded", LogLevel::Info, 0, "LoadPB"); return; }
+            if (IsFastestPBLoaded()) { 
+                log("Fastest PB already loaded", LogLevel::Info, 9, "LoadPB"); 
+                return; 
+            }
+            HidePB();
+            
+            while (GetRecordsList_RecordsWidgetUI() is null) { yield(); }
+
             LoadPBFromDB();
             return;
         }

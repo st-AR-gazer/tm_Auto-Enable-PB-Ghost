@@ -28,16 +28,16 @@ namespace Index {
         """;
 
         db.Execute(createTableQuery);
-        log("Database initialized. Path: " + dbPath, LogLevel::Info, 26, "InitializeDatabase");
+        log("Database initialized. Path: " + dbPath, LogLevel::Info, 31, "InitializeDatabase");
     }
 
-    void AddReplayToDB(const string&in path) {
+    void AddReplayToDB(const string&in path, const string&in mapRecordId = "") {
         if (path.StartsWith("http")) {
-            ConvertGhostToReplay(path);
+            ConvertGhostToReplay(path, mapRecordId);
             return;
         }
         if (path.ToLower().EndsWith(".ghost.gbx")) {
-            log("Adding a .ghost.gbx file currently doesn't work, as they are stored as CGameCtnGhost..." + path, LogLevel::Error, 32, "AddReplayToDB");
+            log("Adding a .ghost.gbx file currently doesn't work, as they are stored as CGameCtnGhost..." + path, LogLevel::Error, 40, "AddReplayToDB");
             return;
         }
         if (path.ToLower().EndsWith(".replay.gbx")) {
@@ -50,7 +50,7 @@ namespace Index {
         const uint MAX_VALID_TIME = 2147480000;
 
         if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) {
-            log("Replay skipped due to invalid BestTime: " + replay.BestTime, LogLevel::Warn, 41, "SaveReplayToDB");
+            log("Replay skipped due to invalid BestTime: " + replay.BestTime, LogLevel::Warn, 53, "SaveReplayToDB");
             return;
         }
 
@@ -75,7 +75,7 @@ namespace Index {
         stmt.Bind(8, replay.FoundThrough);
         stmt.Execute();
 
-        // log("Replay saved to DB: " + replay.ReplayHash, LogLevel::Info, 66, "SaveReplayToDB");
+        // log("Replay saved to DB: " + replay.ReplayHash, LogLevel::Info, 78, "SaveReplayToDB");
     }
 
     array<ReplayRecord@>@ GetReplaysFromDB(const string&in mapUid) {
@@ -120,7 +120,7 @@ namespace Index {
     }
 
     string GetReplayFilename(CGameGhostScript@ ghost, CGameCtnChallenge@ map) {
-        if (ghost is null || map is null) { log("Error getting replay filename, ghost or map input is null"); return ""; }
+        if (ghost is null || map is null) { log("Error getting replay filename, ghost or map input is null", LogLevel::Info, 123, "GetReplayFilename"); return ""; }
         string safeMapName = Path::SanitizeFileName(map.MapName);
         string safeUserName = Path::SanitizeFileName(ghost.Nickname);
         string safeCurrentTime = Path::SanitizeFileName(Regex::Replace(GetApp().OSLocalDate, "[/ ]", "_"));
@@ -128,7 +128,7 @@ namespace Index {
         return safeMapName + "_" + safeUserName + "_" + safeCurrentTime + "_(" + fmtGhostTime + ")";
     }
 
-    void ConvertGhostToReplay(const string &in url) {
+    void ConvertGhostToReplay(const string &in url, const string &in mapRecordId) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
         if (app is null) return;
         CSmArenaRulesMode@ playgroundScript = cast<CSmArenaRulesMode>(app.PlaygroundScript);
@@ -138,22 +138,24 @@ namespace Index {
 
         if (url == "") { return; }
 
-        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 103, "ConvertGhostToReplay");
+        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 141, "ConvertGhostToReplay");
         CWebServicesTaskResult_GhostScript@ task = dataFileMgr.Ghost_Download("", url);
 
         while (task.IsProcessing && task.Ghost is null) { yield(); }
 
         CGameGhostScript@ ghost = cast<CGameGhostScript>(task.Ghost);
-        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 104, "ConvertGhostToReplay"); return; }
+        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 147, "ConvertGhostToReplay"); return; }
 
         string replayName = GetReplayFilename(ghost, app.RootMap);
         string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/" + replayName + ".Replay.Gbx");
-        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 105, "ConvertGhostToReplay");
+        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 151, "ConvertGhostToReplay");
 
         dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
 
 
-        AddReplayToDB(replayPath);
+        AddReplayToDB(replayPath, mapRecordId);
+
+        Loader::LoadLocalGhost(replayPath);
 
         startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath);
     }
@@ -162,7 +164,7 @@ namespace Index {
         sleep(200);
         if (IO::FileExists(path)) {
             IO::Delete(path);
-            log("Deleted file: " + path, LogLevel::Info, 116, "DeleteFileWith200msDelay");
+            log("Deleted file: " + path, LogLevel::Info, 167, "DeleteFileWith200msDelay");
         }
     }
 }

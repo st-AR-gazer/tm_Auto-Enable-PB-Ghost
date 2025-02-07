@@ -55,13 +55,13 @@ namespace Index {
         if (relativePath == "") return;
 
         CSystemFidFile@ fid = Fids::GetUser(relativePath);
-        if (fid is null) { log("Failed to get fid for file: " + filePath, LogLevel::Error, 59, "ProcessFile"); return; }
+        if (fid is null) { log("Failed to get fid for file: " + filePath, LogLevel::Error, 58, "ProcessFile"); return; }
 
         CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + filePath, LogLevel::Error, 62, "ProcessFile"); return; }
+        if (nod is null) { log("Failed to preload nod for file: " + filePath, LogLevel::Error, 61, "ProcessFile"); return; }
 
         CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
-        if (record is null) { log("Failed to cast nod for file: " + filePath, LogLevel::Error, 65, "ProcessFile"); return; }
+        if (record is null) { log("Failed to cast nod for file: " + filePath, LogLevel::Error, 64, "ProcessFile"); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = record.Challenge.IdName;
@@ -89,13 +89,13 @@ namespace Index {
         string destinationPath = destinationFolder + "/" + replay.ReplayHash + ".Replay.gbx";
 
         if (IO::FileExists(destinationPath)) {
-            log("File already exists: " + destinationPath + " | Overwriting", LogLevel::Warn, 93, "MoveFileToReplays");
+            log("File already exists: " + destinationPath + " | Overwriting", LogLevel::Warn, 92, "MoveFileToReplays");
             return "Replays/zzAutoEnablePBGhost/" + replay.ReplayHash + ".Replay.gbx";
         }
 
         IO::Move(filePath, destinationPath);
         if (!IO::FileExists(destinationPath)) {
-            log("Failed to move file: " + filePath + " to: " + destinationPath, LogLevel::Error, 99, "MoveFileToReplays");
+            log("Failed to move file: " + filePath + " to: " + destinationPath, LogLevel::Error, 98, "MoveFileToReplays");
             return "";
         }
 
@@ -110,6 +110,6 @@ namespace Index {
         for (uint i = 0; i < files.Length; i++) {
             IO::Delete(files[i]);
         }
-        log("All moved files have been deleted.", LogLevel::Notice, 114, "DeleteMovedFiles");
+        log("All moved files have been deleted.", LogLevel::Notice, 113, "DeleteMovedFiles");
     }
 }

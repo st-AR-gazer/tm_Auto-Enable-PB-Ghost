@@ -7,7 +7,8 @@ namespace MapTracker {
 
             if (!S_enableGhosts) continue;
 
-            if (HasMapChanged()) {
+            if (HasMapChanged() && S_loadPBs) {
+                if (get_CurrentMapUID() == "") continue;
                 while (!_Game::IsPlayingMap()) yield();
 
                 uint timeout = 500;
@@ -20,9 +21,11 @@ namespace MapTracker {
                     conditionMet = AllowCheck::ConditionCheckMet();
                 }
                 if (AllowCheck::ConditionCheckMet()) {
+
                     Loader::RemoveLocalPBsUntillNextMapForEasyLoading();
                     Loader::LoadPB();
                     Loader::CullPBsWithSameTime();
+                
                 } else {
                     NotifyWarn("You cannot load records on this map : " + AllowCheck::DissalowReason());
                 }

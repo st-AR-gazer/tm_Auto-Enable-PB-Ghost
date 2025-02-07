@@ -242,10 +242,14 @@ namespace _Game {
         return true;
     }
 
-    bool HasPersonalBest() {
+    bool HasPersonalBest(const string &in mapUid) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
-        CGameCtnChallenge@ map = app.RootMap;
-        if (map is null || map.MapInfo.MapUid == "") return false;
+        string _mapUid = mapUid;
+        if (_mapUid == "") {
+            CGameCtnChallenge@ map = app.RootMap;
+            if (map is null || map.MapInfo.MapUid == "") return false;
+            _mapUid = map.MapInfo.MapUid;
+        }
 
         CTrackManiaNetwork@ network = cast<CTrackManiaNetwork>(app.Network);
         if (network.ClientManiaAppPlayground is null) return false;
@@ -254,8 +258,29 @@ namespace _Game {
         MwId userId = (userMgr.Users.Length > 0) ? userMgr.Users[0].Id : MwId(uint(-1));
 
         CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
-        int pbTime = scoreMgr.Map_GetRecord_v2(userId, map.MapInfo.MapUid, "PersonalBest", "", "TimeAttack", "");
+        int pbTime = scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
+
+        print(mapUid + " | " + pbTime);
         return pbTime > 0;
+    }
+
+    int CurrentPersonalBest(const string &in mapUid) {
+        CTrackMania@ app = cast<CTrackMania>(GetApp());
+        string _mapUid = mapUid;
+        if (_mapUid == "") {
+            CGameCtnChallenge@ map = app.RootMap;
+            if (map is null || map.MapInfo.MapUid == "") return 0;
+            _mapUid = map.MapInfo.MapUid;
+        }
+
+        CTrackManiaNetwork@ network = cast<CTrackManiaNetwork>(app.Network);
+        if (network.ClientManiaAppPlayground is null) return 0;
+
+        CGameUserManagerScript@ userMgr = network.ClientManiaAppPlayground.UserMgr;
+        MwId userId = (userMgr.Users.Length > 0) ? userMgr.Users[0].Id : MwId(uint(-1));
+
+        CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
+        return scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
     }
 
     int GetPersonalBestTime() {
@@ -286,7 +311,7 @@ namespace _Net {
         void CoroDownloadFileToDestination(const string &in userdata) {
             array<string> parts = userdata.Split("|");
             if (parts.Length != 5) {
-                log("Invalid userdata format.", LogLevel::Error, 289, "CoroDownloadFileToDestination");
+                log("Invalid userdata format.", LogLevel::Error, 314, "CoroDownloadFileToDestination");
                 return;
             }
             string url = parts[0];
@@ -334,13 +359,13 @@ namespace _Net {
                 request.SaveToFile(tmp_path);
                 _IO::File::CopyFileTo(tmp_path, destination);
 
-                if (!IO::FileExists(tmp_path)) { log("Failed to save file to: " + tmp_path, LogLevel::Error, 337, "CoroDownloadFileToDestination"); return; }
-                if (!IO::FileExists(destination)) { log("Failed to move file to: " + destination, LogLevel::Error, 338, "CoroDownloadFileToDestination"); return; }
+                if (!IO::FileExists(tmp_path)) { log("Failed to save file to: " + tmp_path, LogLevel::Error, 362, "CoroDownloadFileToDestination"); return; }
+                if (!IO::FileExists(destination)) { log("Failed to move file to: " + destination, LogLevel::Error, 363, "CoroDownloadFileToDestination"); return; }
 
                 IO::Delete(tmp_path);
 
                 if (!IO::FileExists(tmp_path) && IO::FileExists(destination)) {
-                    log("File downloaded successfully, saving " + file_name + " to: " + destination, LogLevel::Info, 343, "CoroDownloadFileToDestination");
+                    log("File downloaded successfully, saving " + file_name + " to: " + destination, LogLevel::Info, 368, "CoroDownloadFileToDestination");
 
                     downloadedFilePaths[key] = key;
                     downloadedFilePaths[key] = destination;
@@ -354,7 +379,7 @@ namespace _Net {
                     }
                 }
             } else {
-                log("Failed to download file. Response code: " + request.ResponseCode(), LogLevel::Info, 357, "CoroDownloadFileToDestination");
+                log("Failed to download file. Response code: " + request.ResponseCode(), LogLevel::Info, 382, "CoroDownloadFileToDestination");
             }
         }
     }
