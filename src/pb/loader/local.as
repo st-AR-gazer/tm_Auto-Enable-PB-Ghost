@@ -29,7 +29,7 @@ namespace Loader {
         for (uint i = 0; i < replays.Length; i++) {
             if (replays[i].BestTime == uint(playerPBTime)) {
                 string fullPath = replays[i].Path;
-                LoadLocalGhost(fullPath);
+                startnew(CoroutineFuncUserdataString(LoadLocalGhost), fullPath);
                 return;
             }
         }
@@ -63,7 +63,7 @@ namespace Loader {
             DownloadPBFromLeaderboardAndLoadLocal(mapUid);
         } else if (bestReplay !is null) {
             string fullPath = bestReplay.Path;
-            LoadLocalGhost(fullPath);
+            startnew(CoroutineFuncUserdataString(LoadLocalGhost), fullPath);
         }
     }
 
@@ -100,7 +100,7 @@ namespace Loader {
     }
 
     void LoadGhost(CGameGhostScript@ ghost) {
-        if (ghost is null) { log("Ghost is null.", LogLevel::Error, 109, "LoadGhost"); return; }
+        if (ghost is null) { log("Ghost is null.", LogLevel::Error, 103, "LoadGhost"); return; }
 
         CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
         ghost.IdName = "Personal best";

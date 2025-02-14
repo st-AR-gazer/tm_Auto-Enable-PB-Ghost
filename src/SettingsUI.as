@@ -185,7 +185,7 @@ string S_customIndexLocation = IO::FromUserGameFolder("Replays/Autosaves/");
 [Setting hidden]
 bool S_enableGhosts = true;
 
-[SettingsTab name="Testing" icon="DevTo" order="10"]
+[SettingsTab name="Testing" icon="DevTo" order="99999999999999999999"]
 void RT_Testing() {
     if (UI::BeginChild("Testing Settings", vec2(0, 0), true)) {
         UI::Text("Testing Options");

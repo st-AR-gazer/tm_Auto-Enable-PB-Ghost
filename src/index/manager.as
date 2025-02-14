@@ -160,13 +160,13 @@ namespace Index {
         string replayName = GetReplayFilename(ghost, app.RootMap);
         string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/dwn/" + replayName + ".Replay.Gbx");
         // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
-        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 162, "ConvertGhostToReplay");
+        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 163, "ConvertGhostToReplay");
 
         dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
 
         AddReplayToDB(replayPath, mapRecordId);
 
-        Loader::LoadLocalGhost(replayPath);
+        startnew(CoroutineFuncUserdataString(Loader::LoadLocalGhost), replayPath);
 
         // I'm not sure if I should really be removing the ghost here... but I guess it's fine for now
         // startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath);
@@ -176,7 +176,7 @@ namespace Index {
         sleep(200);
         if (IO::FileExists(path)) {
             IO::Delete(path);
-            log("Deleted file: " + path, LogLevel::Info, 178, "DeleteFileWith200msDelay");
+            log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith200msDelay");
         }
     }
 }

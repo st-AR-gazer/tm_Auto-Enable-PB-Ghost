@@ -138,7 +138,7 @@ namespace Index {
             return;
         }
 
-        if (record.Ghosts.Length == 0) { log("No ghosts found in file: " + parsePath, LogLevel::Warn, 143, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
+        if (record.Ghosts.Length == 0) { log("No ghosts found in file: " + parsePath, LogLevel::Warn, 141, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = record.Challenge.IdName;
@@ -155,7 +155,7 @@ namespace Index {
 
     void ProcessFileWithCGameCtnGhost(CMwNod@ nod, const string &in filePath) {
         CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
-        if (ghost is null) { log("Failed to cast nod (CGameCtnGhost) for file: " + filePath, LogLevel::Error, 160, "ProcessFileWithCGameCtnGhost"); return; }
+        if (ghost is null) { log("Failed to cast nod (CGameCtnGhost) for file: " + filePath, LogLevel::Error, 158, "ProcessFileWithCGameCtnGhost"); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = ghost.Validate_ChallengeUid.GetName();
@@ -176,6 +176,6 @@ namespace Index {
     }
 
     void DeleteMovedFiles() {
-        log("No permanent moves. Nothing to delete here.", LogLevel::Notice, 182, "DeleteMovedFiles");
+        log("No permanent moves. Nothing to delete here.", LogLevel::Notice, 179, "DeleteMovedFiles");
     }
 }
