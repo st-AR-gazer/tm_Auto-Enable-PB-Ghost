@@ -21,7 +21,7 @@ namespace Loader {
         if (mgr is null) return;
 
         auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        if (ps is null) throw("null playground script");
+        if (ps is null) return;
 
         array<uint> times;
         for (uint i = 0; i < mgr.Ghosts.Length; i++) {

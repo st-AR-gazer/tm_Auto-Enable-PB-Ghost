@@ -1,3 +1,1 @@
-finish the 'folder' part of indexing.
-fix bug where when less than five runs are in the widget everything spasses out...
-fix 'convert ghost to replay' that happens if there isn't a local ghost (this is so that we can still load things...)
+hide the icon when selecting a current player on servers (since we can only toggle the leaderboard pb we don't want to show that we've just hit the play against button xdd)

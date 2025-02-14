@@ -4,19 +4,23 @@ namespace Loader {
     void LoadPB() {
         if (!_Game::IsPlayingMap()) return;
 
-        if (_Game::IsPlayingLocal()) {
-            if (IsFastestPBLoaded()) { 
-                log("Fastest PB already loaded", LogLevel::Info, 9, "LoadPB"); 
-                return; 
-            }
-            HidePB();
-            
-            while (GetRecordsList_RecordsWidgetUI() is null) { yield(); }
+        uint startTime = Time::Now;
+        while (_Game::CurrentPersonalBest(CurrentMapUID) == -1) {
+            if (Time::Now - startTime > 8000) { break; }
+            yield();
+        }
 
+        if (_Game::IsPlayingLocal()) {
+            if (IsFastestPBLoaded()) {  log("Fastest PB already loaded", LogLevel::Info, 14, "LoadPB");  return;  }
+            while (GetRecordsWidget_FullWidgetUI() is null) { yield(); }
+            
+            HidePB();
             LoadPBFromDB();
             return;
         }
         if (_Game::IsPlayingOnServer()) {
+            while (GetRecordsWidget_FullWidgetUI() is null) { yield(); }
+
             TogglePBFromMLHook();
             return;
         }

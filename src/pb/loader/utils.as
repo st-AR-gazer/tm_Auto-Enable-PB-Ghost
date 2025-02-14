@@ -15,7 +15,7 @@ namespace Loader {
         }
         return false;
     }
-    // This is unreliable... and clip gets both the ones loded through clips and the ones loaded through Replay_Add (or whatever it was called xdd)
+    // This is unreliable... and clip gets both the ones loaded through clips and the ones loaded through Replay_Add (or whatever it was called xdd)
     // bool IsPBLoaded_Local() {
     //     auto net = cast<CGameCtnNetwork>(GetApp().Network);
     //     if (net is null) return false;
@@ -32,9 +32,7 @@ namespace Loader {
     //     return false;
     // }
     bool IsFastestPBLoaded() {
-        CControlFrame@ widget = GetRecordsList_RecordsWidgetUI();
-        string playerName = GetApp().LocalPlayerInfo.Name;
-        int widgetTime = GetPlayerPBFromWidget(widget, playerName);
+        int widgetTime = GetRecordsWidget_PlayerUIPB();
 
         auto mgr = GhostClipsMgr::Get(GetApp());
         if (mgr is null) return false;
@@ -57,7 +55,7 @@ namespace Loader {
             }
         }
 
-        log("Widget time: " + widgetTime + " | Fastest time: " + fastestTime, LogLevel::Info, 60, "IsFastestPBLoaded");
+        log("Widget time: " + widgetTime + " | Fastest time: " + fastestTime, LogLevel::Info, 58, "IsFastestPBLoaded");
 
         return widgetTime == int(fastestTime);
     }
@@ -77,7 +75,7 @@ namespace Loader {
         for (uint i = 0; i < dfm.Ghosts.Length; i++) {
             CGameGhostScript@ ghost = cast<CGameGhostScript>(dfm.Ghosts[i]);
             if (ghost.IdName.ToLower().Contains("personal best")) {
-                log("Saving PB: " + ghost.Nickname, LogLevel::Info, 80, "SaveLocalPBsUntillNextMapForEasyLoading");
+                log("Saving PB: " + ghost.Nickname, LogLevel::Info, 78, "SaveLocalPBsUntillNextMapForEasyLoading");
                 tempLocalPBsForCurrentMap.InsertLast(ghost);
             }
         }
@@ -98,7 +96,7 @@ namespace Loader {
         if (_Game::IsPlayingLocal()) {
             RemoveSlowestLocalPBGhost();
         } else if (_Game::IsPlayingOnServer()) {
-            log("On a server ghosts can only be loaded through the Leaderboard widget, there isn't a 'slowest' pb ghost to remove, use 'RemoveServerPBGhost' for removing a server pb.", LogLevel::Warn, 101, "RemoveSlowestPBGhost");
+            log("On a server ghosts can only be loaded through the Leaderboard widget, there isn't a 'slowest' pb ghost to remove, use 'RemoveServerPBGhost' for removing a server pb.", LogLevel::Warn, 99, "RemoveSlowestPBGhost");
         }
     }
     void RemoveSlowestLocalPBGhost() {
@@ -120,7 +118,7 @@ namespace Loader {
         }
 
         if (slowestGhost is null) {
-            log("No personal best ghosts found to remove.", LogLevel::Warn, 123, "RemoveSlowestLocalPBGhost");
+            log("No personal best ghosts found to remove.", LogLevel::Warn, 121, "RemoveSlowestLocalPBGhost");
             return;
         }
 
@@ -128,7 +126,7 @@ namespace Loader {
 
         auto gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
         gm.Ghost_Remove(slowestGhost.Id);
-        log("Record with the MwID of: " + slowestGhost.Id.GetName() + " removed.", LogLevel::Info, 131, "RemoveSlowestLocalPBGhost");
+        log("Record with the MwID of: " + slowestGhost.Id.GetName() + " removed.", LogLevel::Info, 129, "RemoveSlowestLocalPBGhost");
     }
 
     // Misc
@@ -156,20 +154,20 @@ namespace Loader {
         while (!req.Finished()) { yield(); }
 
         if (req.ResponseCode() != 200) {
-            log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 159, "MapUidToMapId");
+            log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 157, "MapUidToMapId");
             mapId = "";
         } else {
             Json::Value data = Json::Parse(req.String());
             if (data.GetType() == Json::Type::Null) {
-                log("Failed to parse response for map ID.", LogLevel::Error, 164, "MapUidToMapId");
+                log("Failed to parse response for map ID.", LogLevel::Error, 162, "MapUidToMapId");
                 mapId = "";
             } else {
                 if (data.GetType() != Json::Type::Array || data.Length == 0) {
-                    log("Invalid map data in response.", LogLevel::Error, 168, "MapUidToMapId");
+                    log("Invalid map data in response.", LogLevel::Error, 166, "MapUidToMapId");
                     mapId = "";
                 } else {
                     mapId = data[0]["mapId"];
-                    log("Found map ID: " + mapId, LogLevel::Info, 172, "MapUidToMapId");
+                    log("Found map ID: " + mapId, LogLevel::Info, 170, "MapUidToMapId");
                 }
             }
         }

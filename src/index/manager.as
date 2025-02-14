@@ -50,7 +50,7 @@ namespace Index {
         const uint MAX_VALID_TIME = 2147480000;
 
         if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) {
-            log("Replay skipped due to invalid BestTime: " + replay.BestTime, LogLevel::Warn, 53, "SaveReplayToDB");
+            log("Replay skipped due to invalid BestTime: " + replay.BestTime + " | "+"isDir: "+_IO::Directory::IsDirectory(replay.Path)+" | "+replay.Path, LogLevel::Warn, 53, "SaveReplayToDB");
             return;
         }
 
@@ -103,10 +103,21 @@ namespace Index {
         return results;
     }
 
-    void RebuildDatabaseFromScratch() {
+    void DeleteAndReInitialize() {
         string dbPath = GetDatabasePath();
         if (IO::FileExists(dbPath)) { IO::Delete(dbPath); }
         InitializeDatabase();
+    }
+
+    int GetTotalReplaysForMap(const string&in mapUid) {
+        string dbPath = GetDatabasePath();
+        SQLite::Database@ db = SQLite::Database(dbPath);
+
+        string query = "SELECT COUNT(*) FROM ReplayRecords WHERE MapUid = ?";
+        auto stmt = db.Prepare(query);
+        stmt.Bind(1, mapUid);
+        stmt.NextRow();
+        return stmt.GetColumnInt("COUNT(*)");
     }
 
     void DeleteEntryFromDatabaseBasedOnFilePath(const string&in path) {
@@ -120,7 +131,7 @@ namespace Index {
     }
 
     string GetReplayFilename(CGameGhostScript@ ghost, CGameCtnChallenge@ map) {
-        if (ghost is null || map is null) { log("Error getting replay filename, ghost or map input is null", LogLevel::Info, 123, "GetReplayFilename"); return ""; }
+        if (ghost is null || map is null) { log("Error getting replay filename, ghost or map input is null", LogLevel::Info, 134, "GetReplayFilename"); return ""; }
         string safeMapName = Path::SanitizeFileName(map.MapName);
         string safeUserName = Path::SanitizeFileName(ghost.Nickname);
         string safeCurrentTime = Path::SanitizeFileName(Regex::Replace(GetApp().OSLocalDate, "[/ ]", "_"));
@@ -138,33 +149,34 @@ namespace Index {
 
         if (url == "") { return; }
 
-        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 141, "ConvertGhostToReplay");
+        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 152, "ConvertGhostToReplay");
         CWebServicesTaskResult_GhostScript@ task = dataFileMgr.Ghost_Download("", url);
 
         while (task.IsProcessing && task.Ghost is null) { yield(); }
 
         CGameGhostScript@ ghost = cast<CGameGhostScript>(task.Ghost);
-        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 147, "ConvertGhostToReplay"); return; }
+        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 158, "ConvertGhostToReplay"); return; }
 
         string replayName = GetReplayFilename(ghost, app.RootMap);
-        string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/" + replayName + ".Replay.Gbx");
-        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 151, "ConvertGhostToReplay");
+        string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/dwn/" + replayName + ".Replay.Gbx");
+        // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
+        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 162, "ConvertGhostToReplay");
 
         dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
-
 
         AddReplayToDB(replayPath, mapRecordId);
 
         Loader::LoadLocalGhost(replayPath);
 
-        startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath);
+        // I'm not sure if I should really be removing the ghost here... but I guess it's fine for now
+        // startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath);
     }
 
     void DeleteFileWith200msDelay(const string &in path) {
         sleep(200);
         if (IO::FileExists(path)) {
             IO::Delete(path);
-            log("Deleted file: " + path, LogLevel::Info, 167, "DeleteFileWith200msDelay");
+            log("Deleted file: " + path, LogLevel::Info, 178, "DeleteFileWith200msDelay");
         }
     }
 }

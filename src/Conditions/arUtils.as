@@ -242,7 +242,7 @@ namespace _Game {
         return true;
     }
 
-    bool HasPersonalBest(const string &in mapUid) {
+    bool HasPersonalBest(const string &in mapUid, bool verbose = false) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
         string _mapUid = mapUid;
         if (_mapUid == "") {
@@ -260,7 +260,7 @@ namespace _Game {
         CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
         int pbTime = scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
 
-        print(mapUid + " | " + pbTime);
+        if (verbose) log(mapUid + " | " + pbTime, LogLevel::Debug, 263, "HasPersonalBest");
         return pbTime > 0;
     }
 

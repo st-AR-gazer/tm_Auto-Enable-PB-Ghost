@@ -3,30 +3,69 @@ namespace Index {
     bool isIndexingFolder = false;
     int totalFolderFileNumber = 0;
     int currentFolderFileNumber = 0;
-    int FOLDER_INDEXING_PROCESS_LIMIT = 2;
+    int FOLDER_INDEXING_PROCESS_LIMIT = 1;
     bool enqueueingFilesInProgress = false;
+    int totalFilesToEnqueue = 0;
+    int filesEnqueued = 0;
+    string lastFileIndexed = "";
+
+    float lastCheckTime = 0.0f;
+    uint lastFileCount = 0;
+    uint speedCount = 0;
+    float updateIntervalSec = 1.0f;
+
+    // FIXME: This currently doesn't work, see issue in SettingsUI.as
+    void UpdateIndexingSpeed() {
+        float now = Time::Now;
+        float dt = now - lastCheckTime;
+        if (dt >= updateIntervalSec) {
+            uint processedSinceLast = currentFolderFileNumber - lastFileCount;
+            speedCount = uint(float(processedSinceLast) / dt);
+            lastFileCount = currentFolderFileNumber;
+            lastCheckTime = now;
+        }
+    }
 
     void StartGameFolderFullIndexing() {
-        string gameFolder = IO::FromUserGameFolder("");
-        StartCustomFolderIndexing(gameFolder);
+        ManualIndex::Stop();
+        ManualIndex::StartRecursiveSearch(IO::FromUserGameFolder(""));
+        startnew(CoroutineFuncUserdata(PostManualIndexCoroutine), null);
     }
 
     void StartCustomFolderIndexing(const string &in folderPath) {
-        EnqueueFiles(folderPath);
+        ManualIndex::Stop();
+        ManualIndex::StartRecursiveSearch(folderPath);
+        startnew(CoroutineFuncUserdata(PostManualIndexCoroutine), null);
+    }
+
+    void PostManualIndexCoroutine(ref@ _) {
+        while (ManualIndex::indexingInProgress) { yield(); }
+        array<string>@ results = ManualIndex::GetFoundFiles();
+        enqueueingFilesInProgress = true;
+        totalFilesToEnqueue = results.Length;
+        filesEnqueued = 0;
+        for (uint i = 0; i < results.Length; i++) {
+            pendingFiles.InsertLast(results[i]);
+            filesEnqueued++;
+            lastFileIndexed = results[i];
+            if (i % 739 == 0) yield();
+        }
+        enqueueingFilesInProgress = false;
         totalFolderFileNumber = pendingFiles.Length;
         currentFolderFileNumber = 0;
         isIndexingFolder = true;
-        while (enqueueingFilesInProgress) { yield(); }
+        lastCheckTime = Time::Now;
+        lastFileCount = 0;
+        speedCount = 0;
         ProcessFolderFiles();
     }
-    
-    void EnqueueFiles(const string &in path) {
-        enqueueingFilesInProgress = true;
-        string[]@ files = IO::IndexFolder(path, true);
-        for (uint i = 0; i < files.Length; i++) {
-            pendingFiles.InsertLast(files[i]);
-        }
+
+    void StopEnqueueing() {
         enqueueingFilesInProgress = false;
+        pendingFiles.Resize(0);
+        totalFilesToEnqueue = 0;
+        filesEnqueued = 0;
+        lastFileIndexed = "";
     }
 
     void ProcessFolderFiles() {
@@ -35,81 +74,108 @@ namespace Index {
             while (processedCount < FOLDER_INDEXING_PROCESS_LIMIT && pendingFiles.Length > 0) {
                 string filePath = pendingFiles[0];
                 pendingFiles.RemoveAt(0);
-                ProcessFile(filePath);
+                startnew(CoroutineFuncUserdataString(ProcessFile), filePath);
                 currentFolderFileNumber++;
                 processedCount++;
+                UpdateIndexingSpeed();
             }
             yield();
         }
-
         if (pendingFiles.Length == 0) {
             isIndexingFolder = false;
-            log("Folder indexing complete!", LogLevel::Info, 47, "ProcessFolderFiles");
+            log("Folder indexing complete!", LogLevel::Info, 86, "ProcessFolderFiles");
         }
+    }
+
+    void StopIndexingFolder() {
+        isIndexingFolder = false;
+        pendingFiles.Resize(0);
+        totalFolderFileNumber = 0;
+        currentFolderFileNumber = 0;
     }
 
     void ProcessFile(const string &in filePath) {
         if (!filePath.ToLower().EndsWith(".replay.gbx") && !filePath.ToLower().EndsWith(".ghost.gbx")) return;
+        bool alreadyInReplays = filePath.ToLower().Contains("replays/");
+        string parsePath = filePath;
+        if (!alreadyInReplays) {
+            string tempFolder = IO::FromUserGameFolder("Replays/tmpPBGhost/");
+            if (!IO::FolderExists(tempFolder)) { IO::CreateFolder(tempFolder); yield(); }
 
-        string relativePath = MoveFileToReplays(filePath);
-        if (relativePath == "") return;
+            auto tmpReplay = ReplayRecord();
+            tmpReplay.Path = filePath;
+            tmpReplay.CalculateHash();
+            yield();
 
-        CSystemFidFile@ fid = Fids::GetUser(relativePath);
-        if (fid is null) { log("Failed to get fid for file: " + filePath, LogLevel::Error, 58, "ProcessFile"); return; }
+            string tempFilePath = tempFolder + tmpReplay.ReplayHash + ".Replay.gbx";
+            string fileContent = _IO::File::ReadFileToEnd(filePath);
+            yield();
+
+            _IO::File::WriteFile(tempFilePath, fileContent);
+            yield();
+
+            if (!IO::FileExists(tempFilePath)) { log("Failed to copy file for parsing: " + filePath, LogLevel::Error, 117, "ProcessFile"); return; }
+            parsePath = tempFilePath;
+        }
+        if (parsePath.StartsWith(IO::FromUserGameFolder(""))) {
+            parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length, parsePath.Length - IO::FromUserGameFolder("").Length);
+        }
+
+        CSystemFidFile@ fid = Fids::GetUser(parsePath);
+        if (fid is null) { log("Failed to get fid for file: " + parsePath, LogLevel::Error, 125, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
 
         CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + filePath, LogLevel::Error, 61, "ProcessFile"); return; }
+        if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
 
         CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
-        if (record is null) { log("Failed to cast nod for file: " + filePath, LogLevel::Error, 64, "ProcessFile"); return; }
+        if (record is null) {
+            log("Failed to cast nod (CGameCtnReplayRecord) for file: " + parsePath, LogLevel::Warn, 132, "ProcessFile");
+
+            // Important to note but not _everything_ is a "CGameCtnReplayRecord", some are "CGameCtnGhost"... so we try that too xdd
+            ProcessFileWithCGameCtnGhost(nod, filePath);
+
+            CleanupTemp(parsePath, filePath);
+            return;
+        }
+
+        if (record.Ghosts.Length == 0) { log("No ghosts found in file: " + parsePath, LogLevel::Warn, 143, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = record.Challenge.IdName;
         replay.PlayerLogin = record.Ghosts[0].GhostLogin;
         replay.PlayerNickname = record.Ghosts[0].GhostNickname;
-        replay.FileName = Path::GetFileName(IO::FromUserGameFolder(relativePath));
-        replay.Path = IO::FromUserGameFolder(relativePath);
+        replay.FileName = Path::GetFileName(filePath);
+        replay.Path = filePath;
         replay.BestTime = record.Ghosts[0].RaceTime;
         replay.FoundThrough = "Folder Indexing";
         replay.CalculateHash();
+        SaveReplayToDB(replay);
+        CleanupTemp(parsePath, filePath);
+    }
 
+    void ProcessFileWithCGameCtnGhost(CMwNod@ nod, const string &in filePath) {
+        CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
+        if (ghost is null) { log("Failed to cast nod (CGameCtnGhost) for file: " + filePath, LogLevel::Error, 160, "ProcessFileWithCGameCtnGhost"); return; }
+
+        auto replay = ReplayRecord();
+        replay.MapUid = ghost.Validate_ChallengeUid.GetName();
+        replay.PlayerLogin = ghost.GhostLogin;
+        replay.PlayerNickname = ghost.GhostNickname;
+        replay.FileName = Path::GetFileName(filePath);
+        replay.Path = filePath;
+        replay.BestTime = ghost.RaceTime;
+        replay.FoundThrough = "Folder Indexing";
+        replay.CalculateHash();
         SaveReplayToDB(replay);
     }
 
-    string MoveFileToReplays(const string &in filePath) {
-        string destinationFolder = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/");
-        if (!IO::FolderExists(destinationFolder)) {
-            IO::CreateFolder(destinationFolder);
+    void CleanupTemp(const string &in parsePath, const string &in originalPath) {
+        if (parsePath != originalPath && IO::FileExists(parsePath)) {
+            IO::Delete(parsePath);
         }
-
-        auto replay = ReplayRecord();
-        replay.Path = filePath;
-        replay.CalculateHash();
-
-        string destinationPath = destinationFolder + "/" + replay.ReplayHash + ".Replay.gbx";
-
-        if (IO::FileExists(destinationPath)) {
-            log("File already exists: " + destinationPath + " | Overwriting", LogLevel::Warn, 92, "MoveFileToReplays");
-            return "Replays/zzAutoEnablePBGhost/" + replay.ReplayHash + ".Replay.gbx";
-        }
-
-        IO::Move(filePath, destinationPath);
-        if (!IO::FileExists(destinationPath)) {
-            log("Failed to move file: " + filePath + " to: " + destinationPath, LogLevel::Error, 98, "MoveFileToReplays");
-            return "";
-        }
-
-        return "Replays/zzAutoEnablePBGhost/" + replay.ReplayHash + ".Replay.gbx";
     }
 
     void DeleteMovedFiles() {
-        string destinationFolder = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost");
-        if (!IO::FolderExists(destinationFolder)) return;
-
-        string[]@ files = IO::IndexFolder(destinationFolder, false);
-        for (uint i = 0; i < files.Length; i++) {
-            IO::Delete(files[i]);
-        }
-        log("All moved files have been deleted.", LogLevel::Notice, 113, "DeleteMovedFiles");
+        log("No permanent moves. Nothing to delete here.", LogLevel::Notice, 182, "DeleteMovedFiles");
     }
 }

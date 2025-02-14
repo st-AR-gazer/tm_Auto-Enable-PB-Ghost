@@ -6,3 +6,4 @@ category = "Utilities"
 
 [script]
 dependencies = [ "MLHook", "NadeoServices" ]
+optional_dependencies = [ "BetterReplaysFolder" ]

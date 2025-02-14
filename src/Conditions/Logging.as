@@ -54,7 +54,7 @@ namespace DEV {
     }
 }
 
-// ********** Hidden Settings **********
+// ********** Settings **********
 
 //////////// CHANGE TO "true" ON RELEASE  ////////////
 [Setting category="z~DEV" name="Show default OP logs" hidden]
