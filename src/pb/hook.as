@@ -21,11 +21,11 @@ namespace PBVisibilityHook {
                 Loader::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
-                    startnew(Loader::LoadPB);
-                    log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Info, 25, "UnknownFunction");
+                    t_hook_shouldLoadPBnow = true;
+                    // log("PBVisibilityHook: Showing PB ghosts.", LogLevel::Debug, 25, "UnknownFunction");
                 } else {
-                    Loader::UnloadPBGhost();
-                    log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Info, 28, "UnknownFunction");
+                    t_hook_shouldUnloadPBnow = true;
+                    // log("PBVisibilityHook: Hiding PB ghosts.", LogLevel::Debug, 28, "UnknownFunction");
                 }
             }
         }
@@ -54,5 +54,20 @@ namespace PBVisibilityHook {
             @updateVisibilityHook = null;
         }
         log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 56, "UninitializeHook");
+    }
+
+    bool t_hook_shouldLoadPBnow = false;
+    bool t_hook_shouldUnloadPBnow = false;
+}
+
+void Update(float dt) {
+    // I hate that this took me so long to think of :xdd:
+    if (PBVisibilityHook::t_hook_shouldLoadPBnow) {
+        PBVisibilityHook::t_hook_shouldLoadPBnow = false;
+        startnew(Loader::LoadPB);
+    }
+    if (PBVisibilityHook::t_hook_shouldUnloadPBnow) {
+        PBVisibilityHook::t_hook_shouldUnloadPBnow = false;
+        Loader::UnloadPBGhost();
     }
 }

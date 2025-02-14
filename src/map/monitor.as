@@ -26,7 +26,7 @@ namespace MapTracker {
                 }
 
                 if (AllowCheck::ConditionCheckMet()) {
-                    Loader::RemoveLocalPBsUntillNextMapForEasyLoading();
+                    // Loader::RemoveLocalPBsUntillNextMapForEasyLoading();
                     Loader::LoadPB();
                     Loader::CullPBsWithSameTime();
                 } else {

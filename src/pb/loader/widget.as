@@ -14,7 +14,7 @@ namespace Loader {
         CControlFrame@ current = start;
         for (uint i = 0; i < indices.Length; i++) {
             int idx = indices[i];
-            if (current is null || current.Childs.Length <= idx || current.Childs[idx] is null)
+            if (current is null || int(current.Childs.Length) <= idx || current.Childs[idx] is null)
                 return null;
             @current = cast<CControlFrame>(current.Childs[idx]);
         }
@@ -66,7 +66,7 @@ namespace Loader {
         if (interfaceRootStyled is null || interfaceRootStyled.Childs.Length == 0 || interfaceRootStyled.Childs[0] is null) return null;
         CControlFrame@ interfaceRoot = cast<CControlFrame>(interfaceRootStyled);
         if (interfaceRoot is null) return null;
-        
+
         for (uint i = 0; i < g_candidateChains.Length; i++) {
             CControlFrame@ fullWidget = TraverseWidgetChain(interfaceRoot, g_candidateChains[i]);
             if (fullWidget !is null)

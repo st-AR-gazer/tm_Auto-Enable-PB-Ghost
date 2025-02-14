@@ -66,7 +66,7 @@ namespace ManualIndex {
             for (uint f = 0; f < files.Length && !forceStopIndexing; f++) {
                 foundFiles.InsertLast(files[f]);
                 processedInThisDir++;
-                if (processedInThisDir >= batchSize) {
+                if (processedInThisDir >= uint(batchSize)) {
                     processedInThisDir = 0;
                     yield();
                 }

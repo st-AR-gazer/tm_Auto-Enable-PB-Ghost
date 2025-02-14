@@ -192,7 +192,7 @@ void RT_Testing() {
 
         // if (UI::Button("Test unload g++")) { startnew(UnloadGhost); }
 
-        if (UI::Button("Load Saved pb")) { startnew(Loader::LoadLocalPBsUntillNextMapForEasyLoading); }
+        // if (UI::Button("Load Saved pb")) { startnew(Loader::LoadLocalPBsUntillNextMapForEasyLoading); }
 
 
         UI::Separator();

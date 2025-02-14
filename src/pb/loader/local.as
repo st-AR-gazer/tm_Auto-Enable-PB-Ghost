@@ -48,7 +48,7 @@ namespace Loader {
         }
 
         for (uint i = 0; i < replays.Length; i++) {
-            if (replays[i].BestTime > _Game::GetPersonalBestTime()) {
+            if (replays[i].BestTime > uint(_Game::GetPersonalBestTime()) && replays[i].BestTime <= 4294967295) {
                 log("Local record (in database) is slower than the widget PB. Fetching from leaderboard.", LogLevel::Warn, 52, "FallbackLoadPB");
                 DownloadPBFromLeaderboardAndLoadLocal(mapUid);
                 return;
@@ -96,17 +96,24 @@ namespace Loader {
             gm.Ghost_Add(ghost);
         }
 
-        log("Loaded PB ghost from " + filePath, LogLevel::Info, 99, "LoadLocalGhost");
+        SaveLocalPBsUntillNextMapForEasyLoading();
+
+        log("Loaded PB ghost from " + filePath, LogLevel::Info, 101, "LoadLocalGhost");
     }
 
     void LoadGhost(CGameGhostScript@ ghost) {
-        if (ghost is null) { log("Ghost is null.", LogLevel::Error, 103, "LoadGhost"); return; }
+        print("aa");
+
+        CGameGhostScript@ newGhost = ghost;
+        if (newGhost is null) { log("Ghost is null.", LogLevel::Error, 108, "LoadGhost"); return; }
 
         CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
-        ghost.IdName = "Personal best";
-        ghost.Nickname = "$5d8" + "Personal best";
-        ghost.Trigram = "PB" + S_markPluginLoadedPBs;
-        gm.Ghost_Add(ghost);
+        newGhost.IdName = "Personal best";
+        newGhost.Nickname = "$5d8" + "Personal best";
+        newGhost.Trigram = "PB" + S_markPluginLoadedPBs;
+
+        // Ghosts aren't saved properly... (I think)
+        // gm.Ghost_Add(newGhost);
     }
     
     ReplayRecord@ FindBestReplay(const array<ReplayRecord@>@ replays) {
