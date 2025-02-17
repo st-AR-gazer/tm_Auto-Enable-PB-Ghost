@@ -2,16 +2,20 @@ namespace Loader {
     bool isLeacerboardPBVisible = false;
 
     void TogglePBFromMLHook() {
+        if (!S_useLeaderBoardAsLastResort) {
+            log("Loading PB as a last resort from the leaderboard is disabled. Cannot toggle leaderboard PB ghost.", LogLevel::Warn, 6, "TogglePBFromMLHook");
+            return;
+        }
         startnew(ToggleLeaderboardPB);
     }
 
     void ToggleLeaderboardPB() {
-        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No personal best found. Cannot toggle leaderboard PB ghost.", LogLevel::Warn, 9, "ToggleLeaderboardPB"); return; }
+        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No personal best found. Cannot toggle leaderboard PB ghost.", LogLevel::Warn, 13, "ToggleLeaderboardPB"); return; }
 
         string pid = GetApp().LocalPlayerInfo.WebServicesUserId;
-        if (pid == "") { log("pid is empty. Cannot toggle leaderboard PB ghost.", LogLevel::Error, 12, "ToggleLeaderboardPB"); return; }
+        if (pid == "") { log("pid is empty. Cannot toggle leaderboard PB ghost.", LogLevel::Error, 16, "ToggleLeaderboardPB"); return; }
 
-        // if (HasServerPB()) { log("Server PB is already loaded. Not toggling PB.", LogLevel::Info, 14, "ToggleLeaderboardPB"); return; }
+        // if (HasServerPB()) { log("Server PB is already loaded. Not toggling PB.", LogLevel::Info, 18, "ToggleLeaderboardPB"); return; }
 
         MLHook::Queue_SH_SendCustomEvent("TMGame_Record_ToggleGhost", {pid});
 
@@ -39,18 +43,18 @@ namespace Loader {
 
     void HidePBIcon() {
         CControlFrame@ widget = GetRecordsWidget_FullWidgetUI();
-        if (widget is null) { log("Failed to get widget. Cannot hide PB icon.", LogLevel::Error, 42, "HidePBIcon"); return; }
+        if (widget is null) { log("Failed to get widget. Cannot hide PB icon.", LogLevel::Error, 46, "HidePBIcon"); return; }
 
-        CControlFrame@ pbWidget = GetRecordsWidget_PlayerUI(widget, GetApp().LocalPlayerInfo.Name);
-        if (pbWidget is null) { log("Failed to get PB widget. Cannot hide PB icon.", LogLevel::Error, 45, "HidePBIcon"); return; }
-
-
+        CControlFrame@ pbWidget;
+        while (pbWidget is null) { yield(); @pbWidget = GetRecordsWidget_PlayerUI(widget, GetApp().LocalPlayerInfo.Name); }
+        
+    
         
 
     }
 
     void DownloadPBFromLeaderboardAndLoadLocal(const string&in mapUid) {
-        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No personal best found. Cannot download leaderboard PB ghost.", LogLevel::Warn, 53, "DownloadPBFromLeaderboardAndLoadLocal"); return; }
+        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No personal best found. Cannot download leaderboard PB ghost.", LogLevel::Warn, 57, "DownloadPBFromLeaderboardAndLoadLocal"); return; }
 
         string pid = GetApp().LocalPlayerInfo.WebServicesUserId;
         string mapId = MapUidToMapId(mapUid);
@@ -66,20 +70,20 @@ namespace Loader {
         while (!req.Finished()) { yield(); }
 
         if (req.ResponseCode() != 200) {
-            log("Failed to fetch replay record, response code: " + req.ResponseCode(), LogLevel::Error, 69, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Failed to fetch replay record, response code: " + req.ResponseCode(), LogLevel::Error, 73, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         Json::Value data = Json::Parse(req.String());
         if (data.GetType() == Json::Type::Null) {
-            log("Failed to parse response for replay record.", LogLevel::Error, 76, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Failed to parse response for replay record.", LogLevel::Error, 80, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         if (data.GetType() != Json::Type::Array || data.Length == 0) {
-            log("Invalid replay data in response.", LogLevel::Error, 82, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Invalid replay data in response.", LogLevel::Error, 86, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
@@ -93,7 +97,7 @@ namespace Loader {
 
     void SetPBVisibility(bool shouldShow) {
         isLeacerboardPBVisible = shouldShow;
-        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 96, "SetPBVisibility");
+        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 100, "SetPBVisibility");
     }
     
 }

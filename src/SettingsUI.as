@@ -13,7 +13,7 @@ void RT_Settings() {
         UI::PopItemWidth();
         if (S_markPluginLoadedPBs.Length > 1) { S_markPluginLoadedPBs = S_markPluginLoadedPBs.SubStr(0, 1); }
         if (S_markPluginLoadedPBs.Length == 0) { S_markPluginLoadedPBs = "P"; }
-        S_onlyUseLocalPBs = UI::Checkbox("Use leaderboard as a last resort for loading a pb", S_onlyUseLocalPBs);
+        S_useLeaderBoardAsLastResort = UI::Checkbox("Use leaderboard as a last resort for loading a pb", S_useLeaderBoardAsLastResort);
         S_onlyLoadFastestPB = UI::Checkbox("Only Load One PB Ghost If Multiple Are Found", S_onlyLoadFastestPB);
 
         UI::Dummy(vec2(0, 10));
@@ -35,6 +35,15 @@ void RT_Settings() {
         UI::Checkbox("\\$aaaUse the folder 'Trackmania2020/Replays_Offload/' for all your replays", false);
         UI::Text("Note: Dependency 'Better Replays Folder' is required for this feature."); // Yet to be made :xdd:
 #endif
+
+// #if DEPENDENCY_ARCHIVIST
+//         S_useArchivistGhostLoader = UI::Checkbox("Use Archivist for loading ghosts", S_useArchivistGhostLoader);
+//         UI::Text("This also uses ghost files saved by Archivist, if you have it installed.");
+// #else
+//         UI::Checkbox("\\$aaaUse Archivist for loading ghosts", false);
+//         UI::Text("Note: Dependency 'Archivist' is required for this feature.");
+// #endif
+        
 
         UI::Dummy(vec2(0, 10));
 
@@ -80,6 +89,19 @@ void RT_Settings() {
             }
         }
 
+        if (ManualIndex::indexingInProgress) { 
+            UI::SameLine();
+            if (UI::ButtonColored("Stop Indexing", 0.9f, 0.1f, 0.1f)) { ManualIndex::Stop(); }
+        } else if (Index::enqueueingFilesInProgress) {
+            UI::SameLine();
+            UI::BeginDisabled();
+            if (UI::ButtonColored("Stop Enqueueing", 0.9f, 0.1f, 0.1f)) { Index::StopEnqueueing(); }
+            UI::EndDisabled();
+        } else if (Index::isIndexingFolder) { 
+            UI::SameLine();
+            if (UI::ButtonColored("Stop Indexing Folder", 0.9f, 0.1f, 0.1f)) { Index::StopIndexingFolder(); }
+        }
+        
         if (!S_H_showCustomIndexingLocationToolTip) {
             UI::SameLine();
             UI::Text(Icons::ChevronCircleDown);
@@ -92,23 +114,6 @@ void RT_Settings() {
         if (UI::IsItemHovered()) { 
             UI::SetTooltip("Click to show/hide the indexing tip."); 
             if (UI::IsItemClicked()) { S_H_showCustomIndexingLocationToolTip = false; }
-        }
-
-        if (ManualIndex::indexingInProgress) { 
-            UI::SameLine();
-            if (UI::ButtonColored("Stop Indexing", 0.9f, 0.1f, 0.1f)) { ManualIndex::Stop(); }
-        }
-
-        if (Index::enqueueingFilesInProgress) {
-            UI::SameLine();
-            UI::BeginDisabled();
-            if (UI::ButtonColored("Stop Enqueueing", 0.9f, 0.1f, 0.1f)) { Index::StopEnqueueing(); }
-            UI::EndDisabled();
-        }
-
-        if (Index::isIndexingFolder) { 
-            UI::SameLine();
-            if (UI::ButtonColored("Stop Indexing Folder", 0.9f, 0.1f, 0.1f)) { Index::StopIndexingFolder(); }
         }
 
         S_customIndexLocation = UI::InputText("Custom Index Location", S_customIndexLocation);
@@ -155,7 +160,20 @@ void RT_Settings() {
             }
         }
 
-
+        if (ManualIndex::indexingInProgress) {
+            UI::Text("Indexing Step 1/3 | " + ManualIndex::dirsToProcess.Length);
+        } else if (Index::enqueueingFilesInProgress) {
+            UI::Text("Indexing Step 2/3 | " + Index::totalFilesToEnqueue);
+        } else if (Index::isIndexingFolder) {
+            UI::Text("Indexing Step 3/3 | " + Index::totalFolderFileNumber);
+        }
+        if (ManualIndex::indexingInProgress || Index::enqueueingFilesInProgress || Index::isIndexingFolder) {
+            UI::Text("""
+            You are indexing through 'custom folders'. This can take a _while_ depending on the amount of files in the folder.
+            If you have a _TON_ of files, I recomend doing this overnight or when you're not actively using the game...
+            This is a one-time process, and will not be needed again, files are added to the database automatically after the initial indexing.
+            """);
+        }
 
         if (UI::ButtonColored("Delete database", 0.0f, 0.5f, 0.0f)) {
             Index::DeleteAndReInitialize();
@@ -174,7 +192,7 @@ bool S_H_showCustomIndexingLocationToolTip = true;
 [Setting hidden]
 string S_markPluginLoadedPBs = "very secret id";
 [Setting hidden]
-bool S_onlyUseLocalPBs = false;
+bool S_useLeaderBoardAsLastResort = true;
 [Setting hidden]
 bool S_onlyLoadFastestPB = true;
 

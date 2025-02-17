@@ -158,18 +158,24 @@ namespace Index {
         if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 158, "ConvertGhostToReplay"); return; }
 
         string replayName = GetReplayFilename(ghost, app.RootMap);
-        string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/dwn/" + replayName + ".Replay.Gbx");
+        string replayPath_tmp = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/" + replayName + ".Replay.Gbx");
+        dataFileMgr.Replay_Save(replayPath_tmp, app.RootMap, ghost);
+
+        string fileContent = _IO::File::ReadFileToEnd(replayPath_tmp);
+        string hash = Crypto::MD5(fileContent);
+
+        string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/dwn/" + hash + ".Replay.Gbx");
+        dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
+
         // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
         log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 163, "ConvertGhostToReplay");
-
-        dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
 
         AddReplayToDB(replayPath, mapRecordId);
 
         startnew(CoroutineFuncUserdataString(Loader::LoadLocalGhost), replayPath);
 
-        // I'm not sure if I should really be removing the ghost here... but I guess it's fine for now
-        // startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath);
+        // I'm not sure if I should really be removing the ghost here...
+        startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath_tmp);
     }
 
     void DeleteFileWith200msDelay(const string &in path) {

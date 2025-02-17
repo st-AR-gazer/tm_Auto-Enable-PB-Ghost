@@ -50,7 +50,7 @@ namespace Loader {
                 for (uint j = 1; j < indexes.Length; j++) {
                     auto id = GhostClipsMgr::GetInstanceIdAtIx(mgr, indexes[j]);
                     ps.GhostMgr.Ghost_Remove(MwId(id));
-                    // log("Removed ghost: " + mgr.Ghosts[indexes[j]].GhostModel.GhostNickname, LogLevel::Info, 53, "CullPBsWithSameTime");
+                    log("Removed ghost: " + mgr.Ghosts[indexes[j]].GhostModel.GhostNickname, LogLevel::Info, 53, "CullPBsWithSameTime");
                 }
             }
         }

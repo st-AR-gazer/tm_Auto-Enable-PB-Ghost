@@ -41,6 +41,7 @@ namespace Index {
     void PostManualIndexCoroutine(ref@ _) {
         while (ManualIndex::indexingInProgress) { yield(); }
         array<string>@ results = ManualIndex::GetFoundFiles();
+        print(results[0] + "    | aaaaaaaaaaaaaaaaaaaaaaa");
         enqueueingFilesInProgress = true;
         totalFilesToEnqueue = results.Length;
         filesEnqueued = 0;
@@ -95,51 +96,51 @@ namespace Index {
     }
 
     void ProcessFile(const string &in filePath) {
-        if (!filePath.ToLower().EndsWith(".replay.gbx") && !filePath.ToLower().EndsWith(".ghost.gbx")) return;
-        bool alreadyInReplays = filePath.ToLower().Contains("replays/");
+        if (!filePath.ToLower().EndsWith(".replay.gbx")) return;
+
         string parsePath = filePath;
-        if (!alreadyInReplays) {
-            string tempFolder = IO::FromUserGameFolder("Replays/tmpPBGhost/");
-            if (!IO::FolderExists(tempFolder)) { IO::CreateFolder(tempFolder); yield(); }
-
-            auto tmpReplay = ReplayRecord();
-            tmpReplay.Path = filePath;
-            tmpReplay.CalculateHash();
-            yield();
-
-            string tempFilePath = tempFolder + tmpReplay.ReplayHash + ".Replay.gbx";
-            string fileContent = _IO::File::ReadFileToEnd(filePath);
-            yield();
-
-            _IO::File::WriteFile(tempFilePath, fileContent);
-            yield();
-
-            if (!IO::FileExists(tempFilePath)) { log("Failed to copy file for parsing: " + filePath, LogLevel::Error, 117, "ProcessFile"); return; }
-            parsePath = tempFilePath;
+        if (parsePath.StartsWith(IO::FromUserGameFolder(""))) {
+            parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length, parsePath.Length - IO::FromUserGameFolder("").Length);
         }
+
+        if (!parsePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
+            log("File is not in the 'Replays' folder, copying over to temporary 'zzAutoEnablePBGhost/temp' folder...", LogLevel::Info, 101, "ProcessFile");
+            string tempPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/") + Path::GetFileName(filePath);
+
+            if (IO::FileExists(tempPath)) {
+                log("File already exists in temporary folder, deleting...", LogLevel::Info, 106, "ProcessFile");
+                IO::Delete(tempPath);
+            }
+            
+            _IO::File::CopyFileTo(filePath, tempPath);
+            parsePath = tempPath;
+            if (!IO::FileExists(parsePath)) { log("Failed to copy file to temporary folder: " + parsePath, LogLevel::Error, 113, "ProcessFile"); return; }
+        }
+
         if (parsePath.StartsWith(IO::FromUserGameFolder(""))) {
             parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length, parsePath.Length - IO::FromUserGameFolder("").Length);
         }
 
         CSystemFidFile@ fid = Fids::GetUser(parsePath);
-        if (fid is null) { log("Failed to get fid for file: " + parsePath, LogLevel::Error, 125, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
-
+        if (fid is null) { log("Failed to get fid for file: " + parsePath, LogLevel::Error, 125, "ProcessFile"); return; }
+    
         CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
-
+        if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "ProcessFile"); return; }
+    
         CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
         if (record is null) {
             log("Failed to cast nod (CGameCtnReplayRecord) for file: " + parsePath, LogLevel::Warn, 132, "ProcessFile");
-
-            // Important to note but not _everything_ is a "CGameCtnReplayRecord", some are "CGameCtnGhost"... so we try that too xdd
+    
+            // Not every file is a "CGameCtnReplayRecord", so try processing as CGameCtnGhost.
             ProcessFileWithCGameCtnGhost(nod, filePath);
-
-            CleanupTemp(parsePath, filePath);
             return;
         }
-
-        if (record.Ghosts.Length == 0) { log("No ghosts found in file: " + parsePath, LogLevel::Warn, 141, "ProcessFile"); CleanupTemp(parsePath, filePath); return; }
-
+    
+        if (record.Ghosts.Length == 0) { 
+            log("No ghosts found in file: " + parsePath, LogLevel::Warn, 141, "ProcessFile"); 
+            return; 
+        }
+    
         auto replay = ReplayRecord();
         replay.MapUid = record.Challenge.IdName;
         replay.PlayerLogin = record.Ghosts[0].GhostLogin;
@@ -156,6 +157,7 @@ namespace Index {
     void ProcessFileWithCGameCtnGhost(CMwNod@ nod, const string &in filePath) {
         CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
         if (ghost is null) { log("Failed to cast nod (CGameCtnGhost) for file: " + filePath, LogLevel::Error, 158, "ProcessFileWithCGameCtnGhost"); return; }
+        log("Casting to CGameCtnGhost successful for file: " + filePath, LogLevel::Info, 159, "ProcessFileWithCGameCtnGhost");
 
         auto replay = ReplayRecord();
         replay.MapUid = ghost.Validate_ChallengeUid.GetName();
@@ -167,11 +169,13 @@ namespace Index {
         replay.FoundThrough = "Folder Indexing";
         replay.CalculateHash();
         SaveReplayToDB(replay);
+        CleanupTemp(filePath, filePath);
     }
 
     void CleanupTemp(const string &in parsePath, const string &in originalPath) {
-        if (parsePath != originalPath && IO::FileExists(parsePath)) {
-            IO::Delete(parsePath);
+        string properParsePath = IO::FromUserGameFolder(parsePath);
+        if (properParsePath != originalPath && IO::FileExists(properParsePath)) {
+            IO::Delete(properParsePath);
         }
     }
 

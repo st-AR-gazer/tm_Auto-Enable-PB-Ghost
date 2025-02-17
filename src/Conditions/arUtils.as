@@ -85,6 +85,8 @@ namespace _IO {
 
             if (path.EndsWith("/") || path.EndsWith("\\")) { log("Invalid file path: " + path, LogLevel::Error, 86, "WriteFile"); return; }
 
+            if (!IO::FolderExists(Path::GetDirectoryName(path))) { IO::CreateFolder(Path::GetDirectoryName(path), true); }
+
             IO::File file;
             file.Open(path, IO::FileMode::Write);
             file.Write(content);

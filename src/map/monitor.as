@@ -12,7 +12,7 @@ namespace MapTracker {
                 if (get_CurrentMapUID() == "") { oldMapUid = ""; continue; }
                 while (!_Game::IsPlayingMap()) yield();
 
-                print("Map changed to: " + get_CurrentMapUID());
+                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 15, "MapMonitor");
 
                 uint timeout = 500;
                 uint startTime = Time::Now;

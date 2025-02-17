@@ -19,12 +19,12 @@ namespace Loader {
         auto replays = Index::GetReplaysFromDB(mapUid);
 
         if (replays.Length == 0) {
-            log("No local PB ghost found for map UID: " + mapUid + " | attempting to download from leaderboard.", LogLevel::Warn, 22, "LoadPersonalBestGhostFromTime");
+            log("No local PB ghost found for map UID: " + mapUid + " | attempting to download from leaderboard. | " + Index::GetTotalReplaysForMap(mapUid), LogLevel::Warn, 22, "LoadPersonalBestGhostFromTime");
             DownloadPBFromLeaderboardAndLoadLocal(mapUid);
             return;
         }
 
-        log("Loading local PB ghost for time: " + playerPBTime + " ms., total ghosts found: " + Index::GetTotalReplaysForMap(mapUid), LogLevel::Info, 27, "LoadPersonalBestGhostFromTime");
+        log("Loading local PB ghost for time: " + playerPBTime + " ms., total ghosts found: " + Index::GetTotalReplaysForMap(mapUid) + " | " + mapUid, LogLevel::Info, 27, "LoadPersonalBestGhostFromTime");
 
         for (uint i = 0; i < replays.Length; i++) {
             if (replays[i].BestTime == uint(playerPBTime)) {
@@ -68,18 +68,26 @@ namespace Loader {
     }
 
     void LoadLocalGhost(const string&in filePath) {
-        if (!filePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
-            log("File is not in the Replays folder. Moving File there temporarily, and set it for deletion after loading...", LogLevel::Warn, 72, "LoadLocalGhost");
-            _IO::File::CopyFileTo(filePath, IO::FromUserGameFolder("Replays/" + Path::GetFileName(filePath)));
-        }
+        // only load from replay folder
 
-        yield();
+        string replayPath = IO::FromUserGameFolder("Replays/");
 
-        if (!IO::FileExists(filePath)) { 
-            log("Failed to load ghost: File does not exist.", LogLevel::Error, 79, "LoadLocalGhost"); 
-            Index::DeleteEntryFromDatabaseBasedOnFilePath(filePath);
-            if (_Game::HasPersonalBest(CurrentMapUID, true)) { LoadPB(); }
-            return; 
+        if (!filePath.StartsWith(replayPath)) {
+            log("filePath is not in the Replays folder. Copying it to the Replays folder temporarily.", LogLevel::Warn, 78, "LoadLocalGhost");
+
+            string destinationPath = replayPath + "zzAutoEnablePBGhost/temp/" + Path::GetFileName(filePath);
+            _IO::File::CopyFileTo(filePath, destinationPath);
+
+            yield(2);
+
+            print(filePath);
+
+            if (!IO::FileExists(destinationPath)) { log("Failed to copy file to Replays folder: " + destinationPath + " | Aborting...", LogLevel::Error, 83, "LoadLocalGhost"); return; }
+
+            startnew(CoroutineFuncUserdataString(LoadLocalGhost), destinationPath);
+            startnew(CoroutineFuncUserdataString(Index::DeleteFileWith200msDelay), destinationPath);
+
+            return;
         }
 
         auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(filePath);
@@ -102,7 +110,7 @@ namespace Loader {
     }
 
     void LoadGhost(CGameGhostScript@ ghost) {
-        print("aa");
+        log("Ghost loding through 'loadGhost' is dissabled due to issues with saving ghosts.", LogLevel::Warn, 105, "LoadGhost");
 
         CGameGhostScript@ newGhost = ghost;
         if (newGhost is null) { log("Ghost is null.", LogLevel::Error, 108, "LoadGhost"); return; }
