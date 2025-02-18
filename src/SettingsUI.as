@@ -22,7 +22,7 @@ void RT_Settings() {
 
 #if DEPENDENCY_BETTERREPLAYSFOLDER
         S_useBetterReplaysFolder = UI::Checkbox("Use the folder 'Trackmania2020/Replays_Offload/' for all your replays", S_useBetterReplaysFolder);
-        if (S_enableGhosts) { S_customIndexLocation = IO::FromUserGameFolder("Replays_Offload/"); }
+        if (S_enableGhosts) { S_customFolderIndexingLocation = IO::FromUserGameFolder("Replays_Offload/"); }
 
         UI::Text("""
         This option will automatically move any replay file in your '/Trackmania2020/Replays/' folder 
@@ -60,7 +60,7 @@ void RT_Settings() {
 
         if (UI::Button("Reindex entire game dirs")) { startnew(Index::StartGameFolderFullIndexing); }
 
-        if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::StartCustomFolderIndexing), S_customIndexLocation); }
+        if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::StartCustomFolderIndexing), S_customFolderIndexingLocation); }
         // UI::PushItemWidth(300.0f);
         // if (Index::isIndexingFolder) { Index::FOLDER_INDEXING_PROCESS_LIMIT = UI::SliderInt("Indexing Speed", Index::FOLDER_INDEXING_PROCESS_LIMIT, 1, 10); }
         // UI::PopItemWidth();
@@ -84,7 +84,7 @@ void RT_Settings() {
         if (exampleExlorer_Paths !is null && exampleExlorer_Paths.exports.IsSelectionComplete()) {
             auto paths = exampleExlorer_Paths.exports.GetSelectedPaths();
             if (paths !is null) {
-                S_customIndexLocation = paths[0];
+                S_customFolderIndexingLocation = paths[0];
                 exampleExlorer_Paths.exports.SetSelectionComplete();
             }
         }
@@ -116,7 +116,7 @@ void RT_Settings() {
             if (UI::IsItemClicked()) { S_H_showCustomIndexingLocationToolTip = false; }
         }
 
-        S_customIndexLocation = UI::InputText("Custom Index Location", S_customIndexLocation);
+        S_customFolderIndexingLocation = UI::InputText("Custom Index Location", S_customFolderIndexingLocation);
 
         if (ManualIndex::indexingInProgress || ManualIndex::currentMessage != "") UI::Text(ManualIndex::currentMessage);
         if (ManualIndex::indexingInProgress) UI::ProgressBar(ManualIndex::GetProgress(), vec2(-0.1, 0));
@@ -197,7 +197,7 @@ bool S_useLeaderBoardAsLastResort = true;
 bool S_onlyLoadFastestPB = true;
 
 [Setting hidden]
-string S_customIndexLocation = IO::FromUserGameFolder("Replays/Autosaves/");
+string S_customFolderIndexingLocation = IO::FromUserGameFolder("Replays/Autosaves/");
 
 
 [Setting hidden]

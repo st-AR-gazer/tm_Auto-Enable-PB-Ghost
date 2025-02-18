@@ -23,6 +23,7 @@ namespace Index {
             FileName TEXT,
             Path TEXT,
             BestTime INTEGER,
+            NodeType TEXT,
             FoundThrough TEXT
         );
         """;
@@ -60,8 +61,8 @@ namespace Index {
         SQLite::Database@ db = SQLite::Database(dbPath);
 
         string query = """
-        INSERT INTO ReplayRecords (ReplayHash, MapUid, PlayerLogin, PlayerNickname, FileName, Path, BestTime, FoundThrough)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+        INSERT INTO ReplayRecords (ReplayHash, MapUid, PlayerLogin, PlayerNickname, FileName, Path, BestTime, NodeType, FoundThrough)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """;
 
         auto stmt = db.Prepare(query);
@@ -72,7 +73,8 @@ namespace Index {
         stmt.Bind(5, replay.FileName);
         stmt.Bind(6, replay.Path);
         stmt.Bind(7, replay.BestTime);
-        stmt.Bind(8, replay.FoundThrough);
+        stmt.Bind(8, replay.NodeType);
+        stmt.Bind(9, replay.FoundThrough);
         stmt.Execute();
 
         // log("Replay saved to DB: " + replay.ReplayHash, LogLevel::Info, 78, "SaveReplayToDB");
@@ -96,6 +98,7 @@ namespace Index {
             replay.FileName = stmt.GetColumnString("FileName");
             replay.Path = stmt.GetColumnString("Path");
             replay.BestTime = stmt.GetColumnInt("BestTime");
+            replay.NodeType = stmt.GetColumnString("NodeType");
             replay.FoundThrough = stmt.GetColumnString("FoundThrough");
             results.InsertLast(replay);
         }
@@ -195,6 +198,7 @@ class ReplayRecord {
     string FileName;
     string Path;
     uint BestTime;
+    string NodeType;
     string FoundThrough;
 
     void CalculateHash() {

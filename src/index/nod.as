@@ -18,6 +18,15 @@ namespace Index {
         totalReplaysFileNumber = app.ReplayRecordInfos.Length;
 
         for (uint i = 0; i < app.ReplayRecordInfos.Length; i++) {
+
+            string nodType;
+            if (cast<CGameCtnReplayRecordInfo>(app.ReplayRecordInfos[i]) is null) {
+                nodType = "failed";
+                continue;
+            } else {
+                nodType = "CGameCtnReplayRecordInfo@";
+            }
+
             auto record = app.ReplayRecordInfos[i];
 
             if (record.PlayerLogin != currentPlayerLogin) {
@@ -44,6 +53,7 @@ namespace Index {
             replay.Path = ProperPath;
             replay.BestTime = record.BestTime;
             replay.FoundThrough = ProperFoundThrough;
+            replay.NodeType = nodType;
             replay.CalculateHash();
 
             if (!replayRecords.Exists(key)) {
