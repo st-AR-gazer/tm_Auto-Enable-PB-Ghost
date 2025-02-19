@@ -76,19 +76,7 @@ namespace Ghost {
         if (nod is null) { log("Failed to preload nod for file: " + finalPath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return null; }
 
         CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
-        if (ghost is null) {
-            CGameGhostScript@ scriptGhost = cast<CGameGhostScript>(nod);
-            if (scriptGhost !is null) {
-                ghost = GetCGameCtnGhost(scriptGhost);
-                if (ghost is null) {
-                    log("Failed to convert script ghost to ctn ghost: " + finalPath, LogLevel::Error, 130, "PrepareFilesForAdditionToDatabase");
-                    return null;
-                }
-            } else {
-                log("Failed to cast nod to CGameCtnGhost or CGameGhostScript: " + finalPath, LogLevel::Error, 132, "PrepareFilesForAdditionToDatabase");
-                return null;
-            }
-        }
+        if (ghost is null) { log("Failed to cast nod to CGameCtnGhost: " + finalPath, LogLevel::Error, 132, "PrepareFilesForAdditionToDatabase"); return null; }
 
         return ghost;
     }
@@ -104,10 +92,7 @@ namespace Ghost {
         if (nod is null) { log("Failed to preload nod for file: " + finalPath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return null; }
 
         CGameGhostScript@ scriptGhost = cast<CGameGhostScript>(nod);
-        if (scriptGhost is null) {
-            log("Failed to cast nod to CGameGhostScript: " + finalPath, LogLevel::Error, 132, "PrepareFilesForAdditionToDatabase");
-            return null;
-        }
+        if (scriptGhost is null) { log("Failed to cast nod to CGameGhostScript: " + finalPath, LogLevel::Error, 132, "PrepareFilesForAdditionToDatabase"); return null; }
 
         return scriptGhost;
     }
