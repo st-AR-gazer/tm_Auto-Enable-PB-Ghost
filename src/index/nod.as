@@ -48,7 +48,7 @@ namespace Index {
             auto records = cast<array<ReplayRecord@>>(replayRecords[key]);
             records.InsertLast(replay);
 
-            SaveReplayToDB(replay);
+            AddReplayToDatabse(replay);
 
             indexedCount++;
             processedThisFrame++;

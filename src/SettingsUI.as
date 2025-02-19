@@ -58,8 +58,8 @@ void RT_Settings() {
         if (Index::isIndexingReplaysFolder) { Index::NOD_INDEXING_PROCESS_LIMIT = UI::SliderInt("Indexing Speed", Index::NOD_INDEXING_PROCESS_LIMIT, 1, 10); }
         UI::PopItemWidth();
 
-        if (UI::Button("Reindex entire game dirs")) { startnew(CoroutineFuncUserdataString(Index::Start_IndexReplayRecords), IO::FromUserGameFolder("")); }
-        if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::Start_IndexReplayRecords), S_customFolderIndexingLocation); }
+        if (UI::Button("Reindex entire game dirs")) { startnew(CoroutineFuncUserdataString(Index::Start_RecursiveSearch), IO::FromUserGameFolder("")); }
+        if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::Start_RecursiveSearch), S_customFolderIndexingLocation); }
         UI::PushItemWidth(300.0f);
         if (Index::f_isIndexing_FilePaths) { Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 10); }
         UI::PopItemWidth();
@@ -162,7 +162,7 @@ void RT_Testing() {
 }
 
 void testGetReplaysFromDB() {
-    auto test_replays = Index::GetReplaysFromDB(S_TESTING_uid_query);
+    auto test_replays = Index::GetReplaysFromDatabase(S_TESTING_uid_query);
     for (uint i = 0; i < test_replays.Length; i++) {
         auto replay = test_replays[i];
         log("Replay: " + replay.FileName + " | " + replay.BestTime + " | " + replay.Path, LogLevel::Info, 219, "testGetReplaysFromDB");

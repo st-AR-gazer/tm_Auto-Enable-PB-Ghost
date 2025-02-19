@@ -32,13 +32,13 @@ namespace Index {
         log("Database initialized. Path: " + dbPath, LogLevel::Info, 31, "InitializeDatabase");
     }
 
-    void AddReplayToDB(const string&in path, const string&in mapRecordId = "") {
+    void AddReplayToDatabse(const string&in path, const string&in mapRecordId = "") {
         if (path.StartsWith("http")) {
-            ConvertGhostToReplay(path, mapRecordId);
+            net::ConvertGhostToReplay(path, mapRecordId);
             return;
         }
         if (path.ToLower().EndsWith(".ghost.gbx")) {
-            log("Adding a .ghost.gbx file currently doesn't work, as they are stored as CGameCtnGhost..." + path, LogLevel::Error, 40, "AddReplayToDB");
+            Ghost::AddGhostToDatabase(path);
             return;
         }
         if (path.ToLower().EndsWith(".replay.gbx")) {
@@ -47,7 +47,7 @@ namespace Index {
         }
     }
 
-    void SaveReplayToDB(ReplayRecord@ replay) {
+    void AddReplayToDatabse(ReplayRecord@ replay) {
         const uint MAX_VALID_TIME = 2147480000;
 
         if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) {
@@ -76,11 +76,9 @@ namespace Index {
         stmt.Bind(8, replay.NodeType);
         stmt.Bind(9, replay.FoundThrough);
         stmt.Execute();
-
-        // log("Replay saved to DB: " + replay.ReplayHash, LogLevel::Info, 78, "SaveReplayToDB");
     }
 
-    array<ReplayRecord@>@ GetReplaysFromDB(const string&in mapUid) {
+    array<ReplayRecord@>@ GetReplaysFromDatabase(const string&in mapUid) {
         array<ReplayRecord@> results;
         string dbPath = GetDatabasePath();
         SQLite::Database@ db = SQLite::Database(dbPath);
@@ -140,45 +138,6 @@ namespace Index {
         string safeCurrentTime = Path::SanitizeFileName(Regex::Replace(GetApp().OSLocalDate, "[/ ]", "_"));
         string fmtGhostTime = Path::SanitizeFileName(Time::Format(ghost.Result.Time));
         return safeMapName + "_" + safeUserName + "_" + safeCurrentTime + "_(" + fmtGhostTime + ")";
-    }
-
-    void ConvertGhostToReplay(const string &in url, const string &in mapRecordId) {
-        CTrackMania@ app = cast<CTrackMania>(GetApp());
-        if (app is null) return;
-        CSmArenaRulesMode@ playgroundScript = cast<CSmArenaRulesMode>(app.PlaygroundScript);
-        if (playgroundScript is null) return;
-        CGameDataFileManagerScript@ dataFileMgr = cast<CGameDataFileManagerScript>(playgroundScript.DataFileMgr);
-        if (dataFileMgr is null) { return; }
-
-        if (url == "") { return; }
-
-        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 152, "ConvertGhostToReplay");
-        CWebServicesTaskResult_GhostScript@ task = dataFileMgr.Ghost_Download("", url);
-
-        while (task.IsProcessing && task.Ghost is null) { yield(); }
-
-        CGameGhostScript@ ghost = cast<CGameGhostScript>(task.Ghost);
-        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 158, "ConvertGhostToReplay"); return; }
-
-        string replayName = GetReplayFilename(ghost, app.RootMap);
-        string replayPath_tmp = IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/" + replayName + ".Replay.Gbx");
-        dataFileMgr.Replay_Save(replayPath_tmp, app.RootMap, ghost);
-
-        string fileContent = _IO::File::ReadFileToEnd(replayPath_tmp);
-        string hash = Crypto::MD5(fileContent);
-
-        string replayPath = IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/dwn/" + hash + ".Replay.Gbx");
-        dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
-
-        // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
-        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 163, "ConvertGhostToReplay");
-
-        AddReplayToDB(replayPath, mapRecordId);
-
-        startnew(CoroutineFuncUserdataString(Loader::LoadLocalGhost), replayPath);
-
-        // I'm not sure if I should really be removing the ghost here...
-        startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), replayPath_tmp);
     }
 
     void DeleteFileWith200msDelay(const string &in path) {

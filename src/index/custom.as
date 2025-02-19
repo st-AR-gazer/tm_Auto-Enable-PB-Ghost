@@ -74,7 +74,7 @@ namespace Index {
 
         uint totalDirCount = dirsToProcess.Length;
         uint processedDirCount = 0;
-        while (f_isIndexing_FilePaths && dirsToProcess > 0 && !forceStopIndexing) {
+        while (f_isIndexing_FilePaths && dirsToProcess.Length > 0 && !forceStopIndexing) {
             string currentDir = dirsToProcess[dirsToProcess.Length - 1];
             dirsToProcess.RemoveAt(dirsToProcess.Length - 1);
             if (!IO::FolderExists(currentDir)) {
@@ -284,7 +284,7 @@ namespace Index {
             auto records = cast<array<ReplayRecord@>>(replayRecords[replay.MapUid]);
             records.InsertLast(replay);
 
-            SaveReplayToDB(replay);
+            AddReplayToDatabse(replay);
 
             currentFileNumber++;
 

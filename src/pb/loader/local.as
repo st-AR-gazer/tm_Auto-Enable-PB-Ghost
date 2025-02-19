@@ -16,7 +16,7 @@ namespace Loader {
     }
 
     void LoadPersonalBestGhostFromTime(const string&in mapUid, int playerPBTime) {
-        auto replays = Index::GetReplaysFromDB(mapUid);
+        auto replays = Index::GetReplaysFromDatabase(mapUid);
 
         if (replays.Length == 0) {
             log("No local PB ghost found for map UID: " + mapUid + " | attempting to download from leaderboard. | " + Index::GetTotalReplaysForMap(mapUid), LogLevel::Warn, 22, "LoadPersonalBestGhostFromTime");
@@ -39,7 +39,7 @@ namespace Loader {
     }
 
     void FallbackLoadPB(const string&in mapUid) {
-        auto replays = Index::GetReplaysFromDB(mapUid);
+        auto replays = Index::GetReplaysFromDatabase(mapUid);
 
         if (replays.Length == 0) {
             log("No local records found for map UID: " + mapUid + " | attempting to download from leaderboard.", LogLevel::Warn, 45, "FallbackLoadPB");
