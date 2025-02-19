@@ -38,17 +38,17 @@ namespace Ghost {
 
         CGameCtnGhost@ ctnGhost = GetCGameCtnGhost(filePath);
         if (ctnGhost is null) { log("Failed to get ghost nod", LogLevel::Error, 13, "AddGhostToDatabase"); return; }
-
         CGameGhostScript@ scriptGhost = GetCGameGhostScript(filePath);
         if (scriptGhost is null) { log("Failed to get script ghost nod", LogLevel::Error, 13, "AddGhostToDatabase"); return; }
-
 
         CGameCtnChallenge@ map = GetMapNod();
         if (map is null) { log("Failed to get map nod", LogLevel::Error, 15, "AddGhostToDatabase"); return; }
         CGameDataFileManagerScript@ dataFileMgr = GetDataFileMgr();
         if (dataFileMgr is null) { log("Failed to get data file manager", LogLevel::Error, 19, "AddGhostToDatabase"); return; }
 
-        string ghostPath = Index::GetFull_zzReplayPath() + "/gst/" + Path::GetFileName(filePath);
+        string fileContents = _IO::File::ReadFileToEnd(filePath);
+        string fileHash = Crypto::Sha256(fileContents);
+        string ghostPath = Index::GetFull_zzReplayPath() + "/gst/" + fileHash + ".ghost.gbx";
         IO::CreateFolder(ghostPath.SubStr(0, ghostPath.LastIndexOf("/")));
 
         if (ctnGhost !is null) {
