@@ -36,25 +36,25 @@ namespace Index {
         CMwNod@ nod = Fids::Preload(fid);
         if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); continue; }
 
-        CastFidToCorrectNod(nod, parsePath, filePath);
+        CastFidToCorrectNod_AddDirect(nod, parsePath, filePath);
 
         startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/") + Path::GetFileName(filePath));
 
         log("Finished processing file: " + parsePath, LogLevel::Info, 137, "PrepareFilesForAdditionToDatabase");
     }
 
-    void CastFidToCorrectNod(CMwNod@ nod, const string &in parsePath, const string &in filePath) {
+    void CastFidToCorrectNod_AddDirect(CMwNod@ nod, const string &in parsePath, const string &in filePath) {
         CGameCtnReplayRecordInfo@ recordInfo = cast<CGameCtnReplayRecordInfo>(nod);
-        if (recordInfo !is null) { ProcessFileWith_CGameCtnReplayRecordInfo(recordInfo, parsePath, filePath); return; }
+        if (recordInfo !is null) { ProcessFileWith_CGameCtnReplayRecordInfo_AddDirect(recordInfo, parsePath, filePath); return; }
 
         CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
-        if (record !is null) { ProcessFileWith_CGameCtnReplayRecord(record, parsePath, filePath); return; }
+        if (record !is null) { ProcessFileWith_CGameCtnReplayRecord_AddDirect(record, parsePath, filePath); return; }
 
         CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
-        if (ghost !is null) { ProcessFileWith_CGameCtnGhost(ghost, parsePath, filePath); return; }
+        if (ghost !is null) { ProcessFileWith_CGameCtnGhost_AddDirect(ghost, parsePath, filePath); return; }
     }
 
-    void ProcessFileWith_CGameCtnReplayRecord(CGameCtnReplayRecord@ record, const string &in parsePath, const string &in filePath) {
+    void ProcessFileWith_CGameCtnReplayRecord_AddDirect(CGameCtnReplayRecord@ record, const string &in parsePath, const string &in filePath) {
         if (record.Ghosts.Length == 0) { log("No ghosts found in file: " + parsePath, LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecord"); return; }
         if (record.Ghosts[0].RaceTime == 0xFFFFFFFF) { log("RaceTime is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecord"); return; }
         if (record.Challenge.IdName.Length == 0) { log("MapUid is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecord"); return; }
@@ -73,7 +73,7 @@ namespace Index {
         AddReplayToDB(replay);
     }
 
-    void ProcessFileWith_CGameCtnGhost(CGameCtnGhost@ ghost, const string &in parsePath, const string &in filePath) {
+    void ProcessFileWith_CGameCtnGhost_AddDirect(CGameCtnGhost@ ghost, const string &in parsePath, const string &in filePath) {
         if (ghost.RaceTime == 0xFFFFFFFF) { log("RaceTime is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
         if (ghost.Validate_ChallengeUid.GetName().Length == 0) { log("MapUid is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
 
@@ -91,7 +91,7 @@ namespace Index {
         AddReplayToDB(replay);
     }
 
-    void ProcessFileWith_CGameCtnReplayRecordInfo(CGameCtnReplayRecordInfo@ recordInfo, const string &in parsePath, const string &in filePath) {
+    void ProcessFileWith_CGameCtnReplayRecordInfo_AddDirect(CGameCtnReplayRecordInfo@ recordInfo, const string &in parsePath, const string &in filePath) {
         if (recordInfo.BestTime == 0xFFFFFFFF) { log("BestTime is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
         if (recordInfo.MapUid.Length == 0) { log("MapUid is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
 
