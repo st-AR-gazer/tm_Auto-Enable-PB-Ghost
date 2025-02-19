@@ -20,7 +20,7 @@ namespace Index {
             
             if (!IO::FileExists(parsePath)) {
                 log("Failed to copy file to temporary folder: " + parsePath, LogLevel::Error, 113, "PrepareFilesForAdditionToDatabase");
-                continue;
+                return;
             }
         }
 
@@ -31,10 +31,10 @@ namespace Index {
         }
 
         CSystemFidFile@ fid = Fids::GetUser(parsePath);
-        if (fid is null) { log("Failed to get fid for file: " + parsePath, LogLevel::Error, 125, "PrepareFilesForAdditionToDatabase"); continue; }
+        if (fid is null) { log("Failed to get fid for file: " + parsePath, LogLevel::Error, 125, "PrepareFilesForAdditionToDatabase"); return; }
 
         CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); continue; }
+        if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return; }
 
         CastFidToCorrectNod_AddDirect(nod, parsePath, filePath);
 

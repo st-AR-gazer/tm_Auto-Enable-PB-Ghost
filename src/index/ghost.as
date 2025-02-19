@@ -1,26 +1,5 @@
 namespace Ghost {
-    void AddGhostToDatabase(const string &in filePath) {
-        if (!filePath.ToLower().EndsWith(".ghost.gbx")) {
-            log("File is not a ghost file: " + filePath, LogLevel::Error, 9, "AddGhostToDatabase");
-            return;
-        }
-
-        CGameCtnGhost@ ghost = GetCGameCtnGhost(filePath);
-        
-        CGameCtnChallenge@ map = GetMapNod();
-        if (map is null) { log("Failed to get map nod", LogLevel::Error, 15, "AddGhostToDatabase"); return; }
-        CGameDataFileManagerScript@ dataFileMgr = GetDataFileMgr();
-        if (dataFileMgr is null) { log("Failed to get data file manager", LogLevel::Error, 19, "AddGhostToDatabase"); return; }
-
-        string ghostPath = Index::GetFull_zzReplayPath() + "/gst/" + Path::GetFileName(filePath);
-        IO::CreateFolder(ghostPath.SubStr(0, ghostPath.LastIndexOf("/")));
-        dataFileMgr.Replay_Save(ghostPath, map, ghost);
-
-        Index::AddFileToDatabase(filePath);
-    }
-
-
-    CGameCtnGhost@ GetCGameCtnGhost(const string&in filePath) {
+    string PrepareFileForLoading(const string &in filePath) {
         string path = filePath;
 
         if (!path.StartsWith(IO::FromUserGameFolder("Replay/"))) {
@@ -40,7 +19,7 @@ namespace Ghost {
 
             if (!IO::FileExists(path)) {
                 log("Failed to copy file to temporary folder: " + path, LogLevel::Error, 113, "PrepareFilesForAdditionToDatabase");
-                return null;
+                return "";
             }
         }
 
@@ -48,16 +27,89 @@ namespace Ghost {
             path = path.SubStr(IO::FromUserGameFolder("Replay/").Length, path.Length - IO::FromUserGameFolder("Replay/").Length);
         }
 
-        CSystemFidFile@ fid = Fids::GetUser(path);
-        if (fid is null) { log("Failed to get fid for file: " + path, LogLevel::Error, 125, "PrepareFilesForAdditionToDatabase"); return null; }
+        return path;
+    }
+
+    void AddGhostToDatabase(const string &in filePath) {
+        if (!filePath.ToLower().EndsWith(".ghost.gbx")) {
+            log("File is not a ghost file: " + filePath, LogLevel::Error, 9, "AddGhostToDatabase");
+            return;
+        }
+
+        CGameCtnGhost@ ctnGhost = GetCGameCtnGhost(filePath);
+        if (ctnGhost is null) { log("Failed to get ghost nod", LogLevel::Error, 13, "AddGhostToDatabase"); return; }
+
+        CGameGhostScript@ scriptGhost = GetCGameGhostScript(filePath);
+        if (scriptGhost is null) { log("Failed to get script ghost nod", LogLevel::Error, 13, "AddGhostToDatabase"); return; }
+
+
+        CGameCtnChallenge@ map = GetMapNod();
+        if (map is null) { log("Failed to get map nod", LogLevel::Error, 15, "AddGhostToDatabase"); return; }
+        CGameDataFileManagerScript@ dataFileMgr = GetDataFileMgr();
+        if (dataFileMgr is null) { log("Failed to get data file manager", LogLevel::Error, 19, "AddGhostToDatabase"); return; }
+
+        string ghostPath = Index::GetFull_zzReplayPath() + "/gst/" + Path::GetFileName(filePath);
+        IO::CreateFolder(ghostPath.SubStr(0, ghostPath.LastIndexOf("/")));
+
+        if (ctnGhost !is null) {
+            // CGameGhostScript@ tmpScriptGhost = ConvertCGameCtnGhostToCGameGhostScript(ctnGhost);
+            // dataFileMgr.Replay_Save(ghostPath, map, tmpScriptGhost);
+            log("Afaik it is not possible to save a ghost file using CGameCtnGhost...", LogLevel::Error, 26, "AddGhostToDatabase");
+            return;
+        }
+
+        if (scriptGhost !is null) {
+            dataFileMgr.Replay_Save(ghostPath, map, scriptGhost);
+        }
+
+        Index::AddFileToDatabase(filePath);
+    }
+
+    CGameCtnGhost@ GetCGameCtnGhost(const string &in filePath) {
+        string finalPath = PrepareFileForLoading(filePath);
+        if (finalPath == "") return null;
+
+        CSystemFidFile@ fid = Fids::GetUser(finalPath);
+        if (fid is null) { log("Failed to get fid for file: " + finalPath, LogLevel::Error, 125, "PrepareFilesForAdditionToDatabase"); return null; }
 
         CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + path, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return null; }
+        if (nod is null) { log("Failed to preload nod for file: " + finalPath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return null; }
 
         CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
-        if (ghost is null) { log("Failed to cast nod to CGameCtnGhost for file: " + path, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return null; }
+        if (ghost is null) {
+            CGameGhostScript@ scriptGhost = cast<CGameGhostScript>(nod);
+            if (scriptGhost !is null) {
+                ghost = GetCGameCtnGhost(scriptGhost);
+                if (ghost is null) {
+                    log("Failed to convert script ghost to ctn ghost: " + finalPath, LogLevel::Error, 130, "PrepareFilesForAdditionToDatabase");
+                    return null;
+                }
+            } else {
+                log("Failed to cast nod to CGameCtnGhost or CGameGhostScript: " + finalPath, LogLevel::Error, 132, "PrepareFilesForAdditionToDatabase");
+                return null;
+            }
+        }
 
         return ghost;
+    }
+
+    CGameGhostScript@ GetCGameGhostScript(const string &in filePath) {
+        string finalPath = PrepareFileForLoading(filePath);
+        if (finalPath == "") return null;
+
+        CSystemFidFile@ fid = Fids::GetUser(finalPath);
+        if (fid is null) { log("Failed to get fid for file: " + finalPath, LogLevel::Error, 125, "PrepareFilesForAdditionToDatabase"); return null; }
+
+        CMwNod@ nod = Fids::Preload(fid);
+        if (nod is null) { log("Failed to preload nod for file: " + finalPath, LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return null; }
+
+        CGameGhostScript@ scriptGhost = cast<CGameGhostScript>(nod);
+        if (scriptGhost is null) {
+            log("Failed to cast nod to CGameGhostScript: " + finalPath, LogLevel::Error, 132, "PrepareFilesForAdditionToDatabase");
+            return null;
+        }
+
+        return scriptGhost;
     }
 
     CGameCtnChallenge@ map_voidbase;
@@ -69,10 +121,8 @@ namespace Ghost {
 
         CSystemFidFile@ fid = Fids::GetUser(IO::FromUserGameFolder("Maps/" + hash + ".Map.Gbx"));
         if (fid is null) { log("Failed to get fid for file: " + IO::FromUserGameFolder("Maps/" + hash + ".Map.Gbx"), LogLevel::Error, 125, "PrepareFilesForAdditionToDatabase"); return; }
-
         CMwNod@ nod = Fids::Preload(fid);
         if (nod is null) { log("Failed to preload nod for file: " + IO::FromUserGameFolder("Maps/" + hash + ".Map.Gbx"), LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return; }
-
         CGameCtnChallenge@ map = cast<CGameCtnChallenge>(nod);
         if (map is null) { log("Failed to cast nod to CGameCtnChallenge for file: " + IO::FromUserGameFolder("Maps/" + hash + ".Map.Gbx"), LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return; }
 
@@ -91,4 +141,12 @@ namespace Ghost {
         CGameDataFileManagerScript@ dataFileMgr = cast<CGameDataFileManagerScript>(playgroundScript.DataFileMgr);
         return dataFileMgr;
     }
+
+    // CGameCtnGhost@ ConvertCGameGhostScriptToCGameCtnGhost(CGameGhostScript@ ghost) {
+    //     return cast<CGameCtnGhost>(Dev::GetOffsetNod(ghost, 0x20));
+    // }
+
+    // CGameGhostScript@ ConvertCGameCtnGhostToCGameGhostScript(CGameCtnGhost@ ghost) {
+    //     return cast<CGameGhostScript>(Dev::GetOffsetNod(ghost, 0x20));
+    // }
 }
