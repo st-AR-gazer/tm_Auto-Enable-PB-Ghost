@@ -37,19 +37,19 @@ void RT_Settings() {
 #endif
 
 // #if DEPENDENCY_ARCHIVIST
-//         S_useArchivistGhostLoader = UI::Checkbox("Use Archivist for loading ghosts", S_useArchivistGhostLoader);
+//      S_useArchivistGhostLoader = UI::Checkbox("Use Archivist for loading ghosts", S_useArchivistGhostLoader);
 //         UI::Text("This also uses ghost files saved by Archivist, if you have it installed.");
 // #else
-//         UI::Checkbox("\\$aaaUse Archivist for loading ghosts", false);
-//         UI::Text("Note: Dependency 'Archivist' is required for this feature.");
+//      UI::Checkbox("\\$aaaUse Archivist for loading ghosts", false);
+//      UI::Text("Note: Dependency 'Archivist' is required for this feature.");
 // #endif
-        
+
 
         UI::Dummy(vec2(0, 10));
 
         if (UI::Button("ReInitialize Database")) { Index::InitializeDatabase(); }
 
-        if (UI::Button("Reindex Replays folder")) { startnew(Index::IndexReplays); }
+        if (UI::Button("Reindex Replays folder")) { startnew(Index::Start_IndexReplayRecords); }
         if (Index::isIndexingReplaysFolder) { UI::SameLine(); UI::Text("Indexing file: " + Index::currentReplaysFileNumber + " out of " + Index::totalReplaysFileNumber); }
         if (Index::isIndexingReplaysFolder && Index::currentReplaysFileNumber > 3754 && Index::currentReplaysFileNumber < 5483) { UI::SameLine(); UI::Text("|  Sorry for the indexing taking some time Sadge!"); }
         if (Index::isIndexingReplaysFolder && Index::currentReplaysFileNumber > 9950 && Index::currentReplaysFileNumber < 10100) { UI::SameLine(); UI::Text("|  Damn, over a 10000 you got a lot of replays huh..."); }
@@ -58,49 +58,24 @@ void RT_Settings() {
         if (Index::isIndexingReplaysFolder) { Index::NOD_INDEXING_PROCESS_LIMIT = UI::SliderInt("Indexing Speed", Index::NOD_INDEXING_PROCESS_LIMIT, 1, 10); }
         UI::PopItemWidth();
 
-        if (UI::Button("Reindex entire game dirs")) { startnew(Index::StartGameFolderFullIndexing); }
-
-        if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::StartCustomFolderIndexing), S_customFolderIndexingLocation); }
-        // UI::PushItemWidth(300.0f);
-        // if (Index::isIndexingFolder) { Index::FOLDER_INDEXING_PROCESS_LIMIT = UI::SliderInt("Indexing Speed", Index::FOLDER_INDEXING_PROCESS_LIMIT, 1, 10); }
-        // UI::PopItemWidth();
+        if (UI::Button("Reindex entire game dirs")) { startnew(CoroutineFuncUserdataString(Index::Start_IndexReplayRecords), IO::FromUserGameFolder("")); }
+        if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::Start_IndexReplayRecords), S_customFolderIndexingLocation); }
+        UI::PushItemWidth(300.0f);
+        if (Index::f_isIndexing_FilePaths) { Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 10); }
+        UI::PopItemWidth();
 
         UI::SameLine();
 
         if (UI::ButtonColored(Icons::FolderOpen + " Select Indexing Location", 0.5f, 0.9f, 0.1f)) {
-            FileExplorer::fe_Start(
-                "Custom indexing location",
-                true,
-                "path",
-                vec2(1, 1),
-                IO::FromUserGameFolder("Replays/"),
-                "",
-                { "replay", "ghost" },
-                { "*" }
+            FileExplorer::fe_Start("Custom indexing location", true, "path", vec2(1, 1), IO::FromUserGameFolder("Replays/"), "", { "replay", "ghost" }, { "*" }); }
 
-            );
-        }
         auto exampleExlorer_Paths = FileExplorer::fe_GetExplorerById("Custom indexing location");
         if (exampleExlorer_Paths !is null && exampleExlorer_Paths.exports.IsSelectionComplete()) {
             auto paths = exampleExlorer_Paths.exports.GetSelectedPaths();
-            if (paths !is null) {
-                S_customFolderIndexingLocation = paths[0];
-                exampleExlorer_Paths.exports.SetSelectionComplete();
-            }
+            if (paths !is null) { S_customFolderIndexingLocation = paths[0]; exampleExlorer_Paths.exports.SetSelectionComplete(); }
         }
 
-        if (ManualIndex::indexingInProgress) { 
-            UI::SameLine();
-            if (UI::ButtonColored("Stop Indexing", 0.9f, 0.1f, 0.1f)) { ManualIndex::Stop(); }
-        } else if (Index::enqueueingFilesInProgress) {
-            UI::SameLine();
-            UI::BeginDisabled();
-            if (UI::ButtonColored("Stop Enqueueing", 0.9f, 0.1f, 0.1f)) { Index::StopEnqueueing(); }
-            UI::EndDisabled();
-        } else if (Index::isIndexingFolder) { 
-            UI::SameLine();
-            if (UI::ButtonColored("Stop Indexing Folder", 0.9f, 0.1f, 0.1f)) { Index::StopIndexingFolder(); }
-        }
+        if (Index::f_isIndexing_FilePaths || Index::p_isIndexing_PrepareFiles || Index::d_isIndexing_AddToDatabase) { UI::SameLine(); if (UI::ButtonColored("Stop Indexing", 0.9f, 0.1f, 0.1f)) { Index::Stop_RecursiveSearch(); } }
         
         if (!S_H_showCustomIndexingLocationToolTip) {
             UI::SameLine();
@@ -109,7 +84,6 @@ void RT_Settings() {
                 S_H_showCustomIndexingLocationToolTip = true;
             }
         }
-
         if (S_H_showCustomIndexingLocationToolTip) UI::Text("If you have a custom backup folder for your replays, like me, you can use the 'Custom Index Location' \nto index all the files in that folder. This is useful if you have a lot of replays in a different folder than \nthe default one.");
         if (UI::IsItemHovered()) { 
             UI::SetTooltip("Click to show/hide the indexing tip."); 
@@ -118,62 +92,19 @@ void RT_Settings() {
 
         S_customFolderIndexingLocation = UI::InputText("Custom Index Location", S_customFolderIndexingLocation);
 
-        if (ManualIndex::indexingInProgress || ManualIndex::currentMessage != "") UI::Text(ManualIndex::currentMessage);
-        if (ManualIndex::indexingInProgress) UI::ProgressBar(ManualIndex::GetProgress(), vec2(-0.1, 0));
+        if (Index::IsIndexingInProgress() || Index::indexingMessage != "") UI::Text(Index::indexingMessage);
+        if (Index::IsIndexingInProgress()) UI::ProgressBar(Index::GetIndexingProgressFraction(), vec2(-0.1, 0));
 
-        if (Index::enqueueingFilesInProgress) {
-            UI::Text("Enqueueing files... Latest file indexed: " + Index::lastFileIndexed);
-            int remaining = Index::totalFilesToEnqueue - Index::filesEnqueued;
-            UI::Text("Files remaining: " + remaining);
-            float progress = Index::totalFilesToEnqueue > 0 ? float(Index::filesEnqueued) / float(Index::totalFilesToEnqueue) : 0.0f;
-            UI::ProgressBar(progress, vec2(-1, 0));
-        }
-
-        if (Index::isIndexingFolder) {
-            UI::Text("Indexing file: " + Index::currentFolderFileNumber + " out of " + Index::totalFolderFileNumber);
-
-            // FIXME: this currently doesn't work...
-            if (Index::speedCount > 0) {
-                UI::SameLine();
-                UI::Text(" | Speed: " + Index::speedCount + " files/s");
-                uint remain = Index::totalFolderFileNumber - Index::currentFolderFileNumber;
-                if (Index::speedCount > 0) {
-                    float intervals = float(remain) / float(Index::speedCount);
-                    float timeLeftSec = intervals;
-                    float timeLeftMin = timeLeftSec / 60.0f;
-                    UI::SameLine();
-                    UI::Text(" | ETA: " + Text::Format("%.1f", timeLeftMin) + " min");
-                }
-            }
-
-            if (Index::currentFolderFileNumber > 0) {
-                UI::ProgressBar(float(Index::currentFolderFileNumber) / Index::totalFolderFileNumber, vec2(-1, 0));
-            }
-
-            if (Index::currentFolderFileNumber > 3754 && Index::currentFolderFileNumber < 5483) {
-                UI::SameLine();
-                UI::Text("|  Sorry for the indexing taking some time Sadge!");
-            }
-            if (Index::currentFolderFileNumber > 9950 && Index::currentFolderFileNumber < 10100) {
-                UI::SameLine();
-                UI::Text("|  Damn, over a 10000 you got a lot of replays huh...");
-            }
-        }
-
-        if (ManualIndex::indexingInProgress) {
-            UI::Text("Indexing Step 1/3 | " + ManualIndex::dirsToProcess.Length);
-        } else if (Index::enqueueingFilesInProgress) {
-            UI::Text("Indexing Step 2/3 | " + Index::totalFilesToEnqueue);
-        } else if (Index::isIndexingFolder) {
-            UI::Text("Indexing Step 3/3 | " + Index::totalFolderFileNumber);
-        }
-        if (ManualIndex::indexingInProgress || Index::enqueueingFilesInProgress || Index::isIndexingFolder) {
+        if (Index::IsIndexingInProgress()) {
             UI::Text("""
-            You are indexing through 'custom folders'. This can take a _while_ depending on the amount of files in the folder.
-            If you have a _TON_ of files, I recomend doing this overnight or when you're not actively using the game...
-            This is a one-time process, and will not be needed again, files are added to the database automatically after the initial indexing.
+    You are indexing through 'custom folders'. This can take a _while_ depending on the amount of files in the folder.
+    If you have a _TON_ of files, I recomend doing this overnight or when you're not actively using the game...
+    This is a one-time process, and will not be needed again, files are added to the database automatically after the initial indexing.
             """);
         }
+
+        UI::Dummy(vec2(0, 10));
+        UI::Separator();
 
         if (UI::ButtonColored("Delete database", 0.0f, 0.5f, 0.0f)) {
             Index::DeleteAndReInitialize();

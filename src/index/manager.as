@@ -42,7 +42,7 @@ namespace Index {
             return;
         }
         if (path.ToLower().EndsWith(".replay.gbx")) {
-            ProcessFile(path);
+            AddFileToDatabase(path);
             return;
         }
     }
@@ -161,13 +161,13 @@ namespace Index {
         if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 158, "ConvertGhostToReplay"); return; }
 
         string replayName = GetReplayFilename(ghost, app.RootMap);
-        string replayPath_tmp = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/" + replayName + ".Replay.Gbx");
+        string replayPath_tmp = IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/" + replayName + ".Replay.Gbx");
         dataFileMgr.Replay_Save(replayPath_tmp, app.RootMap, ghost);
 
         string fileContent = _IO::File::ReadFileToEnd(replayPath_tmp);
         string hash = Crypto::MD5(fileContent);
 
-        string replayPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/dwn/" + hash + ".Replay.Gbx");
+        string replayPath = IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/dwn/" + hash + ".Replay.Gbx");
         dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
 
         // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
@@ -188,6 +188,9 @@ namespace Index {
             log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith200msDelay");
         }
     }
+
+    string GetFull_zzReplayPath() { return IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/"); }
+    string GetRelative_zzReplayPath() { return "Replays/zzAutoEnablePBGhost/"; }
 }
 
 class ReplayRecord {

@@ -4,7 +4,7 @@ namespace Index {
     int currentReplaysFileNumber = 0;
 
     uint NOD_INDEXING_PROCESS_LIMIT = 2;
-    void IndexReplays() {
+    void Start_IndexReplayRecords() {
         isIndexingReplaysFolder = true;
 
         auto app = GetApp();
@@ -18,26 +18,10 @@ namespace Index {
         totalReplaysFileNumber = app.ReplayRecordInfos.Length;
 
         for (uint i = 0; i < app.ReplayRecordInfos.Length; i++) {
-
-            string nodType;
-            if (cast<CGameCtnReplayRecordInfo>(app.ReplayRecordInfos[i]) is null) {
-                nodType = "failed";
-                continue;
-            } else {
-                nodType = "CGameCtnReplayRecordInfo@";
-            }
-
             auto record = app.ReplayRecordInfos[i];
 
-            if (record.PlayerLogin != currentPlayerLogin) {
-                skippedCount++;
-                continue;
-            }
-
-            if (record.BestTime <= 0 || record.BestTime >= MAX_VALID_TIME) {
-                skippedCount++;
-                continue;
-            }
+            if (record.PlayerLogin != currentPlayerLogin) { skippedCount++; continue; }
+            if (record.BestTime <= 0 || record.BestTime >= MAX_VALID_TIME) { skippedCount++; continue; }
 
             string key = record.MapUid;
 
@@ -53,7 +37,7 @@ namespace Index {
             replay.Path = ProperPath;
             replay.BestTime = record.BestTime;
             replay.FoundThrough = ProperFoundThrough;
-            replay.NodeType = nodType;
+            replay.NodeType = Reflection::TypeOf(app.ReplayRecordInfos[i]).Name;
             replay.CalculateHash();
 
             if (!replayRecords.Exists(key)) {

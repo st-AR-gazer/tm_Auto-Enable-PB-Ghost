@@ -75,7 +75,7 @@ namespace Loader {
         if (!filePath.StartsWith(replayPath)) {
             log("filePath is not in the Replays folder. Copying it to the Replays folder temporarily.", LogLevel::Warn, 78, "LoadLocalGhost");
 
-            string destinationPath = replayPath + "zzAutoEnablePBGhost/temp/" + Path::GetFileName(filePath);
+            string destinationPath = replayPath + "zzAutoEnablePBGhost/tmp/" + Path::GetFileName(filePath);
             _IO::File::CopyFileTo(filePath, destinationPath);
 
             yield(2);

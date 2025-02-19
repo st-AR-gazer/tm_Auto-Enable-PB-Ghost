@@ -19,7 +19,7 @@ namespace Index {
 
     bool forceStopIndexing = false;
 
-    void Stop() {
+    void Stop_RecursiveSearch() {
         forceStopIndexing = true;
         isIndexing = false; 
         totalFileNumber = 0;
@@ -29,7 +29,7 @@ namespace Index {
         currentIndexingPath = "";
     }
 
-    void Start(const string &in folderPath) {
+    void Start_RecursiveSearch(const string &in folderPath) {
         isIndexing = true;
         
         f_isIndexing_FilePaths = true;
@@ -49,6 +49,14 @@ namespace Index {
         startnew(CoroutineFuncUserdataInt64(SetIndexingMessageToEmptyStringAfterDelay), 1000);
     }
 
+    bool IsIndexingInProgress() {
+        return isIndexing;
+    }
+
+    float GetIndexingProgressFraction() {
+        return progressFraction;
+    }
+
 
     // =============================================================
     // Better IO::Index(string path, bool recursive = true)
@@ -58,13 +66,64 @@ namespace Index {
     int RECURSIVE_SEARCH_BATCH_SIZE = 100;
 
     int totalTasks = 0;
+    float progressFraction = 0.0f;
 
     void IndexFoldersAndSubfolders(const string&in folderPath) {
-        dirsToProcess.InsertLast("");
 
         // ----
 
+        uint totalDirCount = dirsToProcess.Length;
+        uint processedDirCount = 0;
+        while (f_isIndexing_FilePaths && dirsToProcess > 0 && !forceStopIndexing) {
+            string currentDir = dirsToProcess[dirsToProcess.Length - 1];
+            dirsToProcess.RemoveAt(dirsToProcess.Length - 1);
+            if (!IO::FolderExists(currentDir)) {
+                log("Directory not found: " + currentDir, LogLevel::Warn, 44, "IndexFoldersAndSubfolders");
+                yield();
+                continue;
+            }
+            string[]@ topLevel = IO::IndexFolder(currentDir, false);
+            array<string> subfolders, files;
+            for (uint i = 0; i < topLevel.Length; i++) {
+                if (_IO::Directory::IsDirectory(topLevel[i])) {
+                    currentIndexingPath = topLevel[i];
+                    subfolders.InsertLast(topLevel[i]);
+                    if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
+                } else {
+                    currentIndexingPath = topLevel[i];
+                    files.InsertLast(topLevel[i]);
+                    if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
+                }
+            }
+            for (uint s = 0; s < subfolders.Length; s++) {
+                dirsToProcess.InsertLast(subfolders[s]);
+            }
+            totalDirCount += subfolders.Length;
+            uint processedInThisDir = 0;
+            for (uint f = 0; f < files.Length && !forceStopIndexing; f++) {
+                pendingFiles_FolderIndexing.InsertLast(files[f]);
+                processedInThisDir++;
+                if (processedInThisDir % RECURSIVE_SEARCH_BATCH_SIZE == 0) {
+                    processedInThisDir = 0;
+                    yield();
+                }
+            }
+            processedDirCount++;
+            if (processedDirCount % RECURSIVE_SEARCH_BATCH_SIZE == 0) {
+                processedDirCount = 0;
+                yield();
+            }
+            indexingMessage = "Indexing files in: " + currentDir;
+        }
+        indexingMessage = "Finished indexing files in: " + folderPath;
 
+        progressFraction = 1.0f;
+        if (forceStopIndexing) {
+            log("Indexing was forcibly stopped.", LogLevel::Info, 82, "IndexFoldersAndSubfolders");
+            indexingMessage = "Indexing was forcibly stopped.";
+        } else {
+            log("Finished indexing files in: " + folderPath, LogLevel::Info, 85, "IndexFoldersAndSubfolders");
+        }
 
         // ----
 
@@ -76,6 +135,8 @@ namespace Index {
     // Adding the found files to the database
     // =============================================================
 
+    int PREPARE_FILES_BATCH_SIZE = 100;
+
     void PrepareFilesForAdditionToDatabase() {
         for (uint i = 0; i < pendingFiles_FolderIndexing.Length; i++) {
             string filePath = pendingFiles_FolderIndexing[i];
@@ -85,10 +146,10 @@ namespace Index {
             string parsePath = filePath;
 
             if (!parsePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
-                log("File is not the the 'Replays' folder, copying over to temporary 'zzAutoEnablePBGhost/temp' folder...", LogLevel::Info, 101, "PrepareFilesForAdditionToDatabase");
+                log("File is not the the 'Replays' folder, copying over to temporary 'zzAutoEnablePBGhost/tmp' folder...", LogLevel::Info, 101, "PrepareFilesForAdditionToDatabase");
 
                 string originalPath = filePath;
-                string tempPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/") + Path::GetFileName(filePath);
+                string tempPath = IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/") + Path::GetFileName(filePath);
 
                 if (IO::FileExists(tempPath)) {
                     log("File already exists in temporary folder, deleting...", LogLevel::Warn, 106, "PrepareFilesForAdditionToDatabase");
@@ -119,13 +180,23 @@ namespace Index {
 
             CastFidToCorrectNod(nod, parsePath, filePath);
 
-            startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/") + Path::GetFileName(filePath));
+            startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/") + Path::GetFileName(filePath));
+
+            if (i % PREPARE_FILES_BATCH_SIZE == 0) {
+                yield();
+            }
         }
 
         p_isIndexing_PrepareFiles = false;
     }
 
     void CastFidToCorrectNod(CMwNod@ nod, const string &in parsePath, const string &in filePath) {
+        CGameCtnReplayRecordInfo@ recordInfo = cast<CGameCtnReplayRecordInfo>(nod);
+        if (recordInfo !is null) {
+            ProcessFileWith_CGameCtnReplayRecordInfo(recordInfo, parsePath, filePath);
+            return;
+        }
+
         CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
         if (record !is null) {
             ProcessFileWith_CGameCtnReplayRecord(record, parsePath, filePath);
@@ -137,16 +208,12 @@ namespace Index {
             ProcessFileWith_CGameCtnGhost(ghost, parsePath, filePath);
             return;
         }
-
-        CGameCtnReplayRecordInfo@ recordInfo = cast<CGameCtnReplayRecordInfo>(nod);
-        if (recordInfo !is null) {
-            ProcessFileWith_CGameCtnReplayRecordInfo(recordInfo, parsePath, filePath);
-            return;
-        }
     }
 
     void ProcessFileWith_CGameCtnReplayRecord(CGameCtnReplayRecord@ record, const string &in parsePath, const string &in filePath) {
         if (record.Ghosts.Length == 0) { log("No ghosts found in file: " + parsePath, LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecord"); return; }
+        if (record.Ghosts[0].RaceTime == 0xFFFFFFFF) { log("RaceTime is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecord"); return; }
+        if (record.Challenge.IdName.Length == 0) { log("MapUid is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecord"); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = record.Challenge.IdName;
@@ -156,7 +223,7 @@ namespace Index {
         replay.Path = filePath;
         replay.BestTime = record.Ghosts[0].RaceTime;
         replay.FoundThrough = "Folder Indexing";
-        replay.NodeType = "CGameCtnReplayRecord@";
+        replay.NodeType = Reflection::TypeOf(record).Name;
         replay.CalculateHash();
 
         pendingFiles_AddToDatabase.InsertLast(replay);
@@ -164,6 +231,7 @@ namespace Index {
 
     void ProcessFileWith_CGameCtnGhost(CGameCtnGhost@ ghost, const string &in parsePath, const string &in filePath) {
         if (ghost.RaceTime == 0xFFFFFFFF) { log("RaceTime is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
+        if (ghost.Validate_ChallengeUid.GetName().Length == 0) { log("MapUid is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = ghost.Validate_ChallengeUid.GetName();
@@ -173,7 +241,7 @@ namespace Index {
         replay.Path = filePath;
         replay.BestTime = ghost.RaceTime;
         replay.FoundThrough = "Folder Indexing";
-        replay.NodeType = "CGameCtnGhost@";
+        replay.NodeType = Reflection::TypeOf(ghost).Name;
         replay.CalculateHash();
 
         pendingFiles_AddToDatabase.InsertLast(replay);
@@ -181,6 +249,7 @@ namespace Index {
 
     void ProcessFileWith_CGameCtnReplayRecordInfo(CGameCtnReplayRecordInfo@ recordInfo, const string &in parsePath, const string &in filePath) {
         if (recordInfo.BestTime == 0xFFFFFFFF) { log("BestTime is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
+        if (recordInfo.MapUid.Length == 0) { log("MapUid is invalid", LogLevel::Warn, 141, "ProcessFileWithCGameCtnReplayRecordInfo"); return; }
 
         auto replay = ReplayRecord();
         replay.MapUid = recordInfo.MapUid;
@@ -190,79 +259,38 @@ namespace Index {
         replay.Path = recordInfo.Path;
         replay.BestTime = recordInfo.BestTime;
         replay.FoundThrough = "Folder Indexing";
-        replay.NodeType = "CGameCtnReplayRecordInfo@";
+        replay.NodeType = Reflection::TypeOf(recordInfo).Name;
         replay.CalculateHash();
 
         pendingFiles_AddToDatabase.InsertLast(replay);
     }
-
-
-    void ProcessFile(const string &in filePath) {
-        if (!filePath.ToLower().EndsWith(".replay.gbx")) return;
-
-        string parsePath = filePath;
-        if (parsePath.StartsWith(IO::FromUserGameFolder(""))) {
-            parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length, parsePath.Length - IO::FromUserGameFolder("").Length);
-        }
-
-        if (!parsePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
-            log("File is not in the 'Replays' folder, copying over to temporary 'zzAutoEnablePBGhost/temp' folder...", LogLevel::Info, 101, "ProcessFile");
-            string tempPath = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/temp/") + Path::GetFileName(filePath);
-
-            if (IO::FileExists(tempPath)) {
-                log("File already exists in temporary folder, deleting...", LogLevel::Info, 106, "ProcessFile");
-                IO::Delete(tempPath);
-            }
-            
-            _IO::File::CopyFileTo(filePath, tempPath);
-            parsePath = tempPath;
-            if (!IO::FileExists(parsePath)) { log("Failed to copy file to temporary folder: " + parsePath, LogLevel::Error, 113, "ProcessFile"); return; }
-        }
-
-        if (parsePath.StartsWith(IO::FromUserGameFolder(""))) {
-            parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length, parsePath.Length - IO::FromUserGameFolder("").Length);
-        }
-
-        CSystemFidFile@ fid = Fids::GetUser(parsePath);
-        if (fid is null) { log("Failed to get fid for file: " + parsePath, LogLevel::Error, 125, "ProcessFile"); return; }
     
-        CMwNod@ nod = Fids::Preload(fid);
-        if (nod is null) { log("Failed to preload nod for file: " + parsePath, LogLevel::Error, 128, "ProcessFile"); return; }
-    
-        CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
-        if (record is null) {
-            log("Failed to cast nod (CGameCtnReplayRecord) for file: " + parsePath, LogLevel::Warn, 132, "ProcessFile");
-    
-            // Not every file is a "CGameCtnReplayRecord", so try processing as CGameCtnGhost.
-            ProcessFileWithCGameCtnGhost(nod, filePath);
-            return;
-        }
-    
-        if (record.Ghosts.Length == 0) { 
-            log("No ghosts found in file: " + parsePath, LogLevel::Warn, 141, "ProcessFile"); 
-            return; 
-        }
-    
-        auto replay = ReplayRecord();
-        replay.MapUid = record.Challenge.IdName;
-        replay.PlayerLogin = record.Ghosts[0].GhostLogin;
-        replay.PlayerNickname = record.Ghosts[0].GhostNickname;
-        replay.FileName = Path::GetFileName(filePath);
-        replay.Path = filePath;
-        replay.BestTime = record.Ghosts[0].RaceTime;
-        replay.FoundThrough = "Folder Indexing";
-        replay.CalculateHash();
-        SaveReplayToDB(replay);
-        CleanupTemp(parsePath, filePath);
-    }
 
     // =============================================================
     // Adding the found files to the database
     // =============================================================
 
+    int ADD_FILES_TO_DATABASE_BATCH_SIZE = 100;
+
     void AddFilesToDatabase() {
         for (uint i = 0; i < pendingFiles_AddToDatabase.Length; i++) {
-            SaveReplayToDB(pendingFiles_AddToDatabase[i]);
+            auto replay = pendingFiles_AddToDatabase[i];
+
+            if (!replayRecords.Exists(replay.MapUid)) {
+                array<ReplayRecord@> records;
+                replayRecords[replay.MapUid] = records;
+            }
+
+            auto records = cast<array<ReplayRecord@>>(replayRecords[replay.MapUid]);
+            records.InsertLast(replay);
+
+            SaveReplayToDB(replay);
+
+            currentFileNumber++;
+
+            if (i % ADD_FILES_TO_DATABASE_BATCH_SIZE == 0) {
+                yield();
+            }
         }
 
         d_isIndexing_AddToDatabase = false;
