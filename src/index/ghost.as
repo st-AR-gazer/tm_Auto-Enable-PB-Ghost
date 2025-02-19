@@ -97,7 +97,7 @@ namespace Ghost {
         return scriptGhost;
     }
 
-    CGameCtnChallenge@ map_voidbase;
+    CGameCtnChallenge@ map_voidbase = CGameCtnChallenge();
     void SetMapNod() {
         string VOID_TEMPLATE_MAP_FILE = _IO::File::ReadSourceFileToEnd("/src/map/voidbase.map.gbx");
         string hash = Crypto::Sha256(VOID_TEMPLATE_MAP_FILE);
@@ -111,7 +111,7 @@ namespace Ghost {
         CGameCtnChallenge@ map = cast<CGameCtnChallenge>(nod);
         if (map is null) { log("Failed to cast nod to CGameCtnChallenge for file: " + IO::FromUserGameFolder("Maps/" + hash + ".Map.Gbx"), LogLevel::Error, 128, "PrepareFilesForAdditionToDatabase"); return; }
 
-        map_voidbase = map;
+        map_voidbase = cast<CGameCtnChallenge>(map);
     }
 
     CGameCtnChallenge@ GetMapNod() {

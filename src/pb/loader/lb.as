@@ -91,7 +91,7 @@ namespace Loader {
         string fileUrl = data[0]["url"];
         string mapRecordId = data[0]["mapRecordId"];
 
-        Index::AddReplayToDB_FromPath(fileUrl, mapRecordId); // this has to be done through a url in this case... Need to implement a way for it to be done though a local url for ghost files
+        Index::AddReplayToDatabse(fileUrl, mapRecordId); // this has to be done through a url in this case... Need to implement a way for it to be done though a local url for ghost files
                                                              // too at some point, but idk how that would be done with how conversion between CGameCtnGhost and CGameGhostScript is done...
     }
 
