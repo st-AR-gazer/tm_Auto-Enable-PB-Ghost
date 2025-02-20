@@ -90,6 +90,8 @@ namespace Index {
     [Setting hidden]
     int RECURSIVE_SEARCH_BATCH_SIZE = 100;
 
+    uint totalFiles = 0;
+
     void IndexFoldersAndSubfolders(const string&in folderPath) {
         dirsToProcess.Resize(0);
         dirsToProcess.InsertLast(folderPath);
@@ -102,6 +104,8 @@ namespace Index {
             if (!IO::FolderExists(currentDir)) { log("Directory not found: " + currentDir, LogLevel::Warn); yield(); continue; }
 
             string[]@ topLevel = IO::IndexFolder(currentDir, false);
+            totalFiles += topLevel.Length;
+
             array<string> subfolders, files;
             for (uint i = 0; i < topLevel.Length; i++) {
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
