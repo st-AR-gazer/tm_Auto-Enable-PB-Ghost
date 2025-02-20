@@ -90,7 +90,7 @@ namespace Index {
     [Setting hidden]
     int RECURSIVE_SEARCH_BATCH_SIZE = 100;
 
-    uint totalFiles = 0;
+    uint totalElemetNumber = 0;
 
     void IndexFoldersAndSubfolders(const string&in folderPath) {
         dirsToProcess.Resize(0);
@@ -104,18 +104,18 @@ namespace Index {
             if (!IO::FolderExists(currentDir)) { log("Directory not found: " + currentDir, LogLevel::Warn); yield(); continue; }
 
             string[]@ topLevel = IO::IndexFolder(currentDir, false);
-            totalFiles += topLevel.Length;
+            totalElemetNumber += topLevel.Length;
 
             array<string> subfolders, files;
             for (uint i = 0; i < topLevel.Length; i++) {
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
                     subfolders.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
-                    indexingMessageDebug = "Indexed folders: " + totalFiles + " | Indexed files: " + i + " | CurrentDir: " + currentDir;
+                    indexingMessageDebug = "Indexed folders and files: " + totalElemetNumber + " | CurrentDir: " + currentDir;
                 } else {
                     files.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
-                    indexingMessageDebug = "Indexed folders: " + totalFiles + " | Indexed files: " + i + " | CurrentDir: " + currentDir;
+                    indexingMessageDebug = "Indexed folders and files: " + totalElemetNumber + " | CurrentDir: " + currentDir;
                 }
                 if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
             }
