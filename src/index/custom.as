@@ -277,7 +277,7 @@ namespace Index {
         addToDBIndex = 0;
         addToDBTotal = pendingFiles_AddToDatabase.Length;
         for (uint i = 0; i < pendingFiles_AddToDatabase.Length && !forceStopIndexing; i++) {
-            auto replay = pendingFiles_AddToDatabase[i];
+            ReplayRecord@ replay = pendingFiles_AddToDatabase[i];
             startnew(CoroutineFuncUserdata(AddFileToDatabaseSafely), replay);
             addToDBIndex++;
             if (i % ADD_FILES_TO_DATABASE_BATCH_SIZE == 0) {
