@@ -113,6 +113,7 @@ namespace Index {
     // Phase 1: Index folders + subfolders, gather file paths
     // ---------------------------------------------------------
     array<string> dirsToProcess;
+    [Setting hidden]
     int RECURSIVE_SEARCH_BATCH_SIZE = 100;
     int totalFoldersProcessed = 0;
 
@@ -132,10 +133,10 @@ namespace Index {
             for (uint i = 0; i < topLevel.Length; i++) {
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
                     subfolders.InsertLast(topLevel[i]);
-                    indexingMessage = "Indexing dirs: " + topLevel[i];
+                    indexingMessage = "Indexing: " + topLevel[i];
                 } else {
                     files.InsertLast(topLevel[i]);
-                    indexingMessage = "Indexing file: " + topLevel[i];
+                    indexingMessage = "Indexing: " + topLevel[i];
                 }
                 if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
             }
@@ -155,7 +156,10 @@ namespace Index {
     // ---------------------------------------------------------
     // Phase 2: Prepare files
     // ---------------------------------------------------------
+    
+    [Setting hidden]
     int PREPARE_FILES_BATCH_SIZE = 1;
+    
     void PrepareFilesForAdditionToDatabase() {
         prepareFilesIndex = 0;
         prepareFilesTotal = pendingFiles_FolderIndexing.Length;
@@ -261,7 +265,9 @@ namespace Index {
     // ---------------------------------------------------------
     // Phase 3: Add to DB
     // ---------------------------------------------------------
-    int ADD_FILES_TO_DATABASE_BATCH_SIZE = 100;
+    
+    [Setting hidden]
+    int ADD_FILES_TO_DATABASE_BATCH_SIZE = 1;
 
     void AddFilesToDatabase() {
         addToDBIndex = 0;
