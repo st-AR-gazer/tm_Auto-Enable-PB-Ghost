@@ -112,7 +112,6 @@ namespace Index {
                     files.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
                     indexingMessageDebug = "Indexed folders: " + totalFileNumber + " | Indexed files: " + i + " | CurrentDir: " + currentDir;
-
                 }
                 if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
             }
@@ -123,7 +122,7 @@ namespace Index {
                 pendingFiles_FolderIndexing.InsertLast(files[f]);
                 if (f % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
             }
-            totalFileNumber++;
+            totalFileNumber += files.Length;
             yield();
         }
 
