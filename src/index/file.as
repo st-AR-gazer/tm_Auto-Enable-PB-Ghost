@@ -70,7 +70,7 @@ namespace Index {
         replay.NodeType = Reflection::TypeOf(record).Name;
         replay.CalculateHash();
 
-        AddReplayToDatabse(replay);
+        AddReplayToDatabase(replay);
     }
 
     void ProcessFileWith_CGameCtnGhost_AddDirect(CGameCtnGhost@ ghost, const string &in parsePath, const string &in filePath) {
@@ -88,7 +88,7 @@ namespace Index {
         replay.NodeType = Reflection::TypeOf(ghost).Name;
         replay.CalculateHash();
 
-        AddReplayToDatabse(replay);
+        AddReplayToDatabase(replay);
     }
 
     void ProcessFileWith_CGameCtnReplayRecordInfo_AddDirect(CGameCtnReplayRecordInfo@ recordInfo, const string &in parsePath, const string &in filePath) {
@@ -106,6 +106,6 @@ namespace Index {
         replay.NodeType = Reflection::TypeOf(recordInfo).Name;
         replay.CalculateHash();
 
-        AddReplayToDatabse(replay);
+        AddReplayToDatabase(replay);
     }
 }

@@ -32,14 +32,14 @@ namespace Index {
         log("Database initialized. Path: " + dbPath, LogLevel::Info, 31, "InitializeDatabase");
     }
 
-    void AddReplayToDatabse(const string&in path, const string&in mapRecordId = "") {
+    void AddReplayToDatabase(const string&in path, const string&in mapRecordId = "") {
         if (path.StartsWith("http")) {
             net::ConvertGhostToReplay(path, mapRecordId);
             return;
         }
         if (path.ToLower().EndsWith(".ghost.gbx")) {
             // Ghost::AddGhostToDatabase(path);
-            log("Ghost files are not supported, file has been skipped: " + path, LogLevel::Warn, 41, "AddReplayToDatabse");
+            log("Ghost files are not supported, file has been skipped: " + path, LogLevel::Warn, 41, "AddReplayToDatabase");
             return;
         }
         if (path.ToLower().EndsWith(".replay.gbx")) {
@@ -48,7 +48,7 @@ namespace Index {
         }
     }
 
-    void AddReplayToDatabse(ReplayRecord@ replay) {
+    void AddReplayToDatabase(ReplayRecord@ replay) {
         const uint MAX_VALID_TIME = 2147480000;
 
         if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) {

@@ -20,15 +20,6 @@ namespace Index {
 
     bool forceStopIndexing = false;
 
-
-    uint prepareFilesIndex = 0;
-    uint prepareFilesTotal = 0;
-    uint addToDBIndex = 0;
-    uint addToDBTotal = 0;
-    float PHASE1_END   = 0.3f;
-    float PHASE2_END   = 0.6f;
-    // float PHASE3_END 0.6 -> 1.0
-
     void Stop_RecursiveSearch() {
         forceStopIndexing = true;
         isIndexing = false;
@@ -82,31 +73,11 @@ namespace Index {
         return isIndexing;
     }
 
-    float GetIndexingProgressFraction() {
-        // PHASE 1
-        // #AllLoadingBarsAreReal 
-        if (f_isIndexing_FilePaths) {
-            float ratio = totalFoldersProcessed > 0 ? float(totalFoldersProcessed) / 50.0f : 0.0f;
-            ratio = Math::Min(ratio, 1.0f);
-            ratio = Math::Pow(ratio, 0.5f);
-            return ratio * PHASE1_END;
-        }
-
-        // PHASE 2
-        if (p_isIndexing_PrepareFiles) {
-            float phaseRatio = 0.0f;
-            if (prepareFilesTotal > 0) { phaseRatio = float(prepareFilesIndex) / float(prepareFilesTotal); }
-            return PHASE1_END + (PHASE2_END - PHASE1_END) * phaseRatio;
-        }
-
-        // PHASE 3
-        if (d_isIndexing_AddToDatabase) {
-            float phaseRatio = 0.0f;
-            if (addToDBTotal > 0) { phaseRatio = float(addToDBIndex) / float(addToDBTotal); }
-            return PHASE2_END + (1.0f - PHASE2_END) * phaseRatio;
-        }
-
-        return 1.0f;
+    float Get_Indexing_Progress() {
+        if (f_isIndexing_FilePaths) return Get_IndexFoldersAndSubfolders_Progress();
+        if (p_isIndexing_PrepareFiles) return Get_PrepareFilesForAdditionToDatabase_Progress();
+        if (d_isIndexing_AddToDatabase) return Get_AddFilesToDatabase_Progress();
+        return 0.0f;
     }
 
     // ---------------------------------------------------------
@@ -115,12 +86,11 @@ namespace Index {
     array<string> dirsToProcess;
     [Setting hidden]
     int RECURSIVE_SEARCH_BATCH_SIZE = 100;
-    int totalFoldersProcessed = 0;
 
     void IndexFoldersAndSubfolders(const string&in folderPath) {
         dirsToProcess.Resize(0);
         dirsToProcess.InsertLast(folderPath);
-        totalFoldersProcessed = 0;
+        totalFileNumber = 0;
 
         while (f_isIndexing_FilePaths && dirsToProcess.Length > 0 && !forceStopIndexing) {
             string currentDir = dirsToProcess[dirsToProcess.Length - 1];
@@ -133,7 +103,7 @@ namespace Index {
             for (uint i = 0; i < topLevel.Length; i++) {
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
                     subfolders.InsertLast(topLevel[i]);
-                    indexingMessage = "Indexing: " + topLevel[i];
+                    indexingMessage = totalFileNumber + "Indexing: " + topLevel[i];
                 } else {
                     files.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
@@ -147,10 +117,16 @@ namespace Index {
                 pendingFiles_FolderIndexing.InsertLast(files[f]);
                 if (f % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
             }
-            totalFoldersProcessed++;
+            totalFileNumber++;
             yield();
         }
+
         f_isIndexing_FilePaths = false;
+    }
+
+    float Get_IndexFoldersAndSubfolders_Progress() {
+        if (totalFileNumber == 0) return 0.0;
+        return float(currentFileNumber) / float(totalFileNumber);
     }
 
     // ---------------------------------------------------------
@@ -159,9 +135,13 @@ namespace Index {
     
     [Setting hidden]
     int PREPARE_FILES_BATCH_SIZE = 1;
+
+    uint prepareFilesIndex = 0;
+    uint prepareFilesTotal = 0;
     
     void PrepareFilesForAdditionToDatabase() {
         prepareFilesIndex = 0;
+        prepareFilesTotal = 0;
         prepareFilesTotal = pendingFiles_FolderIndexing.Length;
         for (uint i = 0; i < prepareFilesTotal && !forceStopIndexing; i++) {
             string filePath = pendingFiles_FolderIndexing[i];
@@ -262,6 +242,11 @@ namespace Index {
         pendingFiles_AddToDatabase.InsertLast(replay);
     }
 
+    float Get_PrepareFilesForAdditionToDatabase_Progress() {
+        if (prepareFilesTotal == 0) return 0.0;
+        return float(prepareFilesIndex) / float(prepareFilesTotal);
+    }
+
     // ---------------------------------------------------------
     // Phase 3: Add to DB
     // ---------------------------------------------------------
@@ -269,8 +254,13 @@ namespace Index {
     [Setting hidden]
     int ADD_FILES_TO_DATABASE_BATCH_SIZE = 1;
 
+    uint addToDBIndex = 0;
+    uint addToDBTotal = 0;
+
     void AddFilesToDatabase() {
         addToDBIndex = 0;
+        addToDBTotal = 0;
+        
         addToDBTotal = pendingFiles_AddToDatabase.Length;
         for (uint i = 0; i < pendingFiles_AddToDatabase.Length && !forceStopIndexing; i++) {
             ReplayRecord@ replay = pendingFiles_AddToDatabase[i];
@@ -292,8 +282,13 @@ namespace Index {
         }
         auto records = cast<array<ReplayRecord@>>(replayRecords[replay.MapUid]);
         records.InsertLast(replay);
-        AddReplayToDatabse(replay);
+        AddReplayToDatabase(replay);
         currentFileNumber++;
+    }
+
+    float Get_AddFilesToDatabase_Progress() {
+        if (addToDBTotal == 0) return 0.0;
+        return float(addToDBIndex) / float(addToDBTotal);
     }
 
     // ---------------------------------------------------------

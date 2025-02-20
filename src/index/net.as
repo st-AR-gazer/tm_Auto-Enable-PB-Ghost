@@ -30,7 +30,7 @@ namespace net {
         // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
         log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 163, "ConvertGhostToReplay");
 
-        Index::AddReplayToDatabse(replayPath, mapRecordId);
+        Index::AddReplayToDatabase(replayPath, mapRecordId);
 
         startnew(CoroutineFuncUserdataString(Loader::LoadLocalGhost), replayPath);
 
