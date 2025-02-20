@@ -278,7 +278,9 @@ namespace Index {
         addToDBTotal = pendingFiles_AddToDatabase.Length;
         for (uint i = 0; i < pendingFiles_AddToDatabase.Length && !forceStopIndexing; i++) {
             ReplayRecord@ replay = pendingFiles_AddToDatabase[i];
-            startnew(CoroutineFuncUserdata(AddFileToDatabaseSafely), replay);
+            AddFileToDatabaseSafely(replay);
+            // ERR : Can't create delegate for types that do not support handles
+            // startnew(CoroutineFuncUserdata(AddFileToDatabaseSafely), replay);
             addToDBIndex++;
             if (i % ADD_FILES_TO_DATABASE_BATCH_SIZE == 0) {
                 yield();
