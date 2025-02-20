@@ -38,7 +38,7 @@ namespace Index {
 
         CastFidToCorrectNod_AddDirect(nod, parsePath, filePath);
 
-        startnew(CoroutineFuncUserdataString(DeleteFileWith200msDelay), IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/") + Path::GetFileName(filePath));
+        startnew(CoroutineFuncUserdataString(DeleteFileWith1000msDelay), IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/") + Path::GetFileName(filePath));
 
         log("Finished processing file: " + parsePath, LogLevel::Info, 137, "PrepareFilesForAdditionToDatabase");
     }

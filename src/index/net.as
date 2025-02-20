@@ -35,6 +35,6 @@ namespace net {
         startnew(CoroutineFuncUserdataString(Loader::LoadLocalGhost), replayPath);
 
         // I'm not sure if I should really be removing the ghost here...
-        startnew(CoroutineFuncUserdataString(Index::DeleteFileWith200msDelay), replayPath_tmp);
+        startnew(CoroutineFuncUserdataString(Index::DeleteFileWith1000msDelay), replayPath_tmp);
     }
 }

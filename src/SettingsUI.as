@@ -60,9 +60,6 @@ void RT_Settings() {
 
         if (UI::Button("Reindex entire game dirs")) { startnew(CoroutineFuncUserdataString(Index::Start_RecursiveSearch), IO::FromUserGameFolder("")); }
         if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::Start_RecursiveSearch), S_customFolderIndexingLocation); }
-        UI::PushItemWidth(300.0f);
-        if (Index::f_isIndexing_FilePaths) { Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 10); }
-        UI::PopItemWidth();
 
         UI::SameLine();
 
@@ -92,14 +89,23 @@ void RT_Settings() {
 
         S_customFolderIndexingLocation = UI::InputText("Custom Index Location", S_customFolderIndexingLocation);
 
+        UI::PushItemWidth(500.0f);
+        if (Index::f_isIndexing_FilePaths) { Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 600); }
+        if (Index::RECURSIVE_SEARCH_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        if (Index::p_isIndexing_PrepareFiles) { Index::PREPARE_FILES_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::PREPARE_FILES_BATCH_SIZE, 1, 10); }
+        if (Index::PREPARE_FILES_BATCH_SIZE > 5) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        if (Index::d_isIndexing_AddToDatabase) { Index::ADD_FILES_TO_DATABASE_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::ADD_FILES_TO_DATABASE_BATCH_SIZE, 1, 800); }
+        if (Index::ADD_FILES_TO_DATABASE_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        UI::PopItemWidth();
+
         if (Index::IsIndexingInProgress() || Index::indexingMessage != "") UI::Text(Index::indexingMessage);
         if (Index::IsIndexingInProgress()) UI::ProgressBar(Index::GetIndexingProgressFraction(), vec2(-0.1, 0));
 
         if (Index::IsIndexingInProgress()) {
             UI::Text("""
-    You are indexing through 'custom folders'. This can take a _while_ depending on the amount of files in the folder.
-    If you have a _TON_ of files, I recomend doing this overnight or when you're not actively using the game...
-    This is a one-time process, and will not be needed again, files are added to the database automatically after the initial indexing.
+                You are indexing through 'custom folders'. This can take a _while_ depending on the amount of files in the folder.
+                If you have a _TON_ of files, I recomend doing this overnight or when you're not actively using the game...
+                This is a one-time process, and will not be needed again, files are added to the database automatically after the initial indexing.
             """);
         }
 

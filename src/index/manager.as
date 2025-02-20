@@ -38,7 +38,8 @@ namespace Index {
             return;
         }
         if (path.ToLower().EndsWith(".ghost.gbx")) {
-            Ghost::AddGhostToDatabase(path);
+            // Ghost::AddGhostToDatabase(path);
+            log("Ghost files are not supported, file has been skipped: " + path, LogLevel::Warn, 41, "AddReplayToDatabse");
             return;
         }
         if (path.ToLower().EndsWith(".replay.gbx")) {
@@ -140,11 +141,11 @@ namespace Index {
         return safeMapName + "_" + safeUserName + "_" + safeCurrentTime + "_(" + fmtGhostTime + ")";
     }
 
-    void DeleteFileWith200msDelay(const string &in path) {
+    void DeleteFileWith1000msDelay(const string &in path) {
         sleep(200);
         if (IO::FileExists(path)) {
             IO::Delete(path);
-            log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith200msDelay");
+            log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith1000msDelay");
         }
     }
 

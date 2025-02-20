@@ -134,8 +134,8 @@ namespace _IO {
         void CopySourceFileToNonSource(const string &in originalPath, const string &in storagePath, bool verbose = false) {
             if (verbose) log("Moving the file content", LogLevel::Info, 133, "CopySourceFileToNonSource");
             
-            string fileContents = ReadSourceFileToEnd(originalPath);
-            WriteFile(storagePath, fileContents);
+            string fileContents = ReadSourceFileToEnd(originalPath, verbose);
+            WriteFile(storagePath, fileContents, verbose);
 
             if (verbose) log("Finished moving the file", LogLevel::Info, 138, "CopySourceFileToNonSource");
 

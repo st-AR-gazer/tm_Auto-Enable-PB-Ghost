@@ -85,7 +85,7 @@ namespace Loader {
             if (!IO::FileExists(destinationPath)) { log("Failed to copy file to Replays folder: " + destinationPath + " | Aborting...", LogLevel::Error, 83, "LoadLocalGhost"); return; }
 
             startnew(CoroutineFuncUserdataString(LoadLocalGhost), destinationPath);
-            startnew(CoroutineFuncUserdataString(Index::DeleteFileWith200msDelay), destinationPath);
+            startnew(CoroutineFuncUserdataString(Index::DeleteFileWith1000msDelay), destinationPath);
 
             return;
         }
