@@ -102,7 +102,7 @@ void RT_Settings() {
 
         if (Index::IsIndexingInProgress() || Index::indexingMessage != "") UI::Text(Index::indexingMessage);
         if (Index::IsIndexingInProgress() || Index::indexingMessageDebug != "") UI::Text(Index::indexingMessageDebug);
-        if (Index::IsIndexingInProgress()) UI::ProgressBar(Index::GetIndexingProgressFraction(), vec2(-0.1, 0));
+        if (Index::IsIndexingInProgress()) UI::ProgressBar(Index::Get_Indexing_ProgressFraction(), vec2(-0.1, 0));
 
         if (Index::IsIndexingInProgress()) {
             UI::Text("""

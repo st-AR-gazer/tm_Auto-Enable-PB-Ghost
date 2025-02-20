@@ -76,7 +76,7 @@ namespace Index {
         return isIndexing;
     }
 
-    float Get_Indexing_Progress() {
+    float Get_Indexing_ProgressFraction() {
         if (f_isIndexing_FilePaths) return Get_IndexFoldersAndSubfolders_Progress();
         if (p_isIndexing_PrepareFiles) return Get_PrepareFilesForAdditionToDatabase_Progress();
         if (d_isIndexing_AddToDatabase) return Get_AddFilesToDatabase_Progress();
