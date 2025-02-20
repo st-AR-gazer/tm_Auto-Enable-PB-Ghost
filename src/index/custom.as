@@ -45,6 +45,7 @@ namespace Index {
 
     void Start_RecursiveSearch(const string &in folderPath) {
         Stop_RecursiveSearch();
+        forceStopIndexing = false; // imp
         log("Starting recursive search in folder: " + folderPath, LogLevel::Info);
 
         isIndexing = true;
@@ -63,10 +64,7 @@ namespace Index {
         startnew(PrepareFilesForAdditionToDatabase);
         while (p_isIndexing_PrepareFiles && !forceStopIndexing) { yield(); }
 
-        if (forceStopIndexing) {
-            isIndexing = false;
-            return;
-        }
+        if (forceStopIndexing) { isIndexing = false; return; }
 
         d_isIndexing_AddToDatabase = true;
         addToDBIndex = 0;
@@ -86,24 +84,25 @@ namespace Index {
 
     float GetIndexingProgressFraction() {
         // PHASE 1
-        // 
-        if (f_isIndexing_FilePaths) { return 0.15f; }
+        // #AllLoadingBarsAreReal 
+        if (f_isIndexing_FilePaths) {
+            float ratio = totalFoldersProcessed > 0 ? float(totalFoldersProcessed) / 50.0f : 0.0f;
+            ratio = Math::Min(ratio, 1.0f);
+            ratio = Math::Pow(ratio, 0.5f);
+            return ratio * PHASE1_END;
+        }
 
         // PHASE 2
         if (p_isIndexing_PrepareFiles) {
             float phaseRatio = 0.0f;
-            if (prepareFilesTotal > 0) {
-                phaseRatio = float(prepareFilesIndex) / float(prepareFilesTotal);
-            }
+            if (prepareFilesTotal > 0) { phaseRatio = float(prepareFilesIndex) / float(prepareFilesTotal); }
             return PHASE1_END + (PHASE2_END - PHASE1_END) * phaseRatio;
         }
 
         // PHASE 3
         if (d_isIndexing_AddToDatabase) {
             float phaseRatio = 0.0f;
-            if (addToDBTotal > 0) {
-                phaseRatio = float(addToDBIndex) / float(addToDBTotal);
-            }
+            if (addToDBTotal > 0) { phaseRatio = float(addToDBIndex) / float(addToDBTotal); }
             return PHASE2_END + (1.0f - PHASE2_END) * phaseRatio;
         }
 
@@ -126,11 +125,8 @@ namespace Index {
             string currentDir = dirsToProcess[dirsToProcess.Length - 1];
             dirsToProcess.RemoveAt(dirsToProcess.Length - 1);
 
-            if (!IO::FolderExists(currentDir)) {
-                log("Directory not found: " + currentDir, LogLevel::Warn);
-                yield();
-                continue;
-            }
+            if (!IO::FolderExists(currentDir)) { log("Directory not found: " + currentDir, LogLevel::Warn); yield(); continue; }
+
             string[]@ topLevel = IO::IndexFolder(currentDir, false);
             array<string> subfolders, files;
             for (uint i = 0; i < topLevel.Length; i++) {
@@ -167,9 +163,7 @@ namespace Index {
             startnew(CoroutineFuncUserdataString(ProcessFileSafely), filePath);
             startnew(CoroutineFuncUserdataString(DeleteFileWith1000msDelay), IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/") + Path::GetFileName(filePath));
             prepareFilesIndex++;
-            if (i % PREPARE_FILES_BATCH_SIZE == 0) {
-                yield();
-            }
+            if (i % PREPARE_FILES_BATCH_SIZE == 0) { yield(); }
         }
         p_isIndexing_PrepareFiles = false;
     }
@@ -180,20 +174,18 @@ namespace Index {
         if (!parsePath.StartsWith(IO::FromUserGameFolder("Replays/"))) {
             string tmpFolder = IO::FromUserGameFolder(GetRelative_zzReplayPath() + "/tmp/");
             if (!IO::FolderExists(tmpFolder)) IO::CreateFolder(tmpFolder);
+
             string tempPath = tmpFolder + Path::GetFileName(filePath);
-            if (IO::FileExists(tempPath)) {
-                IO::Delete(tempPath);
-            }
+            if (IO::FileExists(tempPath)) { IO::Delete(tempPath); }
             _IO::File::CopyFileTo(filePath, tempPath);
+
             parsePath = tempPath;
-            if (!IO::FileExists(parsePath)) {
-                log("Failed to copy file: " + parsePath, LogLevel::Error);
-                return;
-            }
+            
+            if (!IO::FileExists(parsePath)) { log("Failed to copy file: " + parsePath, LogLevel::Error); return; }
         }
-        if (parsePath.StartsWith(IO::FromUserGameFolder(""))) {
-            parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length);
-        }
+        
+        if (parsePath.StartsWith(IO::FromUserGameFolder(""))) { parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length); }
+
         CSystemFidFile@ fid = Fids::GetUser(parsePath);
         if (fid is null) return;
         CMwNod@ nod = Fids::Preload(fid);
@@ -203,26 +195,20 @@ namespace Index {
 
     void CastFidToCorrectNod(CMwNod@ nod, const string &in parsePath, const string &in filePath) {
         CGameCtnReplayRecordInfo@ recordInfo = cast<CGameCtnReplayRecordInfo>(nod);
-        if (recordInfo !is null) {
-            ProcessFileWith_CGameCtnReplayRecordInfo(recordInfo);
-            return;
-        }
+        if (recordInfo !is null) { ProcessFileWith_CGameCtnReplayRecordInfo(recordInfo); return; }
+
         CGameCtnReplayRecord@ record = cast<CGameCtnReplayRecord>(nod);
-        if (record !is null) {
-            ProcessFileWith_CGameCtnReplayRecord(record, parsePath, filePath);
-            return;
-        }
+        if (record !is null) { ProcessFileWith_CGameCtnReplayRecord(record, parsePath, filePath); return; }
+
         CGameCtnGhost@ ghost = cast<CGameCtnGhost>(nod);
-        if (ghost !is null) {
-            ProcessFileWith_CGameCtnGhost(ghost, filePath);
-            return;
-        }
+        if (ghost !is null) { ProcessFileWith_CGameCtnGhost(ghost, filePath); return; }
     }
 
     void ProcessFileWith_CGameCtnReplayRecord(CGameCtnReplayRecord@ record, const string &in parsePath, const string &in filePath) {
         if (record.Ghosts.Length == 0) return;
         if (record.Ghosts[0].RaceTime == 0xFFFFFFFF) return;
         if (record.Challenge.IdName.Length == 0) return;
+
         auto replay = ReplayRecord();
         replay.MapUid = record.Challenge.IdName;
         replay.PlayerLogin = record.Ghosts[0].GhostLogin;
@@ -239,6 +225,7 @@ namespace Index {
     void ProcessFileWith_CGameCtnGhost(CGameCtnGhost@ ghost, const string &in filePath) {
         if (ghost.RaceTime == 0xFFFFFFFF) return;
         if (ghost.Validate_ChallengeUid.GetName().Length == 0) return;
+
         auto replay = ReplayRecord();
         replay.MapUid = ghost.Validate_ChallengeUid.GetName();
         replay.PlayerLogin = ghost.GhostLogin;
@@ -255,6 +242,7 @@ namespace Index {
     void ProcessFileWith_CGameCtnReplayRecordInfo(CGameCtnReplayRecordInfo@ recordInfo) {
         if (recordInfo.BestTime == 0xFFFFFFFF) return;
         if (recordInfo.MapUid.Length == 0) return;
+
         auto replay = ReplayRecord();
         replay.MapUid = recordInfo.MapUid;
         replay.PlayerLogin = recordInfo.PlayerLogin;
@@ -278,13 +266,13 @@ namespace Index {
         addToDBTotal = pendingFiles_AddToDatabase.Length;
         for (uint i = 0; i < pendingFiles_AddToDatabase.Length && !forceStopIndexing; i++) {
             ReplayRecord@ replay = pendingFiles_AddToDatabase[i];
+            
             AddFileToDatabaseSafely(replay);
             // ERR : Can't create delegate for types that do not support handles
             // startnew(CoroutineFuncUserdata(AddFileToDatabaseSafely), replay);
+
             addToDBIndex++;
-            if (i % ADD_FILES_TO_DATABASE_BATCH_SIZE == 0) {
-                yield();
-            }
+            if (i % ADD_FILES_TO_DATABASE_BATCH_SIZE == 0) { yield(); }
         }
         d_isIndexing_AddToDatabase = false;
     }
@@ -302,8 +290,5 @@ namespace Index {
 
     // ---------------------------------------------------------
 
-    void SetIndexingMessageToEmptyStringAfterDelay(int64 delay) {
-        sleep(delay);
-        indexingMessage = "";
-    }
+    void SetIndexingMessageToEmptyStringAfterDelay(int64 delay) { sleep(delay); indexingMessage = ""; }
 }
