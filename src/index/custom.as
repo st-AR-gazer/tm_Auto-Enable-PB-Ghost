@@ -132,8 +132,10 @@ namespace Index {
             for (uint i = 0; i < topLevel.Length; i++) {
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
                     subfolders.InsertLast(topLevel[i]);
+                    indexingMessage = "Indexing dirs: " + topLevel[i];
                 } else {
                     files.InsertLast(topLevel[i]);
+                    indexingMessage = "Indexing file: " + topLevel[i];
                 }
                 if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
             }
