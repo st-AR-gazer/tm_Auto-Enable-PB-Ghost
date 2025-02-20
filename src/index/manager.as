@@ -145,7 +145,8 @@ namespace Index {
         sleep(200);
         if (IO::FileExists(path)) {
             IO::Delete(path);
-            log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith1000msDelay");
+            indexingMessageDebug = "Deleted file: " + path;
+            // log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith1000msDelay");
         }
     }
 
