@@ -43,17 +43,18 @@ namespace Index {
         f_isIndexing_FilePaths = true;
         startnew(CoroutineFuncUserdataString(IndexFoldersAndSubfolders), folderPath);
         while (f_isIndexing_FilePaths && !forceStopIndexing) { yield(); }
+        indexingMessage = "";
+        indexingMessageDebug = "";
 
-        if (forceStopIndexing) {
-            isIndexing = false;
-            return;
-        }
+        if (forceStopIndexing) { isIndexing = false; return; }
 
         p_isIndexing_PrepareFiles = true;
         prepareFilesIndex = 0;
         prepareFilesTotal = 0;
         startnew(PrepareFilesForAdditionToDatabase);
         while (p_isIndexing_PrepareFiles && !forceStopIndexing) { yield(); }
+        indexingMessage = "";
+        indexingMessageDebug = "";
 
         if (forceStopIndexing) { isIndexing = false; return; }
 
@@ -62,6 +63,8 @@ namespace Index {
         addToDBTotal = 0;
         startnew(AddFilesToDatabase);
         while (d_isIndexing_AddToDatabase && !forceStopIndexing) { yield(); }
+        indexingMessage = "";
+        indexingMessageDebug = "";
 
         isIndexing = false;
         indexingMessage = "Full addition to the database complete!";
@@ -271,6 +274,9 @@ namespace Index {
 
             addToDBIndex++;
             if (i % ADD_FILES_TO_DATABASE_BATCH_SIZE == 0) { yield(); }
+
+            indexingMessage = "Adding to database: " + replay.FileName;
+            indexingMessageDebug = "UID: " + replay.MapUid + " | Login: " + replay.PlayerLogin + " | Nickname: " + replay.PlayerNickname + " | Time: " + replay.BestTime;
         }
         d_isIndexing_AddToDatabase = false;
     }
