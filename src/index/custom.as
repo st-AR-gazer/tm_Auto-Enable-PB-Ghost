@@ -107,11 +107,11 @@ namespace Index {
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
                     subfolders.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
-                    indexingMessageDebug = "Indexed folders: " + totalFileNumber + " | Indexed files: " + currentFileNumber + " | CurrentDir: " + currentDir;
+                    indexingMessageDebug = "Indexed folders: " + totalFileNumber + " | Indexed files: " + i + " | CurrentDir: " + currentDir;
                 } else {
                     files.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
-                    indexingMessageDebug = "Indexed folders: " + totalFileNumber + " | Indexed files: " + currentFileNumber + " | CurrentDir: " + currentDir;
+                    indexingMessageDebug = "Indexed folders: " + totalFileNumber + " | Indexed files: " + i + " | CurrentDir: " + currentDir;
 
                 }
                 if (i % RECURSIVE_SEARCH_BATCH_SIZE == 0) yield();
