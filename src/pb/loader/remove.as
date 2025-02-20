@@ -4,7 +4,7 @@ namespace Loader {
         if (mgr is null) return;
 
         auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        if (ps is null) throw("null playground script");
+        if (ps is null) return;
 
         for (int i = int(mgr.Ghosts.Length) - 1; i >= 0; i--) {
             string gName = mgr.Ghosts[i].GhostModel.GhostNickname;

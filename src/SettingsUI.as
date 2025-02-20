@@ -13,6 +13,7 @@ void RT_Settings() {
         UI::PopItemWidth();
         if (S_markPluginLoadedPBs.Length > 1) { S_markPluginLoadedPBs = S_markPluginLoadedPBs.SubStr(0, 1); }
         if (S_markPluginLoadedPBs.Length == 0) { S_markPluginLoadedPBs = "P"; }
+        S_allowLoadingPBsOnServers = UI::Checkbox("Allow loading PB ghosts on servers", S_allowLoadingPBsOnServers);
         S_useLeaderBoardAsLastResort = UI::Checkbox("Use leaderboard as a last resort for loading a pb", S_useLeaderBoardAsLastResort);
         S_onlyLoadFastestPB = UI::Checkbox("Only Load One PB Ghost If Multiple Are Found", S_onlyLoadFastestPB);
 
@@ -49,14 +50,37 @@ void RT_Settings() {
 
         if (UI::Button("ReInitialize Database")) { Index::InitializeDatabase(); }
 
-        if (UI::Button("Reindex Replays folder")) { startnew(Index::Start_IndexReplayRecords); }
-        if (Index::isIndexingReplaysFolder) { UI::SameLine(); UI::Text("Indexing file: " + Index::currentReplaysFileNumber + " out of " + Index::totalReplaysFileNumber); }
-        if (Index::isIndexingReplaysFolder && Index::currentReplaysFileNumber > 3754 && Index::currentReplaysFileNumber < 5483) { UI::SameLine(); UI::Text("|  Sorry for the indexing taking some time Sadge!"); }
-        if (Index::isIndexingReplaysFolder && Index::currentReplaysFileNumber > 9950 && Index::currentReplaysFileNumber < 10100) { UI::SameLine(); UI::Text("|  Damn, over a 10000 you got a lot of replays huh..."); }
-        if (Index::currentReplaysFileNumber > 0) { UI::ProgressBar(float(Index::currentReplaysFileNumber) / Index::totalReplaysFileNumber, vec2(-1, 0)); }
-        UI::PushItemWidth(300.0f);
-        if (Index::isIndexingReplaysFolder) { Index::NOD_INDEXING_PROCESS_LIMIT = UI::SliderInt("Indexing Speed", Index::NOD_INDEXING_PROCESS_LIMIT, 1, 10); }
-        UI::PopItemWidth();
+        if (UI::Button("Reindex Replays Folder")) { startnew(Index::Start_IndexReplayRecords); }
+
+if (Index::nodIsIndexing) {
+    UI::SameLine();
+    UI::Text("Indexing file: " + Index::nodCurrentCount + " out of " + Index::nodTotalCount);
+    
+    UI::PushItemWidth(500.0f);
+    
+    if (Index::nodPhaseGather) {
+        Index::NOD_GATHER_BATCH_SIZE = UI::SliderInt("Indexing Speed (Gather)", Index::NOD_GATHER_BATCH_SIZE, 1, 50);
+        if (Index::NOD_GATHER_BATCH_SIZE > 25) UI::Text("\\$ff0Warning: High values may cause lag.");
+    }
+    if (Index::nodPhasePrepare && !Index::nodPhaseGather) {
+        Index::NOD_PREPARE_BATCH_SIZE = UI::SliderInt("Indexing Speed (Prepare)", Index::NOD_PREPARE_BATCH_SIZE, 1, 25);
+        if (Index::NOD_PREPARE_BATCH_SIZE > 10) UI::Text("\\$ff0Warning: High values may cause lag.");
+    }
+    if (Index::nodPhaseAdd && !Index::nodPhasePrepare && !Index::nodPhaseGather) {
+        Index::NOD_ADD_BATCH_SIZE = UI::SliderInt("Indexing Speed (Database)", Index::NOD_ADD_BATCH_SIZE, 1, 25);
+        if (Index::NOD_ADD_BATCH_SIZE > 10) UI::Text("\\$ff0Warning: High values may cause lag.");
+    }
+    
+    UI::PopItemWidth();
+    
+    UI::ProgressBar(Index::GetNodIndexProgressFraction(), vec2(-0.1, 0));
+
+    UI::Text(Index::nodIndexingMessage);
+
+    if (UI::ButtonColored("Stop Indexing", 0.9f, 0.1f, 0.1f)) { Index::Stop_NodIndexing(); }
+}
+
+
 
         if (UI::Button("Reindex entire game dirs")) { startnew(CoroutineFuncUserdataString(Index::Start_RecursiveSearch), IO::FromUserGameFolder("")); }
         if (UI::Button("Index Custom Index Location")) { startnew(CoroutineFuncUserdataString(Index::Start_RecursiveSearch), S_customFolderIndexingLocation); }
@@ -90,19 +114,25 @@ void RT_Settings() {
         S_customFolderIndexingLocation = UI::InputText("Custom Index Location", S_customFolderIndexingLocation);
 
         UI::PushItemWidth(500.0f);
-        if (Index::f_isIndexing_FilePaths) { Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 600); }
-        if (Index::RECURSIVE_SEARCH_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
-        if (Index::p_isIndexing_PrepareFiles && 
-           !Index::f_isIndexing_FilePaths) { Index::PREPARE_FILES_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::PREPARE_FILES_BATCH_SIZE, 1, 10); }
-        if (Index::PREPARE_FILES_BATCH_SIZE > 5) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
-        if (Index::d_isIndexing_AddToDatabase && !Index::p_isIndexing_PrepareFiles && 
-           !Index::f_isIndexing_FilePaths) { Index::ADD_FILES_TO_DATABASE_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::ADD_FILES_TO_DATABASE_BATCH_SIZE, 1, 800); }
-        if (Index::ADD_FILES_TO_DATABASE_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        if (Index::f_isIndexing_FilePaths) {
+                Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 600);
+            if (Index::RECURSIVE_SEARCH_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        }
+        if (Index::p_isIndexing_PrepareFiles && !Index::f_isIndexing_FilePaths) {
+                Index::PREPARE_FILES_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::PREPARE_FILES_BATCH_SIZE, 1, 10);
+            if (Index::PREPARE_FILES_BATCH_SIZE > 5) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        }
+        if (Index::d_isIndexing_AddToDatabase && !Index::p_isIndexing_PrepareFiles && !Index::f_isIndexing_FilePaths) {
+                Index::ADD_FILES_TO_DATABASE_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::ADD_FILES_TO_DATABASE_BATCH_SIZE, 1, 25);
+            if (Index::ADD_FILES_TO_DATABASE_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+        }
         UI::PopItemWidth();
+        UI::SameLine();
+        if (Index::IsIndexingInProgress()) S_skipPathsWith_Archivist_InTheName = UI::Checkbox("Skip 'Archivist' paths", S_skipPathsWith_Archivist_InTheName);
 
         if (Index::IsIndexingInProgress() || Index::indexingMessage != "") UI::Text(Index::indexingMessage);
         if (Index::IsIndexingInProgress() || Index::indexingMessageDebug != "") UI::Text(Index::indexingMessageDebug);
-        if (Index::IsIndexingInProgress()) UI::ProgressBar(Index::Get_Indexing_ProgressFraction(), vec2(-0.1, 0));
+        if (Index::IsIndexingInProgress() && !Index::f_isIndexing_FilePaths) UI::ProgressBar(Index::Get_Indexing_ProgressFraction(), vec2(-0.1, 0));
 
         if (Index::IsIndexingInProgress()) {
             UI::Text("""
@@ -124,6 +154,9 @@ void RT_Settings() {
 }
 
 [Setting hidden]
+bool S_skipPathsWith_Archivist_InTheName = true;
+
+[Setting hidden]
 bool S_useBetterReplaysFolder = false;
 
 [Setting hidden]
@@ -131,6 +164,8 @@ bool S_H_showCustomIndexingLocationToolTip = true;
 
 [Setting hidden]
 string S_markPluginLoadedPBs = "very secret id";
+[Setting hidden]
+bool S_allowLoadingPBsOnServers = false;
 [Setting hidden]
 bool S_useLeaderBoardAsLastResort = true;
 [Setting hidden]
@@ -142,40 +177,3 @@ string S_customFolderIndexingLocation = IO::FromUserGameFolder("Replays/Autosave
 
 [Setting hidden]
 bool S_enableGhosts = true;
-
-[SettingsTab name="Testing" icon="DevTo" order="99999999999999999999"]
-void RT_Testing() {
-    if (UI::BeginChild("Testing Settings", vec2(0, 0), true)) {
-        UI::Text("Testing Options");
-
-        // if (UI::Button("Test unload g++")) { startnew(UnloadGhost); }
-
-        // if (UI::Button("Load Saved pb")) { startnew(Loader::LoadLocalPBsUntillNextMapForEasyLoading); }
-
-
-        UI::Separator();
-
-        if (UI::Button("Load PB")) { startnew(Loader::LoadPB); }
-        if (UI::Button("Remove PB")) { Loader::HidePB(); }
-
-        UI::Separator();
-
-        if (UI::Button("Load PB (Local)")) { startnew(testGetReplaysFromDB); }
-        S_TESTING_uid_query = UI::InputText("UID Query", S_TESTING_uid_query);
-
-        if (Loader::IsPBLoaded_Clips()) { UI::Text("PB Loaded"); }
-        else { UI::Text("PB Not Loaded"); }
-
-        UI::EndChild();
-    }
-}
-
-void testGetReplaysFromDB() {
-    auto test_replays = Index::GetReplaysFromDatabase(S_TESTING_uid_query);
-    for (uint i = 0; i < test_replays.Length; i++) {
-        auto replay = test_replays[i];
-        log("Replay: " + replay.FileName + " | " + replay.BestTime + " | " + replay.Path, LogLevel::Info, 219, "testGetReplaysFromDB");
-    }
-}
-
-string S_TESTING_uid_query = "3oE4EbXGlBdgPheR1ECc4xT2qCd";

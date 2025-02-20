@@ -27,17 +27,20 @@ namespace Index {
         currentFileNumber = 0;
         latestFile = "";
         indexingMessage = "";
+        indexingMessageDebug = "";
         currentIndexingPath = "";
         prepareFilesIndex = 0;
         prepareFilesTotal = 0;
         addToDBIndex = 0;
         addToDBTotal = 0;
+        totalFileNumber = 0;
+        currentFileNumber = 0;
     }
 
     void Start_RecursiveSearch(const string &in folderPath) {
         Stop_RecursiveSearch();
         forceStopIndexing = false; // imp
-        log("Starting recursive search in folder: " + folderPath, LogLevel::Info);
+        log("Starting recursive search in folder: " + folderPath, LogLevel::Info, 43, "Start_RecursiveSearch");
 
         isIndexing = true;
         f_isIndexing_FilePaths = true;
@@ -69,7 +72,7 @@ namespace Index {
         isIndexing = false;
         indexingMessage = "Full addition to the database complete!";
         startnew(CoroutineFuncUserdataInt64(SetIndexingMessageToEmptyStringAfterDelay), 1000);
-        log("Finished recursive search in folder: " + folderPath, LogLevel::Info);
+        log("Finished recursive search in folder: " + folderPath, LogLevel::Info, 75, "Start_RecursiveSearch");
     }
 
     bool IsIndexingInProgress() {
@@ -101,13 +104,15 @@ namespace Index {
             string currentDir = dirsToProcess[dirsToProcess.Length - 1];
             dirsToProcess.RemoveAt(dirsToProcess.Length - 1);
 
-            if (!IO::FolderExists(currentDir)) { log("Directory not found: " + currentDir, LogLevel::Warn); yield(); continue; }
+            if (!IO::FolderExists(currentDir)) { log("Directory not found: " + currentDir, LogLevel::Warn, 107, "IndexFoldersAndSubfolders"); yield(); continue; }
 
             string[]@ topLevel = IO::IndexFolder(currentDir, false);
             totalElemetNumber += topLevel.Length;
 
             array<string> subfolders, files;
             for (uint i = 0; i < topLevel.Length; i++) {
+                if (S_skipPathsWith_Archivist_InTheName && topLevel[i].ToLower().Contains("/archivist/")) continue;
+
                 if (_IO::Directory::IsDirectory(topLevel[i])) {
                     subfolders.InsertLast(topLevel[i]);
                     indexingMessage = "Indexing: " + topLevel[i];
@@ -176,7 +181,7 @@ namespace Index {
 
             parsePath = tempPath;
             
-            if (!IO::FileExists(parsePath)) { log("Failed to copy file: " + parsePath, LogLevel::Error); return; }
+            if (!IO::FileExists(parsePath)) { log("Failed to copy file: " + parsePath, LogLevel::Error, 184, "ProcessFileSafely"); return; }
         }
         
         if (parsePath.StartsWith(IO::FromUserGameFolder(""))) { parsePath = parsePath.SubStr(IO::FromUserGameFolder("").Length); }
@@ -261,7 +266,7 @@ namespace Index {
     // ---------------------------------------------------------
     
     [Setting hidden]
-    int ADD_FILES_TO_DATABASE_BATCH_SIZE = 1;
+    int ADD_FILES_TO_DATABASE_BATCH_SIZE = 10;
 
     uint addToDBIndex = 0;
     uint addToDBTotal = 0;

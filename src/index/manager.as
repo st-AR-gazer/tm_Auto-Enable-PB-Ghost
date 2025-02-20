@@ -29,7 +29,7 @@ namespace Index {
         """;
 
         db.Execute(createTableQuery);
-        log("Database initialized. Path: " + dbPath, LogLevel::Info, 31, "InitializeDatabase");
+        log("Database initialized. Path: " + dbPath, LogLevel::Info, 32, "InitializeDatabase");
     }
 
     void AddReplayToDatabase(const string&in path, const string&in mapRecordId = "") {
@@ -39,7 +39,7 @@ namespace Index {
         }
         if (path.ToLower().EndsWith(".ghost.gbx")) {
             // Ghost::AddGhostToDatabase(path);
-            log("Ghost files are not supported, file has been skipped: " + path, LogLevel::Warn, 41, "AddReplayToDatabase");
+            log("Ghost files are not supported, file has been skipped: " + path, LogLevel::Warn, 42, "AddReplayToDatabase");
             return;
         }
         if (path.ToLower().EndsWith(".replay.gbx")) {
@@ -52,7 +52,7 @@ namespace Index {
         const uint MAX_VALID_TIME = 2147480000;
 
         if (replay.BestTime <= 0 || replay.BestTime >= MAX_VALID_TIME) {
-            log("Replay skipped due to invalid BestTime: " + replay.BestTime + " | "+"isDir: "+_IO::Directory::IsDirectory(replay.Path)+" | "+replay.Path, LogLevel::Warn, 53, "SaveReplayToDB");
+            log("Replay skipped due to invalid BestTime: " + replay.BestTime + " | "+"isDir: "+_IO::Directory::IsDirectory(replay.Path)+" | "+replay.Path, LogLevel::Warn, 55, "AddReplayToDatabase");
             return;
         }
 
@@ -133,7 +133,7 @@ namespace Index {
     }
 
     string GetReplayFilename(CGameGhostScript@ ghost, CGameCtnChallenge@ map) {
-        if (ghost is null || map is null) { log("Error getting replay filename, ghost or map input is null", LogLevel::Info, 134, "GetReplayFilename"); return ""; }
+        if (ghost is null || map is null) { log("Error getting replay filename, ghost or map input is null", LogLevel::Info, 136, "GetReplayFilename"); return ""; }
         string safeMapName = Path::SanitizeFileName(map.MapName);
         string safeUserName = Path::SanitizeFileName(ghost.Nickname);
         string safeCurrentTime = Path::SanitizeFileName(Regex::Replace(GetApp().OSLocalDate, "[/ ]", "_"));
@@ -146,7 +146,7 @@ namespace Index {
         if (IO::FileExists(path)) {
             IO::Delete(path);
             indexingMessageDebug = "Deleted file: " + path;
-            // log("Deleted file: " + path, LogLevel::Info, 179, "DeleteFileWith1000msDelay");
+            // log("Deleted file: " + path, LogLevel::Info, 149, "DeleteFileWith1000msDelay");
         }
     }
 

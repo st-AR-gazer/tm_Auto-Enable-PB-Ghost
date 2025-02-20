@@ -9,13 +9,13 @@ namespace net {
 
         if (url == "") { return; }
 
-        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 152, "ConvertGhostToReplay");
+        log("ConvertGhostToReplay: Attempting to download ghost from URL: " + url, LogLevel::Info, 12, "ConvertGhostToReplay");
         CWebServicesTaskResult_GhostScript@ task = dataFileMgr.Ghost_Download("", url);
 
         while (task.IsProcessing && task.Ghost is null) { yield(); }
 
         CGameGhostScript@ ghost = cast<CGameGhostScript>(task.Ghost);
-        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 158, "ConvertGhostToReplay"); return; }
+        if (ghost is null) { log("ConvertGhostToReplay: Download failed; ghost is null", LogLevel::Error, 18, "ConvertGhostToReplay"); return; }
 
         string replayName = Index::GetReplayFilename(ghost, app.RootMap);
         string replayPath_tmp = IO::FromUserGameFolder(Index::GetRelative_zzReplayPath() + "/tmp/" + replayName + ".Replay.Gbx");
@@ -28,7 +28,7 @@ namespace net {
         dataFileMgr.Replay_Save(replayPath, app.RootMap, ghost);
 
         // FIXME: In a future update I need to add the ability to use Better Replay Folders so that the replay is saved to that folder instead (and not forced to be saved here...)
-        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 163, "ConvertGhostToReplay");
+        log("ConvertGhostToReplay: Saving replay to " + replayPath, LogLevel::Info, 31, "ConvertGhostToReplay");
 
         Index::AddReplayToDatabase(replayPath, mapRecordId);
 

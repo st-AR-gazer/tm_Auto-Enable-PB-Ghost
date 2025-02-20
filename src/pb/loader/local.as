@@ -73,7 +73,7 @@ namespace Loader {
         string replayPath = IO::FromUserGameFolder("Replays/");
 
         if (!filePath.StartsWith(replayPath)) {
-            log("filePath is not in the Replays folder. Copying it to the Replays folder temporarily.", LogLevel::Warn, 78, "LoadLocalGhost");
+            log("filePath is not in the Replays folder. Copying it to the Replays folder temporarily.", LogLevel::Warn, 76, "LoadLocalGhost");
 
             string destinationPath = replayPath + "zzAutoEnablePBGhost/tmp/" + Path::GetFileName(filePath);
             _IO::File::CopyFileTo(filePath, destinationPath);
@@ -82,7 +82,7 @@ namespace Loader {
 
             print(filePath);
 
-            if (!IO::FileExists(destinationPath)) { log("Failed to copy file to Replays folder: " + destinationPath + " | Aborting...", LogLevel::Error, 83, "LoadLocalGhost"); return; }
+            if (!IO::FileExists(destinationPath)) { log("Failed to copy file to Replays folder: " + destinationPath + " | Aborting...", LogLevel::Error, 85, "LoadLocalGhost"); return; }
 
             startnew(CoroutineFuncUserdataString(LoadLocalGhost), destinationPath);
             startnew(CoroutineFuncUserdataString(Index::DeleteFileWith1000msDelay), destinationPath);
@@ -93,7 +93,7 @@ namespace Loader {
         auto task = GetApp().Network.ClientManiaAppPlayground.DataFileMgr.Replay_Load(filePath);
         while (task.IsProcessing) { yield(); }
 
-        if (task.HasFailed || !task.HasSucceeded) { log("Failed to load ghost: " + filePath, LogLevel::Error, 88, "LoadLocalGhost"); return; }
+        if (task.HasFailed || !task.HasSucceeded) { log("Failed to load ghost: " + filePath, LogLevel::Error, 96, "LoadLocalGhost"); return; }
 
         CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
         for (uint i = 0; i < task.Ghosts.Length; i++) {
@@ -106,14 +106,14 @@ namespace Loader {
 
         SaveLocalPBsUntillNextMapForEasyLoading();
 
-        log("Loaded PB ghost from " + filePath, LogLevel::Info, 101, "LoadLocalGhost");
+        log("Loaded PB ghost from " + filePath, LogLevel::Info, 109, "LoadLocalGhost");
     }
 
     void LoadGhost(CGameGhostScript@ ghost) {
-        log("Ghost loding through 'loadGhost' is dissabled due to issues with saving ghosts.", LogLevel::Warn, 105, "LoadGhost");
+        log("Ghost loding through 'loadGhost' is dissabled due to issues with saving ghosts.", LogLevel::Warn, 113, "LoadGhost");
 
         CGameGhostScript@ newGhost = ghost;
-        if (newGhost is null) { log("Ghost is null.", LogLevel::Error, 108, "LoadGhost"); return; }
+        if (newGhost is null) { log("Ghost is null.", LogLevel::Error, 116, "LoadGhost"); return; }
 
         CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
         newGhost.IdName = "Personal best";
