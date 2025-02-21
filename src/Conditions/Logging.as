@@ -58,7 +58,7 @@ namespace DEV {
 
 //////////// CHANGE TO "true" ON RELEASE  ////////////
 [Setting category="z~DEV" name="Show default OP logs" hidden]
-bool S_showDefaultLogs = true;
+bool S_showDefaultLogs = false;
 //////////////////////////////////////////////////////
 
 [Setting category="z~DEV" name="Show Debug logs" hidden]
