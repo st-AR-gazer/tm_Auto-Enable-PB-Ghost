@@ -165,6 +165,18 @@ class ReplayRecord {
     string NodeType;
     string FoundThrough;
 
+    ReplayRecord() {
+        ReplayHash = "";
+        MapUid = "";
+        PlayerLogin = "";
+        PlayerNickname = "";
+        FileName = "";
+        Path = "";
+        BestTime = 0;
+        NodeType = "";
+        FoundThrough = "";
+    }
+
     void CalculateHash() {
         string fileContent = _IO::File::ReadFileToEnd(Path);
         ReplayHash = Crypto::MD5(fileContent);

@@ -53,30 +53,32 @@ namespace Loader {
         CControlQuad@ pbIcon = cast<CControlQuad>(pbWidget.Childs[8]);
         if (pbIcon is null) { log("Failed to get PB icon. Cannot hide PB icon.", LogLevel::Error, 54, "HidePBIcon"); return; }
 
+        while (pbIcon.IsHiddenExternal) { yield(); }
+
         pbIcon.IsHiddenExternal = true;
-        log("Hid PB icon.", LogLevel::Info, 57, "HidePBIcon");
+        log("Hid PB icon.", LogLevel::Info, 59, "HidePBIcon");
     }
 
     void ChangePBName() {
         CTrackManiaNetwork@ network = cast<CTrackManiaNetwork>(GetApp().Network);
-        if (network.ClientManiaAppPlayground is null) { log("Failed to get playground. Cannot change PB name.", LogLevel::Error, 62, "ChangePBName"); return; }
+        if (network.ClientManiaAppPlayground is null) { log("Failed to get playground. Cannot change PB name.", LogLevel::Error, 64, "ChangePBName"); return; }
 
         CGameDataFileManagerScript@ dfm = network.ClientManiaAppPlayground.DataFileMgr;
-        if (dfm is null) { log("Failed to get data file manager. Cannot change PB name.", LogLevel::Error, 65, "ChangePBName"); return; }
+        if (dfm is null) { log("Failed to get data file manager. Cannot change PB name.", LogLevel::Error, 67, "ChangePBName"); return; }
 
         for (uint i = 0; i < dfm.Ghosts.Length; i++) {
             CGameGhostScript@ ghost = cast<CGameGhostScript>(dfm.Ghosts[i]);
             if (string(ghost.Nickname).Contains(GetApp().LocalPlayerInfo.Name)) {
                 ghost.Nickname = "$5d8"+"Personal Best";
                 
-                log("Changed PB name to Personal best", LogLevel::Info, 72, "ChangePBName");
+                log("Changed PB name to Personal best", LogLevel::Info, 74, "ChangePBName");
                 return;
             }
         }
     }
 
     void DownloadPBFromLeaderboardAndLoadLocal(const string&in mapUid) {
-        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No personal best found. Cannot download leaderboard PB ghost.", LogLevel::Warn, 79, "DownloadPBFromLeaderboardAndLoadLocal"); return; }
+        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No personal best found. Cannot download leaderboard PB ghost.", LogLevel::Warn, 81, "DownloadPBFromLeaderboardAndLoadLocal"); return; }
 
         string pid = GetApp().LocalPlayerInfo.WebServicesUserId;
         string mapId = MapUidToMapId(mapUid);
@@ -92,20 +94,20 @@ namespace Loader {
         while (!req.Finished()) { yield(); }
 
         if (req.ResponseCode() != 200) {
-            log("Failed to fetch replay record, response code: " + req.ResponseCode(), LogLevel::Error, 95, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Failed to fetch replay record, response code: " + req.ResponseCode(), LogLevel::Error, 97, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         Json::Value data = Json::Parse(req.String());
         if (data.GetType() == Json::Type::Null) {
-            log("Failed to parse response for replay record.", LogLevel::Error, 102, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Failed to parse response for replay record.", LogLevel::Error, 104, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
 
         if (data.GetType() != Json::Type::Array || data.Length == 0) {
-            log("Invalid replay data in response.", LogLevel::Error, 108, "DownloadPBFromLeaderboardAndLoadLocal");
+            log("Invalid replay data in response.", LogLevel::Error, 110, "DownloadPBFromLeaderboardAndLoadLocal");
             ToggleLeaderboardPB();
             return;
         }
@@ -119,7 +121,7 @@ namespace Loader {
 
     void SetPBVisibility(bool shouldShow) {
         isLeacerboardPBVisible = shouldShow;
-        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 122, "SetPBVisibility");
+        log("PB ghost visibility set to: " + (shouldShow ? "Visible" : "Hidden"), LogLevel::Info, 124, "SetPBVisibility");
     }
     
 }

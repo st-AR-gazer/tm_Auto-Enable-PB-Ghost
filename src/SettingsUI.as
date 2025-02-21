@@ -116,7 +116,7 @@ if (Index::nodIsIndexing) {
         UI::PushItemWidth(500.0f);
         if (Index::f_isIndexing_FilePaths) {
                 Index::RECURSIVE_SEARCH_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::RECURSIVE_SEARCH_BATCH_SIZE, 1, 600);
-            if (Index::RECURSIVE_SEARCH_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+            if (Index::RECURSIVE_SEARCH_BATCH_SIZE > 200) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
         }
         if (Index::p_isIndexing_PrepareFiles && !Index::f_isIndexing_FilePaths) {
                 Index::PREPARE_FILES_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::PREPARE_FILES_BATCH_SIZE, 1, 10);
@@ -124,7 +124,7 @@ if (Index::nodIsIndexing) {
         }
         if (Index::d_isIndexing_AddToDatabase && !Index::p_isIndexing_PrepareFiles && !Index::f_isIndexing_FilePaths) {
                 Index::ADD_FILES_TO_DATABASE_BATCH_SIZE = UI::SliderInt("Indexing Speed", Index::ADD_FILES_TO_DATABASE_BATCH_SIZE, 1, 25);
-            if (Index::ADD_FILES_TO_DATABASE_BATCH_SIZE > 100) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
+            if (Index::ADD_FILES_TO_DATABASE_BATCH_SIZE > 15) UI::Text("\\$ff0Warning: High batch sizes can cause the game to freeze, and potentially stop the indexing process, use with caution.");
         }
         UI::PopItemWidth();
         UI::SameLine();

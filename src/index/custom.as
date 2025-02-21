@@ -271,6 +271,7 @@ namespace Index {
     uint addToDBIndex = 0;
     uint addToDBTotal = 0;
 
+
     void AddFilesToDatabase() {
         addToDBIndex = 0;
         addToDBTotal = 0;
@@ -299,8 +300,15 @@ namespace Index {
         }
         auto records = cast<array<ReplayRecord@>>(replayRecords[replay.MapUid]);
         records.InsertLast(replay);
-        AddReplayToDatabase(replay);
+        startnew(CoroutineFuncUserdata(inter_AddReplayToDatabase_Coro), replay);
         currentFileNumber++;
+    }
+    funcdef void AddReplayToDatabaseCoro(ref@ data);
+
+    void inter_AddReplayToDatabase_Coro(ref@ data) {
+        auto replay = cast<ReplayRecord>(data);
+        if (replay is null) return;
+        AddReplayToDatabase(replay);
     }
 
     float Get_AddFilesToDatabase_Progress() {

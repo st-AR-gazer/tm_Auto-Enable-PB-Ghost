@@ -147,7 +147,7 @@ namespace Index {
 
         for (uint i = 0; i < nodPendingRecords.Length && !nodForceStop; i++) {
             auto replay = nodPendingRecords[i];
-            InsertReplayIntoDatabase(replay);
+            AddFileToDatabaseSafely(replay);
             nodCurrentCount++;
 
             if (i % NOD_ADD_BATCH_SIZE == 0) { yield(); }
@@ -155,17 +155,6 @@ namespace Index {
 
         nodIndexingMessage = "Database insertion complete.";
         nodPhaseAdd = false;
-    }
-
-    void InsertReplayIntoDatabase(ReplayRecord@ replay) {
-        string mapUid = replay.MapUid;
-        if (!replayRecords.Exists(mapUid)) {
-            array<ReplayRecord@> arr;
-            replayRecords[mapUid] = arr;
-        }
-        auto arr = cast<array<ReplayRecord@>>(replayRecords[mapUid]);
-        arr.InsertLast(replay);
-        AddReplayToDatabase(replay);
     }
 
     float GetNodIndexProgressFraction() {
