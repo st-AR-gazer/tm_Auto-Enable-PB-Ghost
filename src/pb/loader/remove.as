@@ -49,8 +49,11 @@ namespace Loader {
             if (indexes.Length > 1) {
                 for (uint j = 1; j < indexes.Length; j++) {
                     auto id = GhostClipsMgr::GetInstanceIdAtIx(mgr, indexes[j]);
+                    if (j >= mgr.Ghosts.Length) return;
                     ps.GhostMgr.Ghost_Remove(MwId(id));
-                    log("Removed ghost: " + mgr.Ghosts[indexes[j]].GhostModel.GhostNickname, LogLevel::Info, 53, "CullPBsWithSameTime");
+                    if (indexes[j] < mgr.Ghosts.Length) {
+                        log("Removed ghost: " + mgr.Ghosts[indexes[j]].GhostModel.GhostNickname, LogLevel::Info, 55, "CullPBsWithSameTime");
+                    }
                 }
             }
         }
@@ -117,6 +120,6 @@ namespace Loader {
 
     void UnloadPBGhost_ServerToggle() {
         if (isLeacerboardPBVisible) { ToggleLeaderboardPB(); }
-        else { log("Attempted to remove leaderboard PB but it was already hidden.", LogLevel::Notice, 120, "UnloadPBGhost_ServerToggle"); }
+        else { log("Attempted to remove leaderboard PB but it was already hidden.", LogLevel::Notice, 123, "UnloadPBGhost_ServerToggle"); }
     }
 }
