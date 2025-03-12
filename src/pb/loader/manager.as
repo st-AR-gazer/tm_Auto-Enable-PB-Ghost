@@ -10,8 +10,10 @@ namespace Loader {
             yield();
         }
 
+        log("Attempting to load PB ghosts.", LogLevel::Debug, 13, "LoadPB");
+
         if (_Game::IsPlayingLocal()) {
-            if (IsFastestPBLoaded()) {  log("Fastest PB already loaded", LogLevel::Info, 14, "LoadPB");  return;  }
+            if (IsFastestPBLoaded()) {  log("Fastest PB already loaded", LogLevel::Info, 16, "LoadPB");  return;  }
             while (GetRecordsWidget_FullWidgetUI() is null) { yield(); }
             
             HidePB();

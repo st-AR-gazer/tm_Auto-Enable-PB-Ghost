@@ -6,7 +6,8 @@
 
 namespace GamemodeAllowness {
     string[] GameModeBlackList = {
-        /*"TM_COTDQualifications_Online", */"TM_KnockoutDaily_Online" // You can apperently load PB ghosts in the COTD Qualifications mode, thank you TNTree :peepoLove:
+        /*"TM_COTDQualifications_Online", */"TM_KnockoutDaily_Online", // You can apperently load PB ghosts in the COTD Qualifications mode, thank you TNTree :peepoLove:
+        "TM_Teams_Matchmaking_Online"
     };
 
     class GamemodeAllownessCheck : AllowCheck::IAllownessCheck {
@@ -29,11 +30,12 @@ namespace GamemodeAllowness {
             auto cnsi = cast<CGameCtnNetServerInfo>(net.ServerInfo);
             if (cnsi is null) return;
             string mode = cnsi.ModeName;
+            // print(mode);
 
             if (mode.Length == 0 || !IsBlacklisted(mode)) {
                 isAllowed = true;
             } else {
-                // log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 36, "OnMapLoad");
+                // log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 38, "OnMapLoad");
                 isAllowed = false;
             }
         }
