@@ -16,17 +16,15 @@ namespace MapTracker {
 
                 uint timeout = 500;
                 uint startTime = Time::Now;
+                AllowCheck::ConditionStatus status = AllowCheck::ConditionStatus::UNCHECKED;
                 AllowCheck::InitializeAllowCheck();
-                bool conditionMet = false;
-
-                while (!conditionMet) {
+                while (status == AllowCheck::ConditionStatus::UNCHECKED) {
                     if (Time::Now - startTime > timeout) { NotifyWarn("Condition check timed out (" + timeout + " ms)."); break; }
                     yield();
-                    conditionMet = AllowCheck::ConditionCheckMet();
+                    status = AllowCheck::ConditionCheckStatus();
                 }
 
-                if (AllowCheck::ConditionCheckMet()) {
-                    // Loader::RemoveLocalPBsUntillNextMapForEasyLoading();
+                if (status == AllowCheck::ConditionStatus::ALLOWED) {
                     Loader::LoadPB();
                     Loader::CullPBsWithSameTime();
                 } else {

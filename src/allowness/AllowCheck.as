@@ -11,6 +11,8 @@ namespace AllowCheck {
     array<IAllownessCheck@> allownessModules;
     bool isInitializing = false;
 
+    enum ConditionStatus { ALLOWED, DISALLOWED, UNCHECKED }
+
     void InitializeAllowCheck() {
         if (isInitializing) { return; }
         isInitializing = true;
@@ -31,23 +33,24 @@ namespace AllowCheck {
         isInitializing = false;
     }
 
-    bool ConditionCheckMet() {
-        bool allMet = true;
+    ConditionStatus ConditionCheckStatus() {
+        bool allInitialized = true;
+        bool allConditionsMet = true;
         for (uint i = 0; i < allownessModules.Length; i++) {
             auto module = allownessModules[i];
-            bool initialized = module.IsInitialized();
-            bool condition = module.IsConditionMet();
-            // log("ConditionCheckMet: Module " + i + " initialized: " + (initialized ? "true" : "false") + ", condition met: " + (condition ? "true" : "false"), LogLevel::Info, 40, "ConditionCheckMet");
-            if (!initialized || !condition) { allMet = false; }
+            if (!module.IsInitialized()) { allInitialized = false; }
+            if (!module.IsConditionMet()) { allConditionsMet = false; }
         }
-        return allMet;
+        if (!allInitialized) return ConditionStatus::UNCHECKED;
+        if (!allConditionsMet) return ConditionStatus::DISALLOWED;
+        return ConditionStatus::ALLOWED;
     }
 
     string DissalowReason() {
         string reason = "";
         for (uint i = 0; i < allownessModules.Length; i++) {
             if (!allownessModules[i].IsConditionMet()) {
-                reason += allownessModules[i].GetDisallowReason() + " ";
+                reason += allownessModules[i].GetDisallowReason() +  " ";
             }
         }
         return reason.Trim().Length > 0 ? reason.Trim() : "Unknown reason.";

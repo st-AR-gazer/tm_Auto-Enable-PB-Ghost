@@ -20,9 +20,17 @@ namespace GamemodeAllowness {
         }
         bool IsInitialized() { return initialized; }
         bool IsConditionMet() { return isAllowed; }
-        string GetDisallowReason() { return isAllowed ? "" : "You cannot load maps in the blacklisted game mode."; }
+        string GetDisallowReason() { return isAllowed ? "" : "BLACKLISTED GAMEMODE: '" + GetCurrentGameMode() + "'"; }
 
         // 
+
+        string GetCurrentGameMode() {
+            auto net = cast<CGameCtnNetwork>(GetApp().Network);
+            if (net is null) return "";
+            auto cnsi = cast<CGameCtnNetServerInfo>(net.ServerInfo);
+            if (cnsi is null) return "";
+            return cnsi.ModeName;
+        }
 
         void OnMapLoad() {
             auto net = cast<CGameCtnNetwork>(GetApp().Network);
@@ -30,12 +38,11 @@ namespace GamemodeAllowness {
             auto cnsi = cast<CGameCtnNetServerInfo>(net.ServerInfo);
             if (cnsi is null) return;
             string mode = cnsi.ModeName;
-            // print(mode);
 
             if (mode.Length == 0 || !IsBlacklisted(mode)) {
                 isAllowed = true;
             } else {
-                // log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 38, "OnMapLoad");
+                log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 45, "OnMapLoad");
                 isAllowed = false;
             }
         }
