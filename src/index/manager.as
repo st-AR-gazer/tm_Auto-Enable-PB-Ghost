@@ -32,9 +32,9 @@ namespace Index {
         log("Database initialized. Path: " + dbPath, LogLevel::Info, 32, "InitializeDatabase");
     }
 
-    void AddReplayToDatabase(const string&in path, const string&in mapRecordId = "") {
+    void AddReplayToDatabase(const string&in path) {
         if (path.StartsWith("http")) {
-            net::ConvertGhostToReplay(path, mapRecordId);
+            startnew(CoroutineFuncUserdataString(net::ConvertGhostToReplay), path);
             return;
         }
         if (path.ToLower().EndsWith(".ghost.gbx")) {
@@ -142,11 +142,12 @@ namespace Index {
     }
 
     void DeleteFileWith1000msDelay(const string &in path) {
-        sleep(200);
+        log("File scheduled for deletion: " + path, LogLevel::Debug, 145, "DeleteFileWith1000msDelay");
+        sleep(1000);
         if (IO::FileExists(path)) {
             IO::Delete(path);
             indexingMessageDebug = "Deleted file: " + path;
-            // log("Deleted file: " + path, LogLevel::Info, 149, "DeleteFileWith1000msDelay");
+            // log("Deleted file: " + path, LogLevel::Info, 150, "DeleteFileWith1000msDelay");
         }
     }
 

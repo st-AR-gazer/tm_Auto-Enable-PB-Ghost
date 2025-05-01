@@ -69,19 +69,16 @@ namespace Loader {
 
         for (uint i = 0; i < g_candidateChains.Length; i++) {
             CControlFrame@ fullWidget = TraverseWidgetChain(interfaceRoot, g_candidateChains[i]);
-            if (fullWidget !is null)
-                return fullWidget;
+            if (fullWidget !is null) return fullWidget;
             
             if (g_candidateChains[i].Length > 3) {
                 int original = g_candidateChains[i][3];
                 for (int delta = -3; delta <= 3; delta++) {
-                    if (delta == 0)
-                        continue;
+                    if (delta == 0) continue;
                     array<int> newChain = g_candidateChains[i];
                     newChain[3] = original + delta;
                     CControlFrame@ testWidget = TraverseWidgetChain(interfaceRoot, newChain);
-                    if (testWidget !is null)
-                        return testWidget;
+                    if (testWidget !is null) return testWidget;
                 }
             }
         }
@@ -91,17 +88,20 @@ namespace Loader {
     CControlFrame@ GetRecordsWidget_RecordsWidgetUI(CControlFrame@ fullWidget) {
         for (uint i = 0; i < g_recordsCandidateChains.Length; i++) {
             CControlFrame@ recordsWidget = TraverseWidgetChain(fullWidget, g_recordsCandidateChains[i]);
-            if (recordsWidget !is null)
-                return recordsWidget;
+            if (recordsWidget !is null) return recordsWidget;
         }
         return null;
     }
 
     CControlFrame@ GetRecordsWidget_PlayerUI(CControlFrame@ fullWidget, string _playerName = "") {
         CControlFrame@ recordsWidget = GetRecordsWidget_RecordsWidgetUI(fullWidget);
+        if (recordsWidget is null) { log("WARNING! recordsWidget retured null!", LogLevel::Critical, 98, "FindValidOverlay"); }
+        if (recordsWidget is null) return CControlFrame();
 
         array<CControlFrame@> recordsWidgets;
+        if (recordsWidgets is null) return CControlFrame();
         for (uint i = 0; i < recordsWidget.Childs.Length; i++) {
+            if (recordsWidget.Childs[i] is null) continue;
             recordsWidgets.InsertLast(cast<CControlFrame>(recordsWidget.Childs[i]));
         }
         string targetName = _playerName;
@@ -120,7 +120,7 @@ namespace Loader {
             if (nameLabel.Label == targetName)
                 return recordsWidgets[i];
         }
-        return null;
+        return CControlFrame();
     }
 
     int GetRecordsWidget_PlayerUIPB(CControlFrame@ fullWidget = GetRecordsWidget_FullWidgetUI(), const string &in playerName = "") {

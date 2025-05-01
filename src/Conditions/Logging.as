@@ -71,7 +71,7 @@ namespace DEV {
             DEV_S_sNotice = UI::Checkbox("Show InfoG logs (INFO-G)", DEV_S_sNotice);
             DEV_S_sWarn = UI::Checkbox("Show Warn logs (WARN)", DEV_S_sWarn);
             DEV_S_sError = UI::Checkbox("Show Error logs (ERROR)", DEV_S_sError);
-            DEV_S_sCritical = UI::Checkbox("Show Test logs (TEST)", DEV_S_sCritical);
+            DEV_S_sCritical = UI::Checkbox("Show Critical logs (CRITICAL)", DEV_S_sCritical);
 
             int newSliderValue = UI::SliderInt("Set log level", DEV_S_sLogLevelSlider, 0, 5);
             
