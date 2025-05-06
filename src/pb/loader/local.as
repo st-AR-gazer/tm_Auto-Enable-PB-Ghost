@@ -99,12 +99,12 @@ namespace Loader {
         for (uint i = 0; i < task.Ghosts.Length; i++) {
             CGameGhostScript@ ghost = task.Ghosts[i];
             ghost.IdName = "Personal best";
-            ghost.Nickname = "$5d8" + "Personal best";
+            ghost.Nickname = /*"$5d8"*/"$fd8" + "Personal best" + "$g$h$o$s$t$001";
             ghost.Trigram = "PB" + S_markPluginLoadedPBs;
             gm.Ghost_Add(ghost);
         }
 
-        SaveLocalPBsUntillNextMapForEasyLoading();
+        // SaveLocalPBsUntillNextMapForEasyLoading();
 
         log("Loaded PB ghost from " + filePath, LogLevel::Info, 109, "LoadLocalGhost");
     }

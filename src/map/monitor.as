@@ -26,7 +26,6 @@ namespace MapTracker {
 
                 if (status == AllowCheck::ConditionStatus::ALLOWED) {
                     Loader::LoadPB();
-                    Loader::CullPBsWithSameTime();
                 } else {
                     NotifyWarn("You cannot load records on this map: " + AllowCheck::DissalowReason());
                 }

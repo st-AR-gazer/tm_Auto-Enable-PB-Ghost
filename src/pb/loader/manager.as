@@ -13,11 +13,11 @@ namespace Loader {
         log("Attempting to load PB ghosts.", LogLevel::Debug, 13, "LoadPB");
 
         if (_Game::IsPlayingLocal()) {
-            if (IsFastestPBLoaded()) {  log("Fastest PB already loaded", LogLevel::Info, 16, "LoadPB");  return;  }
             while (GetRecordsWidget_FullWidgetUI() is null) { yield(); }
+            if (IsFastestPBLoaded()) { log("Fastest PB already loaded", LogLevel::Info, 17, "LoadPB"); CullPBs(); return; }
             
-            HidePB();
             LoadPBFromDB();
+            CullPBs();
             return;
         }
         if (_Game::IsPlayingOnServer()) {
@@ -30,5 +30,16 @@ namespace Loader {
 
     void HidePB() {
         UnloadPBGhost();
+    }
+
+    void CullPBs() {
+        auto mode = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
+        auto dfmA = cast<CGameDataFileManagerScript>(mode !is null ? mode.DataFileMgr : null);
+        uint startTimeGhosts = Time::Now;
+        while (dfmA.Ghosts.Length == 0 && Time::Now - startTimeGhosts < 1500) { yield(); }
+        yield();
+        CullPBsSlowerThanFastest();
+        yield();
+        CullPBsWithTheSameTime();
     }
 }
