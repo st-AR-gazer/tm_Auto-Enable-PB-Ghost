@@ -99,7 +99,7 @@ namespace Loader {
         for (uint i = 0; i < task.Ghosts.Length; i++) {
             CGameGhostScript@ ghost = task.Ghosts[i];
             ghost.IdName = "Personal best";
-            ghost.Nickname = /*"$5d8"*/"$fd8" + "Personal best" + "$g$h$o$s$t$001";
+            ghost.Nickname = "$5d8"/*"$fd8"*/ + "Personal best" + "$g$h$o$s$t$001";
             ghost.Trigram = "PB" + S_markPluginLoadedPBs;
             gm.Ghost_Add(ghost);
         }
@@ -110,15 +110,16 @@ namespace Loader {
     }
 
     void LoadGhost(CGameGhostScript@ ghost) {
-        log("Ghost loding through 'loadGhost' is dissabled due to issues with saving ghosts.", LogLevel::Warn, 113, "LoadGhost");
+        log("Deprecated function.", LogLevel::Warn, 113, "LoadGhost");
+        log("Ghost loding through 'loadGhost' is dissabled due to issues with saving ghosts.", LogLevel::Warn, 114, "LoadGhost");
 
         CGameGhostScript@ newGhost = ghost;
-        if (newGhost is null) { log("Ghost is null.", LogLevel::Error, 116, "LoadGhost"); return; }
+        if (newGhost is null) { log("Ghost is null.", LogLevel::Error, 117, "LoadGhost"); return; }
 
         CGameGhostMgrScript@ gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
-        newGhost.IdName = "Personal best";
-        newGhost.Nickname = "$5d8" + "Personal best";
-        newGhost.Trigram = "PB" + S_markPluginLoadedPBs;
+        ghost.IdName = "Personal best";
+        ghost.Nickname = "$5d8"/*"$fd8"*/ + "Personal best" + "$g$h$o$s$t$001";
+        ghost.Trigram = "PB" + S_markPluginLoadedPBs;
 
         // Ghosts aren't saved properly... (I think)
         // gm.Ghost_Add(newGhost);

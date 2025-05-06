@@ -33,13 +33,16 @@ namespace Loader {
     }
 
     void CullPBs() {
-        auto mode = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        auto dfmA = cast<CGameDataFileManagerScript>(mode !is null ? mode.DataFileMgr : null);
-        uint startTimeGhosts = Time::Now;
-        while (dfmA.Ghosts.Length == 0 && Time::Now - startTimeGhosts < 1500) { yield(); }
-        yield();
-        CullPBsSlowerThanFastest();
-        yield();
-        CullPBsWithTheSameTime();
+        for (int iter = 0; iter < 3; iter++) {
+            auto mode = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
+            auto dfmA = cast<CGameDataFileManagerScript>(mode !is null ? mode.DataFileMgr : null);
+            uint startTimeGhosts = Time::Now;
+            while (dfmA.Ghosts.Length == 0 && Time::Now - startTimeGhosts < 1500) { yield(); }
+            yield();
+            CullPBsSlowerThanFastest();
+            yield();
+            CullPBsWithTheSameTime();
+            for (int f = 0; f < 10; f++) { sleep(1000); }
+        }
     }
 }
