@@ -3,8 +3,6 @@
 
 ## Auto Enable PB Ghost  
 
----
-
 In a recent update, Nadeo broke the automatic loading of PB ghosts when opening a map. This plugin aims to fix this (more mimic the original functionality).  
 
 After installation, the plugin will automatically download your PB ghost on map load from the Nadeo leaderboard, it then loads the record, and saves it locally to avoid repeated downloads, unless you improve your time.  
