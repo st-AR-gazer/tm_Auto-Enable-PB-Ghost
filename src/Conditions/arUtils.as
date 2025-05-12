@@ -335,7 +335,9 @@ namespace _Net {
     }
 
     namespace Hidden {
-        void Coro_GetRequestToEndpoint(UserData@ data) {
+        void Coro_GetRequestToEndpoint(ref@ _ud) {
+            UserData@ data = cast<UserData@>(_ud);
+
             if (data.values.Length < 1) { log("Insufficient data in UserData for GetRequestToEndpoint", LogLevel::Error, 339, "Coro_GetRequestToEndpoint"); return; }
 
             string url = data.values[0];
@@ -357,7 +359,8 @@ namespace _Net {
             }
         }
 
-        void Coro_PostJsonToEndpoint(UserData@ data) {
+        void Coro_PostJsonToEndpoint(ref@ _ud) {
+            UserData@ data = cast<UserData@>(_ud);
             if (data.values.Length < 1) { log("Insufficient data in UserData for PostJsonToEndpoint", LogLevel::Error, 361, "Coro_PostJsonToEndpoint"); return; }
 
             string url = data.values[0];
@@ -381,7 +384,8 @@ namespace _Net {
             }
         }
 
-        void Coro_DownloadFileToDestination(UserData@ data) {
+        void Coro_DownloadFileToDestination(ref@ _ud) {
+            UserData@ data = cast<UserData@>(_ud);
             if (data.values.Length < 4) { log("Insufficient data in UserData for DownloadFileToDestination", LogLevel::Error, 385, "Coro_DownloadFileToDestination"); return; }
 
             string url = data.values[0];
