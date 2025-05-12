@@ -174,8 +174,8 @@ namespace Loader {
         _ForEachPBGhost(PBGhostVisitor(@all.Visit));
 
         if (_Game::IsPlayingOnServer()) {
-            if (Loader::Server::isLeaderboardPBVisible) {
-                Loader::Server::ToggleLeaderboardPB();
+            if (Loader::Leaderboard::isLeaderboardPBVisible) {
+                Loader::Leaderboard::ToggleLeaderboardPB();
             } else {
                 log("Attempted to remove leaderboard PB but it was already hidden.", LogLevel::Notice, 180, "UnloadPBGhost");
             }

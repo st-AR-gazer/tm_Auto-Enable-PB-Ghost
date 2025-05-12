@@ -1,4 +1,4 @@
-namespace Loader::Server {
+namespace Loader::Leaderboard {
     bool isLeaderboardPBVisible = false;
 
     void EnsurePersonalBestLoaded() {

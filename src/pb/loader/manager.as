@@ -16,7 +16,7 @@ namespace Loader {
         log("Starting PB flow (local=" + _Game::IsPlayingLocal() + ", server=" + _Game::IsPlayingOnServer() + ")", LogLevel::Debug, 16, "LoadPBFlow");
 
         if      (_Game::IsPlayingLocal()) Local::EnsurePersonalBestLoaded();
-        else if (_Game::IsPlayingOnServer()) Server::EnsurePersonalBestLoaded();
+        else if (_Game::IsPlayingOnServer()) Leaderboard::EnsurePersonalBestLoaded();
 
         CullPBsSlowerThanFastest();
         CullPBsWithTheSameTime();

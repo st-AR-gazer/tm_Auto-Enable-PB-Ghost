@@ -69,7 +69,7 @@ namespace Loader::Local {
     }
 
     void RequestFromLeaderboard(const string &in mapUid) {
-        Server::DownloadPBFromLeaderboard(mapUid);
+        Leaderboard::DownloadPBFromLeaderboard(mapUid);
     }
 
     ReplayRecord@ FindBestReplay(const array<ReplayRecord@>@ replays) {
