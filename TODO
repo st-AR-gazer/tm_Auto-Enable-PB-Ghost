@@ -1,2 +1,0 @@
-only thing really missing is culling _all_ slow PBs when the plyer improves, 
-will need to be able to detect that tho :xdd: (can def just copy the logic from map monitor, but change some checking vars xdd)

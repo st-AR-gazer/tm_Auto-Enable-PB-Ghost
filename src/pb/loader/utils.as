@@ -1,6 +1,6 @@
 namespace Loader::Utils {
     bool FastestPBIsLoaded() {
-        int widgetTime = GetRecordsWidget_PlayerUIPB();
+        int widgetTime = UINav::WidgetPlayerPB();
         if (widgetTime < 0) return false;
 
         auto mgr = GhostClipsMgr::Get(GetApp());

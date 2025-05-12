@@ -1,148 +1,188 @@
-namespace Loader {
+namespace UINav {
 
-    array<array<int>> g_candidateChains = {
-        {0, 2, 8, 15, 1, 2, 0, 0, 1},
-        {0, 2, 8, 13, 1, 2, 0, 0, 1},
-        {0, 2, 8, 12, 1, 2, 0, 0, 1}
-    };
+    funcdef bool FramePredicate(CControlFrame@);
 
-    array<array<int>> g_recordsCandidateChains = {
-        {7, 0}
-    };
+    class Step {
+        bool wildcard;
+        int  index;
+        Step()        { wildcard = true;  index = -1; }
+        Step(int i)   { wildcard = false; index = i;  }
+    }
 
-    CControlFrame@ TraverseWidgetChain(CControlFrame@ start, const array<int> indices) {
-        CControlFrame@ current = start;
-        for (uint i = 0; i < indices.Length; i++) {
-            int idx = indices[i];
-            if (current is null || int(current.Childs.Length) <= idx || current.Childs[idx] is null)
-                return null;
-            @current = cast<CControlFrame>(current.Childs[idx]);
+    class Path {
+        array<Step@> steps;
+        Path() {}
+        Path(const array<Step@>@ s) { steps = s; }
+        uint Length() const { return steps.Length; }
+
+        Path@ opAdd(const Path &in other) const {
+            Path p;
+            p.steps = steps;
+            for (uint i = 0; i < other.steps.Length; ++i) { p.steps.InsertLast(other.steps[i]); }
+            return p;
         }
-        return current;
     }
 
-    bool HasValidWidgetChain(CHmsZoneOverlay@ overlay, const array<int> indices) {
-        if (overlay is null || overlay.UserData is null) return false;
-        CSceneSector@ userData = cast<CSceneSector>(overlay.UserData);
-        if (userData is null || userData.Scene is null) return false;
-        CScene2d@ scene = cast<CScene2d>(userData.Scene);
-        if (scene.Mobils.Length == 0 || scene.Mobils[0] is null) return false;
-        CControlFrameStyled@ interfaceRootStyled = cast<CControlFrameStyled>(scene.Mobils[0]);
-        if (interfaceRootStyled is null || interfaceRootStyled.Childs.Length == 0 || interfaceRootStyled.Childs[0] is null) return false;
-        CControlFrame@ interfaceRoot = cast<CControlFrame>(interfaceRootStyled);
-        return (TraverseWidgetChain(interfaceRoot, indices) !is null);
-    }
-
-    int FindValidOverlay() {
-        CGameCtnApp@ app = GetApp();
-        if (app is null || app.Viewport is null) return -1;
-        CDx11Viewport@ viewport = cast<CDx11Viewport>(app.Viewport);
-        for (uint i = 0; i < viewport.Overlays.Length; i++) {
-            CHmsZoneOverlay@ overlay = cast<CHmsZoneOverlay>(viewport.Overlays[i]);
-            if (overlay is null || overlay.UserData is null) continue;
-            CSceneSector@ userData = cast<CSceneSector>(overlay.UserData);
-            if (userData is null || userData.Scene is null) continue;
-            CScene2d@ scene = cast<CScene2d>(userData.Scene);
-            if (scene.Mobils.Length == 0 || scene.Mobils[0] is null) continue;
-            CControlFrameStyled@ interfaceRootStyled = cast<CControlFrameStyled>(scene.Mobils[0]);
-            if (interfaceRootStyled is null || interfaceRootStyled.Childs.Length == 0 || interfaceRootStyled.Childs[0] is null) continue;
-            return i;
-        }
-        return -1;
-    }
-
-    CControlFrame@ GetRecordsWidget_FullWidgetUI() {
-        int overlayIndex = FindValidOverlay();
-        if (overlayIndex == -1) return null;
-        CGameCtnApp@ app = GetApp();
-        CDx11Viewport@ viewport = cast<CDx11Viewport>(app.Viewport);
-        CHmsZoneOverlay@ overlay = cast<CHmsZoneOverlay>(viewport.Overlays[overlayIndex]);
-        if (overlay is null || overlay.UserData is null) return null;
-        CSceneSector@ userData = cast<CSceneSector>(overlay.UserData);
-        if (userData is null || userData.Scene is null) return null;
-        CScene2d@ scene = cast<CScene2d>(userData.Scene);
-        if (scene.Mobils.Length == 0 || scene.Mobils[0] is null) return null;
-        CControlFrameStyled@ interfaceRootStyled = cast<CControlFrameStyled>(scene.Mobils[0]);
-        if (interfaceRootStyled is null || interfaceRootStyled.Childs.Length == 0 || interfaceRootStyled.Childs[0] is null) return null;
-        CControlFrame@ interfaceRoot = cast<CControlFrame>(interfaceRootStyled);
-        if (interfaceRoot is null) return null;
-
-        for (uint i = 0; i < g_candidateChains.Length; i++) {
-            CControlFrame@ fullWidget = TraverseWidgetChain(interfaceRoot, g_candidateChains[i]);
-            if (fullWidget !is null) return fullWidget;
-            
-            if (g_candidateChains[i].Length > 3) {
-                int original = g_candidateChains[i][3];
-                for (int delta = -3; delta <= 3; delta++) {
-                    if (delta == 0) continue;
-                    array<int> newChain = g_candidateChains[i];
-                    newChain[3] = original + delta;
-                    CControlFrame@ testWidget = TraverseWidgetChain(interfaceRoot, newChain);
-                    if (testWidget !is null) return testWidget;
-                }
+    Path@ ParsePath(const string &in spec) {
+        Path p;
+        string[] parts = spec.Split("/");
+        for (uint i = 0; i < parts.Length; ++i) {
+            string s = parts[i].Trim();
+            if (s == "*" || s == "") {
+                p.steps.InsertLast(Step());
+            } else {
+                p.steps.InsertLast(Step(Text::ParseInt(s)));
             }
         }
+        return p;
+    }
+
+    CControlFrame@ g_cachedRoot = null;
+    uint           g_cacheStamp = 0;
+
+    CControlFrame@ Root() {
+        if (g_cachedRoot !is null && Time::Now - g_cacheStamp < 10) return g_cachedRoot;
+
+        @g_cachedRoot = null;
+        g_cacheStamp  = Time::Now;
+
+        CGameCtnApp@ app = GetApp();
+        if (app is null || app.Viewport is null) return null;
+
+        CDx11Viewport@ vp = cast<CDx11Viewport>(app.Viewport); // CGameGetApp.cast<CDx11Viewport@> Viewport (CHmsViewport@)
+        for (uint i = 0; i < vp.Overlays.Length; ++i) {
+            CHmsZoneOverlay@ ov = cast<CHmsZoneOverlay>(vp.Overlays[i]); // cast<CHmsZoneOverlay@> Viewport.Overlays[n]
+            if (ov is null || ov.UserData is null) continue;
+
+            CSceneSector@ sector = cast<CSceneSector>(ov.UserData); // cast<CSceneSector@> Overlays[n].UserData (CMwNod@) "Unassigned"
+            if (sector is null || sector.Scene is null) continue;
+
+            CScene2d@ scene = cast<CScene2d>(sector.Scene); // cast<CScene2d@> UserData.Scene (CScene@)
+            if (scene.Mobils.Length == 0 || scene.Mobils[0] is null) continue;
+
+            CControlFrameStyled@ rootStyled = cast<CControlFrameStyled>(scene.Mobils[0]); // cast<CScenerMobil@> Scene.Mobils[0]
+            if (rootStyled is null) continue;
+
+            @g_cachedRoot = cast<CControlFrame>(rootStyled);
+            break;
+        }
+        return g_cachedRoot;
+    }
+
+    CControlFrame@ Traverse(const Path &in p,
+                            CControlFrame@ start = Root(),
+                            bool skipNull = true) {
+        CControlFrame@ cur = start;
+        if (cur is null) return null;
+
+        for (uint s = 0; s < p.steps.Length; ++s) {
+            Step@ st = p.steps[s];
+
+            if (st.wildcard) {
+                bool found = false;
+                for (uint c = 0; c < cur.Childs.Length; ++c) {
+                    if (cur.Childs[c] is null) { if (skipNull) continue; }
+                    @cur = cast<CControlFrame>(cur.Childs[c]);
+                    found = true; break;
+                }
+                if (!found) return null;
+            } else {
+                int idx = st.index;
+                if (idx < 0 || idx >= int(cur.Childs.Length)) return null;
+                if (cur.Childs[idx] is null) return null;
+                @cur = cast<CControlFrame>(cur.Childs[idx]);
+            }
+        }
+        return cur;
+    }
+
+    CControlFrame@ Traverse(const Path &in p,
+                            FramePredicate@ match,
+                            CControlFrame@ start = Root()) {
+        array<CControlFrame@> layer;
+        layer.InsertLast(start);
+
+        for (uint depth = 0; depth < p.steps.Length; ++depth) {
+            Step@ st = p.steps[depth];
+            array<CControlFrame@> next;
+
+            for (uint i = 0; i < layer.Length; ++i) {
+                CControlFrame@ node = layer[i];
+                if (node is null) continue;
+
+                if (st.wildcard) {
+                    for (uint c = 0; c < node.Childs.Length; ++c)
+                        next.InsertLast(cast<CControlFrame>(node.Childs[c]));
+                } else {
+                    int idx = st.index;
+                    if (idx < 0 || idx >= int(node.Childs.Length)) continue;
+                    next.InsertLast(cast<CControlFrame>(node.Childs[idx]));
+                }
+            }
+            layer = next;
+            if (layer.Length == 0) return null;
+        }
+
+        for (uint i = 0; i < layer.Length; ++i) {
+            if (match(layer[i])) return layer[i];
+        }
+
         return null;
     }
 
-    CControlFrame@ GetRecordsWidget_RecordsWidgetUI(CControlFrame@ fullWidget) {
-        for (uint i = 0; i < g_recordsCandidateChains.Length; i++) {
-            CControlFrame@ recordsWidget = TraverseWidgetChain(fullWidget, g_recordsCandidateChains[i]);
-            if (recordsWidget !is null) return recordsWidget;
+    /********************* utils *************************/
+
+    bool HasLabel(CControlFrame@ n, const string &in txt) {
+        if (n is null) return false;
+        for (uint i = 0; i < n.Childs.Length; ++i) {
+            CControlLabel@ lbl = cast<CControlLabel>(n.Childs[i]);
+            if (lbl !is null && lbl.Label == txt) return true;
         }
-        return null;
+        return false;
     }
 
-    CControlFrame@ GetRecordsWidget_PlayerUI(CControlFrame@ fullWidget, string _playerName = "") {
-        CControlFrame@ recordsWidget = GetRecordsWidget_RecordsWidgetUI(fullWidget);
-        if (recordsWidget is null) { log("WARNING! recordsWidget retured null!", LogLevel::Critical, 98, "FindValidOverlay"); }
-        if (recordsWidget is null) return CControlFrame();
-
-        array<CControlFrame@> recordsWidgets;
-        if (recordsWidgets is null) return CControlFrame();
-        for (uint i = 0; i < recordsWidget.Childs.Length; i++) {
-            if (recordsWidget.Childs[i] is null) continue;
-            recordsWidgets.InsertLast(cast<CControlFrame>(recordsWidget.Childs[i]));
-        }
-        string targetName = _playerName;
-        if (targetName == "") targetName = GetApp().LocalPlayerInfo.Name;
-
-        for (uint i = 0; i < recordsWidgets.Length; i++) {
-            if (recordsWidgets[i].Childs.Length < 7) continue;
-            CControlFrame@ chain1 = cast<CControlFrame>(recordsWidgets[i].Childs[6]);
-            if (chain1 is null || chain1.Childs.Length < 1) continue;
-            CControlFrame@ chain2 = cast<CControlFrame>(chain1.Childs[0]);
-            if (chain2 is null || chain2.Childs.Length < 1) continue;
-            CControlFrame@ chain3 = cast<CControlFrame>(chain2.Childs[0]);
-            if (chain3 is null || chain3.Childs.Length < 2) continue;
-            CControlLabel@ nameLabel = cast<CControlLabel>(chain3.Childs[1]);
-            if (nameLabel is null) continue;
-            if (nameLabel.Label == targetName)
-                return recordsWidgets[i];
-        }
-        return CControlFrame();
+    int ToMs(const string &in lbl) {
+        string[] p = lbl.Split(":");  if (p.Length != 2) return -1;
+        string[] s = p[1].Split("."); if (s.Length != 2) return -1;
+        return Text::ParseInt(p[0])*60000 + Text::ParseInt(s[0])*1000 + Text::ParseInt(s[1]);
     }
 
-    int GetRecordsWidget_PlayerUIPB(CControlFrame@ fullWidget = GetRecordsWidget_FullWidgetUI(), const string &in playerName = "") {
-        CControlFrame@ playerWidget = GetRecordsWidget_PlayerUI(fullWidget, playerName);
-        if (playerWidget is null) return -1;
-        if (playerWidget.Childs.Length < 8) return -1;
-        CControlLabel@ timeLabel = cast<CControlLabel>(playerWidget.Childs[7]);
-        if (timeLabel is null) return -1;
-        return TimeStringToMilliseconds(timeLabel.Label);
+    /* ---------------------------------------------- */
+
+    const Path@ RECORDS_WIDGET = ParsePath("0/2/8/*/1/2/0/0/1");
+/*  0/ Childs[0] (CControlBase@) > <CControlFrame@> "InterfaceRoot"
+    2/ Childs[2] (ccontrolFrame@) > <CControlFrame@> "FrameInGameBase"
+    8/ Childs[8] (CControlFrame@) > <CControlFrame@> "FrameManialinkPageContainer"
+    * / Childs[*] (CControlFrame@) > <CControlFrame@> "nth?" // usually #12/#13/#14 or something along these lines // Full WidgetUI Container (cannot be hid externally)
+    1/ Childs[1] (CControlFrame@) > <CControlFrame@> "#1" // Full WidgetUI Container
+    2/ Childs[2] (CControlFrame@) > <CControlFrame@> "#2" // Full WidgetUI Container
+    0/ Childs[0] (CControlFrame@) > <CControlFrame@> "#0" // Full WidgetUI Container
+    0/ Childs[0] (CControlFrame@) > <CControlFrame@> "#0" // Full WidgetUI Container
+    1/ Childs[1] (CControlFrame@) > <CControlFrame@> "#1" // Widget Records Only // #0 is the button to hide the widget
+*/
+    const Path@ RECORDS_ROWS   = RECORDS_WIDGET + ParsePath("7");
+/*  7/ Childs[7] (CControlFrame@) > <CControlFrame@> "RecordsRows" // Actual dropdowns in the widget itself
+*/
+
+    string g_targetLabel;
+    bool   _MatchRow(CControlFrame@ n) { return HasLabel(n, g_targetLabel); }
+
+    CControlFrame@ PlayerRow(const string &in name = "") {
+        g_targetLabel = (name == "") ? GetApp().LocalPlayerInfo.Name : name;
+        return Traverse(RECORDS_ROWS, FramePredicate(@_MatchRow));
     }
 
-    int TimeStringToMilliseconds(const string&in timeString) {
-        string[] parts = timeString.Split(":");
-        if (parts.Length != 2) return -1;
+    int WidgetPlayerPB() {
+        CControlFrame@ row = PlayerRow();
+        if (row is null || row.Childs.Length < 8) return -1;
 
-        string[] subParts = parts[1].Split(".");
-        if (subParts.Length != 2) return -1;
-
-        int minutes = Text::ParseInt(parts[0]);
-        int seconds = Text::ParseInt(subParts[0]);
-        int milliseconds = Text::ParseInt(subParts[1]);
-
-        return (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+        CControlLabel@ lbl = cast<CControlLabel>(row.Childs[7]);
+        if (lbl is null) return -1;
+        return ToMs(lbl.Label);
     }
+
 }
+
+/* ------------------ Legacy ReallyMad ------------------ */
+CControlFrame@ GetRecordsWidget_FullWidgetUI() { return UINav::Traverse(UINav::RECORDS_WIDGET); }
+int GetRecordsWidget_PlayerUIPB() { return UINav::WidgetPlayerPB(); }

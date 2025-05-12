@@ -4,7 +4,7 @@ namespace Loader {
     }
 
     bool RecordsWidgetReady() {
-        return GetRecordsWidget_FullWidgetUI() !is null;
+        return UINav::Traverse(UINav::RECORDS_WIDGET) !is null;
     }
 
     void StartLoadProcess() { startnew(CoroutineFunc(LoadPBFlow)); }
