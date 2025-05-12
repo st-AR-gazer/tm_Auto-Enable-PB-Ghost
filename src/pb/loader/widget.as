@@ -131,4 +131,18 @@ namespace Loader {
         if (timeLabel is null) return -1;
         return TimeStringToMilliseconds(timeLabel.Label);
     }
+
+    int TimeStringToMilliseconds(const string&in timeString) {
+        string[] parts = timeString.Split(":");
+        if (parts.Length != 2) return -1;
+
+        string[] subParts = parts[1].Split(".");
+        if (subParts.Length != 2) return -1;
+
+        int minutes = Text::ParseInt(parts[0]);
+        int seconds = Text::ParseInt(subParts[0]);
+        int milliseconds = Text::ParseInt(subParts[1]);
+
+        return (minutes * 60 * 1000) + (seconds * 1000) + milliseconds;
+    }
 }

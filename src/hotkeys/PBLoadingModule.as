@@ -13,7 +13,7 @@ namespace Hotkey_PBLoadingModule {
 
         bool ExecuteAction(const string &in action, Hotkeys::Hotkey@ hotkey) {
             if (action == "Load PB") {
-                Loader::LoadPB();
+                Loader::StartLoadProcess();
                 return true;
             } else if (action == "Hide PB") {
                 Loader::HidePB();

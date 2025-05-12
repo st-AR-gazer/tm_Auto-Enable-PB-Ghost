@@ -219,7 +219,7 @@ namespace _Game {
         if (app is null) return false;
         CGamePlaygroundScript@ ps = app.PlaygroundScript;
         if (ps is null) return true; // temp messure until I know of a better way to detect this...
-        return true;
+        return false;
     }
 
     bool IsInEditor() {

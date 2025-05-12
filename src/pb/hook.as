@@ -18,7 +18,7 @@ namespace PBVisibilityHook {
                 pbToggleReceived = false;
 
                 bool shouldShow = tostring(event.data[0]).ToLower().Contains("true");
-                Loader::SetPBVisibility(shouldShow);
+                Loader::Server::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
                     t_hook_shouldLoadPBnow = true;
@@ -64,7 +64,7 @@ void Update(float dt) {
     // I hate that this took me so long to think of :xdd:
     if (PBVisibilityHook::t_hook_shouldLoadPBnow) {
         PBVisibilityHook::t_hook_shouldLoadPBnow = false;
-        startnew(Loader::LoadPB);
+        startnew(Loader::StartLoadProcess);
     }
     if (PBVisibilityHook::t_hook_shouldUnloadPBnow) {
         PBVisibilityHook::t_hook_shouldUnloadPBnow = false;

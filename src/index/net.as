@@ -38,7 +38,7 @@ namespace net {
         Index::AddReplayToDatabase(replayPath);
         yield();
 
-        startnew(CoroutineFuncUserdataString(Loader::LoadLocalGhost), replayPath);
+        startnew(CoroutineFuncUserdataString(Loader::Local::LoadLocalGhost), replayPath);
 
         // I'm not sure if I should really be removing the ghost here...
         startnew(CoroutineFuncUserdataString(Index::DeleteFileWith1000msDelay), replayPath_tmp);

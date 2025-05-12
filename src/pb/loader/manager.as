@@ -1,48 +1,28 @@
 namespace Loader {
-    NGameGhostClips_SMgr@ ghostClipMgr;
-
-    void LoadPB() {
-        if (!_Game::IsPlayingMap()) return;
-
-        uint startTime = Time::Now;
-        while (_Game::CurrentPersonalBest(CurrentMapUID) == -1) {
-            if (Time::Now - startTime > 8000) { break; }
-            yield();
-        }
-
-        log("Attempting to load PB ghosts.", LogLevel::Debug, 13, "LoadPB");
-
-        if (_Game::IsPlayingLocal()) {
-            while (GetRecordsWidget_FullWidgetUI() is null) { yield(); }
-            if (IsFastestPBLoaded()) { log("Fastest PB already loaded", LogLevel::Info, 17, "LoadPB"); CullPBs(); return; }
-            
-            LoadPBFromDB();
-            CullPBs();
-            return;
-        }
-        if (_Game::IsPlayingOnServer()) {
-            while (GetRecordsWidget_FullWidgetUI() is null) { yield(); }
-
-            TogglePBFromMLHook();
-            return;
-        }
+    bool PBAvailable() {
+        return _Game::CurrentPersonalBest(CurrentMapUID) != -1;
     }
 
-    void HidePB() {
-        UnloadPBGhost();
+    bool RecordsWidgetReady() {
+        return GetRecordsWidget_FullWidgetUI() !is null;
     }
 
-    void CullPBs() {
-        for (int iter = 0; iter < 3; iter++) {
-            auto mode = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-            auto dfmA = cast<CGameDataFileManagerScript>(mode !is null ? mode.DataFileMgr : null);
-            uint startTimeGhosts = Time::Now;
-            while (dfmA.Ghosts.Length == 0 && Time::Now - startTimeGhosts < 1500) { yield(); }
-            yield();
-            CullPBsSlowerThanFastest();
-            yield();
-            CullPBsWithTheSameTime();
-            for (int f = 0; f < 10; f++) { sleep(1000); }
-        }
+    void StartLoadProcess() { startnew(CoroutineFunc(LoadPBFlow)); }
+
+    void LoadPBFlow() {
+        WaitUntil(Predicate(@Loader::PBAvailable), 8000);
+        WaitUntil(Predicate(@Loader::RecordsWidgetReady), 5000);
+
+        log("Starting PB flow (local=" + _Game::IsPlayingLocal() + ", server=" + _Game::IsPlayingOnServer() + ")", LogLevel::Debug, 16, "LoadPBFlow");
+
+        if      (_Game::IsPlayingLocal()) Local::EnsurePersonalBestLoaded();
+        else if (_Game::IsPlayingOnServer()) Server::EnsurePersonalBestLoaded();
+
+        CullPBsSlowerThanFastest();
+        CullPBsWithTheSameTime();
     }
+
+    void HidePB()            { UnloadPBGhost(); }
+    void CullPBs()           { CullPBsSlowerThanFastest(); CullPBsWithTheSameTime(); }
+    bool IsFastestPBLoaded() { return Utils::FastestPBIsLoaded(); }
 }
