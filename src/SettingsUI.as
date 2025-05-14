@@ -13,7 +13,7 @@ void RT_Settings() {
         UI::PopItemWidth();
         if (S_markPluginLoadedPBs.Length > 1) { S_markPluginLoadedPBs = S_markPluginLoadedPBs.SubStr(0, 1); }
         if (S_markPluginLoadedPBs.Length == 0) { S_markPluginLoadedPBs = "P"; }
-        S_allowLoadingPBsOnServers = UI::Checkbox("Allow loading PB ghosts on servers", S_allowLoadingPBsOnServers);
+        S_useLeaderboardWidgetAsAFallbackWhenAttemptingToLoadPBsOnAServer = UI::Checkbox("Use the leaderboard widget as a fallback when trying to enable PBs on a server", S_useLeaderboardWidgetAsAFallbackWhenAttemptingToLoadPBsOnAServer);
         S_useLeaderBoardAsLastResort = UI::Checkbox("Use leaderboard as a last resort for loading a pb", S_useLeaderBoardAsLastResort);
         S_onlyLoadFastestPB = UI::Checkbox("Only Load One PB Ghost If Multiple Are Found", S_onlyLoadFastestPB);
 
@@ -165,7 +165,7 @@ bool S_H_showCustomIndexingLocationToolTip = true;
 [Setting hidden]
 string S_markPluginLoadedPBs = "very secret id";
 [Setting hidden]
-bool S_allowLoadingPBsOnServers = false;
+bool S_useLeaderboardWidgetAsAFallbackWhenAttemptingToLoadPBsOnAServer = false;
 [Setting hidden]
 bool S_useLeaderBoardAsLastResort = true;
 [Setting hidden]

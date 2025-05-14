@@ -1,4 +1,5 @@
 namespace Loader {
+
     bool IsPB(const string &in name)           { return name.ToLower().Contains("personal best"); }
     bool IsPluginGhost(const string &in nick)  { return nick.Contains("$g$h$o$s$t$"); }
 

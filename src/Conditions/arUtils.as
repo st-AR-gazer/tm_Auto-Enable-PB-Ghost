@@ -266,23 +266,31 @@ namespace _Game {
         return pbTime > 0;
     }
 
-    int CurrentPersonalBest(const string &in mapUid) {
+    int CurrentPersonalBest(const string &in mapUid, bool verbose = false) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
+        if (app is null) { if (verbose) log("app is null", LogLevel::Error, 271, "CurrentPersonalBest"); return 0; }
+
         string _mapUid = mapUid;
         if (_mapUid == "") {
             CGameCtnChallenge@ map = app.RootMap;
-            if (map is null || map.MapInfo.MapUid == "") return 0;
+            if (map is null || map.MapInfo.MapUid == "") { if (verbose) log("no map or UID", LogLevel::Error, 276, "CurrentPersonalBest"); return 0; }
             _mapUid = map.MapInfo.MapUid;
         }
 
+        if (verbose) log("querying PB for UID '" + _mapUid + "'", LogLevel::Info, 280, "CurrentPersonalBest");
+
         CTrackManiaNetwork@ network = cast<CTrackManiaNetwork>(app.Network);
-        if (network.ClientManiaAppPlayground is null) return 0;
+        if (network.ClientManiaAppPlayground is null) { if (verbose) log("no playground available", LogLevel::Error, 283, "CurrentPersonalBest"); return 0; }
 
         CGameUserManagerScript@ userMgr = network.ClientManiaAppPlayground.UserMgr;
         MwId userId = (userMgr.Users.Length > 0) ? userMgr.Users[0].Id : MwId(uint(-1));
+        if (verbose) log("using user ID " + userId.GetName(), LogLevel::Debug, 287, "CurrentPersonalBest");
 
         CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
-        return scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
+        int pbTime = scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
+
+        if (verbose) log("result = " + pbTime, LogLevel::Info, 292, "CurrentPersonalBest");
+        return pbTime;
     }
 
     int GetPersonalBestTime() {
@@ -338,7 +346,7 @@ namespace _Net {
         void Coro_GetRequestToEndpoint(ref@ _ud) {
             UserData@ data = cast<UserData@>(_ud);
 
-            if (data.values.Length < 1) { log("Insufficient data in UserData for GetRequestToEndpoint", LogLevel::Error, 341, "Coro_GetRequestToEndpoint"); return; }
+            if (data.values.Length < 1) { log("Insufficient data in UserData for GetRequestToEndpoint", LogLevel::Error, 349, "Coro_GetRequestToEndpoint"); return; }
 
             string url = data.values[0];
             string key = data.key;
@@ -352,16 +360,16 @@ namespace _Net {
 
             if (request.ResponseCode() == 200) {
                 downloadedData[key] = request.String();
-                log("Successfully stored raw response for key: " + key, LogLevel::Info, 355, "Coro_GetRequestToEndpoint");
+                log("Successfully stored raw response for key: " + key, LogLevel::Info, 363, "Coro_GetRequestToEndpoint");
             } else {
-                log("Failed to fetch data from endpoint: " + url + ". Response code: " + request.ResponseCode(), LogLevel::Error, 357, "Coro_GetRequestToEndpoint");
+                log("Failed to fetch data from endpoint: " + url + ". Response code: " + request.ResponseCode(), LogLevel::Error, 365, "Coro_GetRequestToEndpoint");
                 downloadedData[key] = "{\"error\": \"Failed to fetch data\", \"code\": " + request.ResponseCode() + "}";
             }
         }
 
         void Coro_PostJsonToEndpoint(ref@ _ud) {
             UserData@ data = cast<UserData@>(_ud);
-            if (data.values.Length < 1) { log("Insufficient data in UserData for PostJsonToEndpoint", LogLevel::Error, 364, "Coro_PostJsonToEndpoint"); return; }
+            if (data.values.Length < 1) { log("Insufficient data in UserData for PostJsonToEndpoint", LogLevel::Error, 372, "Coro_PostJsonToEndpoint"); return; }
 
             string url = data.values[0];
             string payload = data.values[1];
@@ -377,16 +385,16 @@ namespace _Net {
 
             if (request.ResponseCode() == 200) {
                 downloadedData[key] = request.String();
-                log("Successfully stored raw response for key: " + key, LogLevel::Info, 380, "Coro_PostJsonToEndpoint");
+                log("Successfully stored raw response for key: " + key, LogLevel::Info, 388, "Coro_PostJsonToEndpoint");
             } else {
-                log("Failed to post JSON to endpoint: " + url + ". Response code: " + request.ResponseCode(), LogLevel::Error, 382, "Coro_PostJsonToEndpoint");
+                log("Failed to post JSON to endpoint: " + url + ". Response code: " + request.ResponseCode(), LogLevel::Error, 390, "Coro_PostJsonToEndpoint");
                 downloadedData[key] = "{\"error\": \"Failed to fetch data\", \"code\": " + request.ResponseCode() + "}";
             }
         }
 
         void Coro_DownloadFileToDestination(ref@ _ud) {
             UserData@ data = cast<UserData@>(_ud);
-            if (data.values.Length < 4) { log("Insufficient data in UserData for DownloadFileToDestination", LogLevel::Error, 389, "Coro_DownloadFileToDestination"); return; }
+            if (data.values.Length < 4) { log("Insufficient data in UserData for DownloadFileToDestination", LogLevel::Error, 397, "Coro_DownloadFileToDestination"); return; }
 
             string url = data.values[0];
             string destination = data.values[1];
@@ -431,14 +439,14 @@ namespace _Net {
                 request.SaveToFile(tmpPath);
                 _IO::File::CopyFileTo(tmpPath, destination);
 
-                if (!IO::FileExists(tmpPath)) { log("Failed to save file to: " + tmpPath, LogLevel::Error, 434, "Coro_DownloadFileToDestination"); return; }
+                if (!IO::FileExists(tmpPath)) { log("Failed to save file to: " + tmpPath, LogLevel::Error, 442, "Coro_DownloadFileToDestination"); return; }
 
-                if (!IO::FileExists(destination)) { log("Failed to move file to: " + destination, LogLevel::Error, 436, "Coro_DownloadFileToDestination"); return; }
+                if (!IO::FileExists(destination)) { log("Failed to move file to: " + destination, LogLevel::Error, 444, "Coro_DownloadFileToDestination"); return; }
 
                 IO::Delete(tmpPath);
 
                 if (!IO::FileExists(tmpPath) && IO::FileExists(destination)) {
-                    log("File downloaded successfully, saving " + fileName + " to: " + destination, LogLevel::Info, 441, "Coro_DownloadFileToDestination");
+                    log("File downloaded successfully, saving " + fileName + " to: " + destination, LogLevel::Info, 449, "Coro_DownloadFileToDestination");
 
                     downloadedData[data.key] = destination;
 
@@ -451,7 +459,7 @@ namespace _Net {
                     }
                 }
             } else {
-                log("Failed to download file. Response code: " + request.ResponseCode(), LogLevel::Error, 454, "Coro_DownloadFileToDestination");
+                log("Failed to download file. Response code: " + request.ResponseCode(), LogLevel::Error, 462, "Coro_DownloadFileToDestination");
             }
         }
     }

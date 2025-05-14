@@ -152,9 +152,9 @@ namespace UINav {
     const Path@ RECORDS_WIDGET = ParsePath("0/2/8/*/1/2/0/0/1");
 /*  0/ Childs[0] (CControlBase@) > <CControlFrame@> "InterfaceRoot"
     2/ Childs[2] (ccontrolFrame@) > <CControlFrame@> "FrameInGameBase"
-    8/ Childs[8] (CControlFrame@) > <CControlFrame@> "FrameManialinkPageContainer"
-    * / Childs[*] (CControlFrame@) > <CControlFrame@> "nth?" // usually #12/#13/#14 or something along these lines // Full WidgetUI Container (cannot be hid externally)
-    1/ Childs[1] (CControlFrame@) > <CControlFrame@> "#1" // Full WidgetUI Container
+    8/ Childs[8] (CControlFrame@) > <CControlFrame@> "FrameManialinkPageContainer" */
+//  */ Childs[*] (CControlFrame@) > <CControlFrame@> "nth?" // usually #12/#13/#14 or something along these lines // Full WidgetUI Container (cannot be hid externally)
+/*  1/ Childs[1] (CControlFrame@) > <CControlFrame@> "#1" // Full WidgetUI Container
     2/ Childs[2] (CControlFrame@) > <CControlFrame@> "#2" // Full WidgetUI Container
     0/ Childs[0] (CControlFrame@) > <CControlFrame@> "#0" // Full WidgetUI Container
     0/ Childs[0] (CControlFrame@) > <CControlFrame@> "#0" // Full WidgetUI Container
@@ -183,6 +183,6 @@ namespace UINav {
 
 }
 
-/* ------------------ Legacy ReallyMad ------------------ */
+/* ------------------ Legacy :ReallyMad: ------------------ */
 CControlFrame@ GetRecordsWidget_FullWidgetUI() { return UINav::Traverse(UINav::RECORDS_WIDGET); }
 int GetRecordsWidget_PlayerUIPB() { return UINav::WidgetPlayerPB(); }

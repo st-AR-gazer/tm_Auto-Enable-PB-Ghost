@@ -18,7 +18,7 @@ namespace PBVisibilityHook {
                 pbToggleReceived = false;
 
                 bool shouldShow = tostring(event.data[0]).ToLower().Contains("true");
-                Loader::Leaderboard::SetPBVisibility(shouldShow);
+                Loader::Server::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
                     t_hook_shouldLoadPBnow = true;
