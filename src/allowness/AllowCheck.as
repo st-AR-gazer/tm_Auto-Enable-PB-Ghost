@@ -21,7 +21,10 @@ namespace AllowCheck {
 
         // 
 
-        allownessModules.InsertLast(GamemodeAllowness::CreateInstance());
+        allownessModules.InsertLast(GamemodePBAllownessCheck::CreateInstance());
+        // allownessModules.InsertLast(GamemodeAllowness::CreateInstance());
+        // allownessModules.InsertLast(MapcommentAllowness::CreateInstance());
+        // allownessModules.InsertLast(MapUidAllowness::CreateInstance());
 
         // 
 

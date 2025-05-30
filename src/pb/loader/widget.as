@@ -4,15 +4,16 @@ namespace UINav {
 
     class Step {
         bool wildcard;
-        int  index;
-        Step()        { wildcard = true;  index = -1; }
-        Step(int i)   { wildcard = false; index = i;  }
+        int index;
+        Step() { wildcard = true;  index = -1; }
+        Step(int i) { wildcard = false; index = i;  }
     }
 
     class Path {
         array<Step@> steps;
         Path() {}
         Path(const array<Step@>@ s) { steps = s; }
+        
         uint Length() const { return steps.Length; }
 
         Path@ opAdd(const Path &in other) const {
@@ -38,7 +39,7 @@ namespace UINav {
     }
 
     CControlFrame@ g_cachedRoot = null;
-    uint           g_cacheStamp = 0;
+    uint g_cacheStamp = 0;
 
     CControlFrame@ Root() {
         if (g_cachedRoot !is null && Time::Now - g_cacheStamp < 10) return g_cachedRoot;
@@ -69,9 +70,7 @@ namespace UINav {
         return g_cachedRoot;
     }
 
-    CControlFrame@ Traverse(const Path &in p,
-                            CControlFrame@ start = Root(),
-                            bool skipNull = true) {
+    CControlFrame@ Traverse(const Path &in p, CControlFrame@ start = Root(), bool skipNull = true) {
         CControlFrame@ cur = start;
         if (cur is null) return null;
 
@@ -96,9 +95,14 @@ namespace UINav {
         return cur;
     }
 
-    CControlFrame@ Traverse(const Path &in p,
-                            FramePredicate@ match,
-                            CControlFrame@ start = Root()) {
+// [   ScriptRuntime] [ERROR] [19:45:33] [tm_Auto-Enable-PB-Ghost]  Script exception: Null pointer access
+// [   ScriptRuntime] [ERROR] [19:45:33] [tm_Auto-Enable-PB-Ghost]    C:/Users/ar/OpenplanetNext/Plugins/tm_Auto-Enable-PB-Ghost/src/pb/loader/widget.as (line 91, column 17)
+// [   ScriptRuntime] [ERROR] [19:45:33] [tm_Auto-Enable-PB-Ghost]      #0  CControlFrame@ UINav::Traverse(const UINav::Path&in p, CControlFrame@ start = Root(), bool skipNull = true) (C:/Users/ar/OpenplanetNext/Plugins/tm_Auto-Enable-PB-Ghost/src/pb/loader/widget.as line 91)
+// [   ScriptRuntime] [ERROR] [19:45:33] [tm_Auto-Enable-PB-Ghost]      #1  bool Loader::RecordsWidgetReady() (C:/Users/ar/OpenplanetNext/Plugins/tm_Auto-Enable-PB-Ghost/src/pb/loader/manager.as line 4)
+// [   ScriptRuntime] [ERROR] [19:45:33] [tm_Auto-Enable-PB-Ghost]      #2  bool Loader::WaitUntil(Loader::Predicate@ pred, uint timeoutMs = 4000) (C:/Users/ar/OpenplanetNext/Plugins/tm_Auto-Enable-PB-Ghost/src/pb/loader/common.as line 43)
+// [   ScriptRuntime] [ERROR] [19:45:33] [tm_Auto-Enable-PB-Ghost]      #3  void Loader::LoadPBFlow() (C:/Users/ar/OpenplanetNext/Plugins/tm_Auto-Enable-PB-Ghost/src/pb/loader/manager.as line 10)
+
+    CControlFrame@ Traverse(const Path &in p, FramePredicate@ match, CControlFrame@ start = Root()) {
         array<CControlFrame@> layer;
         layer.InsertLast(start);
 
@@ -111,8 +115,9 @@ namespace UINav {
                 if (node is null) continue;
 
                 if (st.wildcard) {
-                    for (uint c = 0; c < node.Childs.Length; ++c)
+                    for (uint c = 0; c < node.Childs.Length; ++c) {
                         next.InsertLast(cast<CControlFrame>(node.Childs[c]));
+                    }
                 } else {
                     int idx = st.index;
                     if (idx < 0 || idx >= int(node.Childs.Length)) continue;

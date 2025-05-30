@@ -4,14 +4,14 @@ namespace Loader::Local {
         string mapUid = get_CurrentMapUID();
         int widgetTime = _Game::CurrentPersonalBest(mapUid);
 
-        if (widgetTime < 0) { log("Widget PB unreadable | grabbing from leaderboard", LogLevel::Warn, 6, "EnsurePersonalBestLoaded"); RequestFromLeaderboard(mapUid); return; }
-        auto replays = Index::GetReplaysFromDatabase(mapUid);
-        if (replays.Length == 0) { log("No local replays | requesting PB from leaderboard", LogLevel::Info, 8, "EnsurePersonalBestLoaded"); RequestFromLeaderboard(mapUid); return; }
+        if (widgetTime < 0) { log("Widget PB unreadable | grabbing from leaderboard", LogLevel::Warn, 7, "EnsurePersonalBestLoaded"); RequestFromLeaderboard(mapUid); return; }
+        auto replays = Database::GetReplays(mapUid);
+        if (replays.Length == 0) { log("No local replays | requesting PB from leaderboard", LogLevel::Info, 9, "EnsurePersonalBestLoaded"); RequestFromLeaderboard(mapUid); return; }
         for (uint i = 0; i < replays.Length; ++i) { if (replays[i].BestTime == uint(widgetTime)) { LoadLocalGhost(replays[i].Path); return; } }
 
         ReplayRecord@ best = FindBestReplay(replays);
         if (best is null || best.BestTime > uint(widgetTime)) {
-            log("Local fastest slower than widget | getting leaderboard PB", LogLevel::Info, 13, "EnsurePersonalBestLoaded");
+            log("Local fastest slower than widget | getting leaderboard PB", LogLevel::Info, 14, "EnsurePersonalBestLoaded");
             RequestFromLeaderboard(mapUid);
         } else {
             LoadLocalGhost(best.Path);
@@ -34,12 +34,12 @@ namespace Loader::Local {
 
             if (!WaitUntilFileExists(dst, 2000)) { log("Copy failed | aborting ghost load (" + dst + ")", LogLevel::Error, 35, "_LoadLocalGhostImpl"); return; }
             loadPath = dst;
-            startnew(CoroutineFuncUserdataString(Index::DeleteFileWith1000msDelay), dst);
+            startnew(CoroutineFuncUserdataString(DeleteFileWith1000msDelay), dst);
         }
 
         auto gm = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript).GhostMgr;
-        if (!GhostLoad::InjectReplay(loadPath, gm)) { log("Replay_Load failed for " + loadPath, LogLevel::Error, 48, "_LoadLocalGhostImpl"); return; }
-        log("Loaded PB ghost from " + loadPath, LogLevel::Info, 50, "_LoadLocalGhostImpl");
+        if (!GhostLoad::InjectReplay(loadPath, gm)) { log("Replay_Load failed for " + loadPath, LogLevel::Error, 41, "_LoadLocalGhostImpl"); return; }
+        log("Loaded PB ghost from " + loadPath, LogLevel::Info, 42, "_LoadLocalGhostImpl");
     }
 
     void RequestFromLeaderboard(const string &in mapUid) { Server::DownloadPBFromLeaderboard(mapUid); }
@@ -50,5 +50,15 @@ namespace Loader::Local {
             if (replays[i].BestTime < bestTime) { @best = replays[i]; bestTime = replays[i].BestTime; }
         }
         return best;
+    }
+}
+
+void DeleteFileWith1000msDelay(const string &in path) {
+    yield(1000);
+    if (IO::FileExists(path)) {
+        IO::Delete(path);
+        log("Deleted temporary file: " + path, LogLevel::Debug, 10, "DeleteFileWith1000msDelay");
+    } else {
+        log("Temporary file not found for deletion: " + path, LogLevel::Warn, 11, "DeleteFileWith1000msDelay");
     }
 }
