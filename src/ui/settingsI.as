@@ -31,15 +31,19 @@ void RT_T_Indexing() {
     UI::Text("Indexing Options");
     UI::Separator();
 
+    // File Explorer dings
     if (UI::Button(Colorize(Icons::FolderOpen + " Select location through a File Explorer", { "#fff", "#ddd" }, colorize::GradientMode::linear))) {
         FileExplorer::fe_Start("Select Path for 'additional location for replay indexing' setting", true, "path", vec2(1, 1), IO::FromUserGameFolder(""), "", { "*" }, { "*" });
-    } UI::SameLine(); UI::Text(Icons::QuestionCircle);
+    }
+    // File Explorer dings
+    
+    UI::SameLine(); UI::Text(Icons::QuestionCircle);
     _UI::SimpleTooltip(
-        "This will open the a file explorer instance for which you can select a folder that will be used in the "
-        "'additional location for replay indexing' setting.\n\n"
-        "Please keep in mind that I made the file explorer a while ago, so it's not the most optimized thing ever xdd "
+        "This will open a file-explorer window where you can choose a folder to use in the 'Additional Location for Replay Indexing' setting.\n\n"
+        "Please keep in mind that I built the file explorer a while ago, so it isn't the most optimized thing ever. xD"
     );
     
+    // File Explorer dings
     auto exampleExlorer_Paths = FileExplorer::fe_GetExplorerById("Select Path for 'additional location for replay indexing' setting");
     if (exampleExlorer_Paths !is null && exampleExlorer_Paths.exports.IsSelectionComplete()) {
         auto paths = exampleExlorer_Paths.exports.GetSelectedPaths();
@@ -48,6 +52,7 @@ void RT_T_Indexing() {
             exampleExlorer_Paths.exports.SetSelectionComplete();
         }
     }
+    // File Explorer dings
 
     S_customFolderIndexingLocation = UI::InputText("##", S_customFolderIndexingLocation); UI::SameLine(); UI::Text("Additional location for replay indexing " + Icons::QuestionCircle);
     _UI::SimpleTooltip(

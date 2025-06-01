@@ -57,8 +57,8 @@ void DeleteFileWith1000msDelay(const string &in path) {
     yield(1000);
     if (IO::FileExists(path)) {
         IO::Delete(path);
-        log("Deleted temporary file: " + path, LogLevel::Debug, 10, "DeleteFileWith1000msDelay");
+        log("Deleted temporary file: " + path, LogLevel::Debug, 60, "DeleteFileWith1000msDelay");
     } else {
-        log("Temporary file not found for deletion: " + path, LogLevel::Warn, 11, "DeleteFileWith1000msDelay");
+        log("Temporary file not found for deletion: " + path, LogLevel::Warn, 62, "DeleteFileWith1000msDelay");
     }
 }

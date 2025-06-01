@@ -4,7 +4,7 @@ namespace Database {
     const string DL_FINAL_DIR = IO::FromUserGameFolder("Replays_Offload/zzAutoEnablePBGhost/downloaded/");
 
     void AddRecordFromUrl(const string &in url) {
-        if (url.Length == 0) { log("AddRecordFromUrl: empty URL", LogLevel::Warn); return; }
+        if (url.Length == 0) { log("AddRecordFromUrl: empty URL", LogLevel::Warn, 7, "AddRecordFromUrl"); return; }
         IO::CreateFolder(DL_TMP_DIR);
         IO::CreateFolder(DL_FINAL_DIR);
 
@@ -17,22 +17,22 @@ namespace Database {
 
         CSmArenaRulesMode@ rules = cast<CSmArenaRulesMode>(app.PlaygroundScript);
         if (rules is null) {
-            log("No Rules script (DataFileMgr unavailable) | download skipped", LogLevel::Error);
+            log("No Rules script (DataFileMgr unavailable) | download skipped", LogLevel::Error, 20, "Coro_DownloadAndAdd");
             return; // this will happen in servers as PlaygroundScript is always null there, gotta ask XertroV where the DataFileMgr is in that case so we can use that instead...
         }
 
         CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(rules.DataFileMgr);
-        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error); return; }
+        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 25, "Coro_DownloadAndAdd"); return; }
 
-        log("Downloading ghost: " + url, LogLevel::Info);
+        log("Downloading ghost: " + url, LogLevel::Info, 27, "Coro_DownloadAndAdd");
         CWebServicesTaskResult_GhostScript@ task = dfm.Ghost_Download("", url);
 
         while (task.IsProcessing) yield();
 
         CGameGhostScript@ ghost = cast<CGameGhostScript>(task.Ghost);
-        if (ghost is null) { log("Download failed (ghost is null)", LogLevel::Error); return; }
+        if (ghost is null) { log("Download failed (ghost is null)", LogLevel::Error, 33, "Coro_DownloadAndAdd"); return; }
 
-        if (app.RootMap is null) { log("RootMap unavailable | cannot convert save replay.", LogLevel::Error); return; }
+        if (app.RootMap is null) { log("RootMap unavailable | cannot convert save replay.", LogLevel::Error, 35, "Coro_DownloadAndAdd"); return; }
 
         string tmpName = "dl_" + tostring(Time::Stamp) + ".Replay.Gbx";
         string tmpPath = DL_TMP_DIR + tmpName;
@@ -40,7 +40,7 @@ namespace Database {
         dfm.Replay_Save(tmpPath, app.RootMap, ghost);
         yield();
 
-        if (!IO::FileExists(tmpPath)) { log("Replay_Save did not create a file", LogLevel::Error); return; }
+        if (!IO::FileExists(tmpPath)) { log("Replay_Save did not create a file", LogLevel::Error, 43, "Coro_DownloadAndAdd"); return; }
 
         string buf = _IO::File::ReadFileToEnd(tmpPath);
         string hash = Crypto::MD5(buf);
@@ -48,20 +48,20 @@ namespace Database {
 
         if (IO::FileExists(finalPath)) {
             IO::Delete(tmpPath);
-            log("Duplicate replay ignored (hash exists).", LogLevel::Info);
+            log("Duplicate replay ignored (hash exists).", LogLevel::Info, 51, "Coro_DownloadAndAdd");
             return;
         }
 
         IO::Move(tmpPath, finalPath);
 
         ReplayRecord@ rec = ParseReplay(finalPath);
-        if (rec is null) { IO::Delete(finalPath); log("Downloaded file could not be parsed and was therefore deleted.", LogLevel::Error); return; }
+        if (rec is null) { IO::Delete(finalPath); log("Downloaded file could not be parsed and was therefore deleted.", LogLevel::Error, 58, "Coro_DownloadAndAdd"); return; }
         rec.ReplayHash   = hash;
         rec.FoundThrough = "URL Download";
         rec.Path         = finalPath;
 
         InsertOne(rec);
-        log("Downloaded replay added (" + rec.MapUid + ", " + rec.BestTime + " ms).", LogLevel::Info);
+        log("Downloaded replay added (" + rec.MapUid + ", " + rec.BestTime + " ms).", LogLevel::Info, 64, "Coro_DownloadAndAdd");
     }
 
     ReplayRecord@ ParseReplay(const string &in fullPath) {

@@ -105,6 +105,6 @@ namespace Loader::Server {
 
     void SetPBVisibility(bool show) {
         isLeaderboardPBVisible = show;
-        log("PB visibility set: " + (show ? "Visible" : "Hidden"), LogLevel::Info, 111, "SetPBVisibility");
+        log("PB visibility set: " + (show ? "Visible" : "Hidden"), LogLevel::Info, 108, "SetPBVisibility");
     }
 }

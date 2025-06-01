@@ -113,7 +113,7 @@ namespace Processing {
         }
 
         g_BuildFinished = true;
-        log("Queue built " + g_FileQueue.Length + " file(s).", LogLevel::Debug);
+        log("Queue built " + g_FileQueue.Length + " file(s).", LogLevel::Debug, 116, "QueueBuilderCoroutine");
         startnew(LauncherCoroutine);
     }
 
@@ -132,7 +132,7 @@ namespace Processing {
             yield();
         }
         g_ParseFinished = true;
-        log("Parsing done | ok:" + g_Parsed + ", skipFmt:" + g_SkippedFormat + ", skipSize:" + g_SkippedLarge + ", timeout:" + g_SkippedTimeout + ", login: " + g_SkippedLogin, LogLevel::Debug);
+        log("Parsing done | ok:" + g_Parsed + ", skipFmt:" + g_SkippedFormat + ", skipSize:" + g_SkippedLarge + ", timeout:" + g_SkippedTimeout + ", login: " + g_SkippedLogin, LogLevel::Debug, 135, "LauncherCoroutine");
         startnew(HashCoroutine);
     }
 
@@ -184,7 +184,7 @@ namespace Processing {
         }
         g_HashFinished = true;
         g_Running = false;
-        log("Hashing done | " + g_HashIdx + " hashed, " + g_HashSkipped + " skipped (>5 MB).", LogLevel::Debug);
+        log("Hashing done | " + g_HashIdx + " hashed, " + g_HashSkipped + " skipped (>5 MB).", LogLevel::Debug, 187, "HashCoroutine");
 
         // Now that everything is done, we can add the records to the database :D
         Database::AddRecords(g_Records);

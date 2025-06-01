@@ -52,7 +52,7 @@ namespace Database {
         if (recs is null || recs.Length == 0) return;
         EnsureOpen();
 
-        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warn); return; }
+        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warn, 55, "AddRecords"); return; }
 
         g_Adding   = true;
         g_AddTot   = recs.Length;
@@ -102,7 +102,7 @@ namespace Database {
         g_Db.Execute("COMMIT;");
         g_Adding = false;
         @g_Pending = null;
-        log("Database: inserted " + g_AddDone + " row(s).");
+        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 105, "Coro_Add");
     }
 
     void InsertOne(ReplayRecord@ rec) {
