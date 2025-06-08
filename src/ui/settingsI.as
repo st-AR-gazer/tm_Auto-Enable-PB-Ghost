@@ -80,6 +80,16 @@ void RT_T_Indexing() {
 
     if (UI_ButtonColored("Delete database", 0.50f, 0.00f, 0.12f)) Database::DeleteDatabase();
 
+    if (Index::IsScanning() || Database::IsAddingToDatabase() || Processing::IsProcessing()) {
+        UI::Text("\\$aaaIndexing in progress, please wait...");
+
+        UI::Text("\\$888Note: I've run into issues with indexing if the amount of replays exceed ~200,000 files,\n"+
+                    "so I recommend you keep the number of replays your are trying to index at once to be below that.\n"+
+                    "You can also use the exe I've linked in the README on the github page if you want to index \n"+
+                    "all your replays MUCH much faster (for me it goes from 3~4 hours for 200k to about 6 minutes \n"+
+                    "or if you want to index more than 200k replays at once).\n\n");
+    }
+
     UI::Separator();
 
     if (Index::IsScanning()) {
@@ -101,21 +111,14 @@ void RT_T_Indexing() {
 
         if (!Processing::ParseFinished()) {
             UI::Text("\\$aaaParsing ghosts...");
-            UI::Text("Parsed: " + Processing::Parsed() + " / " + Processing::TotalToParse());
+            uint completed = Processing::Parsed() + Processing::SkippedTotal();
+            UI::Text("Completed: " + completed + " / " + Processing::TotalToParse());
             UI::Text("Skipped format: " + Processing::SkippedFormat());
             UI::Text("Skipped >50 MB: " + Processing::SkippedLarge());
-            UI::Text("Skipped timeout: " + Processing::SkippedTimeout()); // Timeout is set to 0, so this will never happen xpp
-            UI::Text("Skipped login: " + Processing::SkippedLogin());
+            UI::Text("Skipped timeout: " + Processing::SkippedTimeout());
+            UI::Text("Skipped known: " + Processing::SkippedKnown());
             UI::Text("Skipped total: " + Processing::SkippedTotal());
             UI::ProgressBar(Processing::ParseFraction(), BAR_W);
-            return;
-        }
-
-        if (!Processing::HashFinished()) {
-            UI::Text("\\$aaaHashing replays (< 5 MB)...");
-            UI::Text("Hashed: " + Processing::HashDone() + " / " + Processing::HashTotal());
-            UI::Text("Skipped >5 MB: " + Processing::HashSkipped());
-            UI::ProgressBar(Processing::HashFraction(), BAR_W);
             return;
         }
 
@@ -123,7 +126,6 @@ void RT_T_Indexing() {
         UI::ProgressBar(1.0f, BAR_W);
 
     } else if (Index::Root() !is null) {
-        // I should change this so that data is only gotten once, and then stored instead of calling this every frame...
         uint d = Index::Root().TotalDirs();
         uint f = Index::Root().TotalFiles();
 
@@ -133,20 +135,12 @@ void RT_T_Indexing() {
 
         if (Processing::BuildFinished() && Processing::ParseFinished()) {
             UI::Text("Queued: " + Processing::TotalToParse());
-            UI::Text("Parsed: " + Processing::Parsed());
+            UI::Text("Completed: " + uint(Processing::Parsed() + Processing::SkippedTotal()));
             UI::Text("Skipped (Format): " + Processing::SkippedFormat());
             UI::Text("Skipped (Large): " + Processing::SkippedLarge());
             UI::Text("Skipped (Timeout): " + Processing::SkippedTimeout());
-            UI::Text("Skipped (Login): " + Processing::SkippedLogin());
+            UI::Text("Skipped (Known): " + Processing::SkippedKnown());
             UI::Text("Skipped (Total): " + Processing::SkippedTotal());
-            UI::Text("Hashed: " + Processing::HashDone() + " / " + Processing::HashTotal());
-        }
-
-        if (!Processing::HashFinished()) {
-            UI::Text("\\$aaaHashing replays (< 5 MB)...");
-            UI::Text("Hashed: " + Processing::HashDone() + " / " + Processing::HashTotal() + " (Skipped big: " + Processing::HashSkipped() + ")");
-            UI::ProgressBar(Processing::HashFraction(), BAR_W);
-            return;
         }
 
         UI::ProgressBar(Index::Root().Fraction(), BAR_W);

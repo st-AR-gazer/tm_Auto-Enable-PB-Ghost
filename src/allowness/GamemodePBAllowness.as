@@ -59,6 +59,17 @@ main() {
 }
 """;
 
+    const array<string> WHITELISTED_MODES = {
+        "TM_TimeAttack_Online"
+    };
+
+    bool IsWhitelisted(const string &in mode) {
+        for (uint i = 0; i < WHITELISTED_MODES.Length; i++) {
+            if (WHITELISTED_MODES[i] == mode) return true;
+        }
+        return false;
+    }
+
     HookCustomizableModuleEvents@ HookEvents = null;
 
     bool isAllowed = true; // Gotta be global xdd
@@ -95,7 +106,7 @@ main() {
     }
 
     void _Unload() {
-        log("Unloading all hooks and removing injected ML", LogLevel::Debug, 98, "_Unload");
+        log("Unloading all hooks and removing injected ML", LogLevel::Debug, 109, "_Unload");
         MLHook::UnregisterMLHooksAndRemoveInjectedML();
     }
 
@@ -105,15 +116,19 @@ main() {
         }
 
         void OnEvent(MLHook::PendingEvent@ Event) override {
-            print(Event.type + ": " + Event.data[0] + " | " + GetCurrentGameMode());
+            auto val = string(Event.data[0]).ToLower();
+            auto mode = GetCurrentGameMode();
+            bool wh = IsWhitelisted(mode);
 
-            if (string(Event.data[0]).ToLower() == "true" || Event.data[0] == "") {
+            if (val == "true" || val == "" || wh) {
                 isAllowed = true;
-            } else if (string(Event.data[0]).ToLower() == "false" && GetCurrentGameMode() != "") {
+            } else if (val == "false") {
                 isAllowed = false;
             } else {
-                log("Unknown value for PBGhostEnabled: " + Event.data[0], LogLevel::Error, 115, "_Unload");
+                log("Unknown value for PBGhostEnabled: " + Event.data[0], LogLevel::Error, 128, "_Unload");
             }
+
+            trace(Event.type + ": " + Event.data[0] + " | GM=" + mode + (wh ? " (WHITELISTED)" : ""));
         }
     }
 

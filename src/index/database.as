@@ -48,11 +48,31 @@ namespace Database {
         g_Ready = true;
     }
 
+    void EnsureReady() {
+        if (g_Db is null) {
+            const string DB_PATH = IO::FromStorageFolder("pbghost.sqlite");
+            @g_Db = SQLite::Database(DB_PATH);
+            g_Db.Execute(
+                "CREATE TABLE IF NOT EXISTS replays ("
+                "  Id           INTEGER PRIMARY KEY AUTOINCREMENT,"
+                "  MapUid       TEXT NOT NULL,"
+                "  PlayerLogin  TEXT,"
+                "  PlayerNick   TEXT,"
+                "  FileName     TEXT NOT NULL,"
+                "  Path         TEXT NOT NULL,"
+                "  BestTime     INTEGER NOT NULL,"
+                "  ReplayHash   TEXT,"
+                "  NodeType     TEXT,"
+                "  FoundThrough TEXT,"
+                "  AddedAtUnix  INTEGER NOT NULL)");
+        }
+    }
+
     void AddRecords(array<ReplayRecord@>@ recs) {
         if (recs is null || recs.Length == 0) return;
         EnsureOpen();
 
-        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warn, 55, "AddRecords"); return; }
+        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warn, 75, "AddRecords"); return; }
 
         g_Adding   = true;
         g_AddTot   = recs.Length;
@@ -102,7 +122,7 @@ namespace Database {
         g_Db.Execute("COMMIT;");
         g_Adding = false;
         @g_Pending = null;
-        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 105, "Coro_Add");
+        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 125, "Coro_Add");
     }
 
     void InsertOne(ReplayRecord@ rec) {
@@ -129,7 +149,56 @@ namespace Database {
         stmt.Execute();
     }
 
+    bool HashExists(const string &in hash) {
+        EnsureReady();
+        SQLite::Statement@ st = g_Db.Prepare(
+            "SELECT 1 FROM replays WHERE ReplayHash = ?1 LIMIT 1");
+        st.Bind(1, hash);
+        bool present = st.NextRow();
+        st.Reset();
+        return present;
+    }
 
+    bool HashIsMine(const string &in hash) {
+        EnsureReady();
+        SQLite::Statement@ st = g_Db.Prepare(
+            "SELECT PlayerLogin FROM replays WHERE ReplayHash = ?1 LIMIT 1");
+        st.Bind(1, hash);
+        if (!st.NextRow()) { st.Reset(); return false; }
+        bool mine = st.GetColumnString("PlayerLogin") == _localLogin();
+        st.Reset();
+        return mine;
+    }
+
+    void StoreHash(const string &in hash, bool mine) {
+        EnsureReady();
+        if (HashExists(hash)) { return; }
+
+        SQLite::Statement@ st = g_Db.Prepare(
+            "INSERT INTO replays(ReplayHash, PlayerLogin, AddedAtUnix) "
+            "VALUES (?1, ?2, ?3)");
+        st.Bind(1, hash);
+        st.Bind(2, mine ? _localLogin() : "");
+        st.Bind(3, int64(Time::Stamp));
+        st.Execute();
+        st.Reset();
+    }
+
+    int HashStatus(const string &in md5) {
+        EnsureReady();
+        SQLite::Statement@ st = g_Db.Prepare(
+            "SELECT PlayerLogin FROM replays WHERE ReplayHash = ?1 LIMIT 1");
+        st.Bind(1, md5);
+
+        if (!st.NextRow()) { st.Reset(); return -1; }
+
+        bool mine = st.GetColumnString("PlayerLogin") == _localLogin();
+        st.Reset();
+        return mine ? 1 : 0;
+    }
+
+    string _localLogin() { return GetApp().LocalPlayerInfo.Login; }
+    
     // -------------------------------------------------------------------------
 
     /* External API functions */
