@@ -46,7 +46,7 @@ namespace MapcommentAllowness {
                     break;
             }
 
-            // log("MapcommentAllownessCheck: isAllowed set to " + (isAllowed ? "true" : "false"), LogLevel::Info, 49, "OnMapLoad");
+            // log("MapcommentAllownessCheck: isAllowed set to " + (isAllowed ? "true" : "false"), LogLevel::Info, 49, "OnMapLoad", "", "\\$f80");
         }
 
         MapperSetting DetermineMapperSetting(CGameCtnChallenge@ map) {
@@ -68,7 +68,7 @@ namespace MapcommentAllowness {
             string comment = string(map.Comments).ToLower();
             if (comment.Contains("/hidepb")) { setting = MapperSetting::HidePB; }
 
-            // log("MapcommentAllownessCheck: Final MapperSetting determined as " + EnumToString(setting), LogLevel::Info, 71, "OnMapLoad");
+            // log("MapcommentAllownessCheck: Final MapperSetting determined as " + EnumToString(setting), LogLevel::Info, 71, "OnMapLoad", "", "\\$f80");
             return setting;
         }
 

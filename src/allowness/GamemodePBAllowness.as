@@ -87,7 +87,7 @@ main() {
         // 
 
         void OnMapLoad() {
-            if (!_Game::IsPlayingOnServer()) return;
+            if (!_Game::IsPlayingOnServer()) { isAllowed = true; return; }
 
             @HookEvents = HookCustomizableModuleEvents();
             MLHook::RegisterMLHook(HookEvents, "PBGhostEnabled_Update", false);
@@ -106,7 +106,7 @@ main() {
     }
 
     void _Unload() {
-        log("Unloading all hooks and removing injected ML", LogLevel::Debug, 109, "_Unload");
+        log("Unloading all hooks and removing injected ML", LogLevel::Debug, 109, "_Unload", "", "\\$f80");
         MLHook::UnregisterMLHooksAndRemoveInjectedML();
     }
 
@@ -125,7 +125,7 @@ main() {
             } else if (val == "false") {
                 isAllowed = false;
             } else {
-                log("Unknown value for PBGhostEnabled: " + Event.data[0], LogLevel::Error, 128, "_Unload");
+                log("Unknown value for PBGhostEnabled: " + Event.data[0], LogLevel::Error, 128, "_Unload", "", "\\$f80");
             }
 
             trace(Event.type + ": " + Event.data[0] + " | GM=" + mode + (wh ? " (WHITELISTED)" : ""));

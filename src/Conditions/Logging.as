@@ -25,8 +25,10 @@ enum LogLevel {
     Notice,
     Warn,
     Error,
-    Critical
-};
+    Critical,
+
+    Custom
+}
 
 // ********** Settings **********
 
@@ -35,6 +37,8 @@ enum LogLevel {
 bool S_showDefaultLogs = false;
 //////////////////////////////////////////////////////
 
+[Setting category="z~DEV" name="Show Custom logs" hidden]
+bool DEV_S_sCustom = true;
 [Setting category="z~DEV" name="Show Debug logs" hidden]
 bool DEV_S_sDebug = true;
 [Setting category="z~DEV" name="Show Info logs (INFO)" hidden]
@@ -58,7 +62,7 @@ int S_maxFunctionNameLength = 15;
 
 int lastSliderValue = DEV_S_sLogLevelSlider;
 
-namespace DEV {
+namespace logging {
     [SettingsTab name="Logs" icon="DevTo" order="99999999999999999999999999999999999999999999999999"]
     void RT_LOGs() {
         if (UI::BeginChild("Logging Settings", vec2(0, 0), true)) {
@@ -80,12 +84,13 @@ namespace DEV {
                 lastSliderValue       = newSliderValue;
 
                 switch (DEV_S_sLogLevelSlider) {
-                    case 0: DEV_S_sDebug = true; DEV_S_sInfo = true; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
-                    case 1: DEV_S_sDebug = false; DEV_S_sInfo = true; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
-                    case 2: DEV_S_sDebug = false; DEV_S_sInfo = false; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
-                    case 3: DEV_S_sDebug = false; DEV_S_sInfo = false; DEV_S_sNotice = false; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
-                    case 4: DEV_S_sDebug = false; DEV_S_sInfo = false; DEV_S_sNotice = false; DEV_S_sWarn = false; DEV_S_sError = true; DEV_S_sCritical = true; break;
-                    case 5: DEV_S_sDebug = false; DEV_S_sInfo = false; DEV_S_sNotice = false; DEV_S_sWarn = false; DEV_S_sError = false; DEV_S_sCritical = true; break;
+                    case 0: DEV_S_sDebug = true; DEV_S_sCustom = true; DEV_S_sInfo = true; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
+                    case 1: DEV_S_sDebug = false; DEV_S_sCustom = true; DEV_S_sInfo = true; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
+                    case 2: DEV_S_sDebug = false; DEV_S_sCustom = false; DEV_S_sInfo = true; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
+                    case 3: DEV_S_sDebug = false; DEV_S_sCustom = false; DEV_S_sInfo = false; DEV_S_sNotice = true; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
+                    case 4: DEV_S_sDebug = false; DEV_S_sCustom = false; DEV_S_sInfo = false; DEV_S_sNotice = false; DEV_S_sWarn = true; DEV_S_sError = true; DEV_S_sCritical = true; break;
+                    case 5: DEV_S_sDebug = false; DEV_S_sCustom = false; DEV_S_sInfo = false; DEV_S_sNotice = false; DEV_S_sWarn = false; DEV_S_sError = true; DEV_S_sCritical = true; break;
+                    case 6: DEV_S_sDebug = false; DEV_S_sCustom = false; DEV_S_sInfo = false; DEV_S_sNotice = false; DEV_S_sWarn = false; DEV_S_sError = false; DEV_S_sCritical = true; break;
                 }
             }
 
@@ -98,54 +103,76 @@ namespace DEV {
             UI::EndChild();
         }
     }
+
+    string _Tag(const string &in txt, const string &in col) {
+        string t = txt.ToUpper();
+        while (t.Length < 7) t += " ";
+        return col + "[" + t + "] ";
+    }
+
 }
 
 // ********** Logging Function **********
 
-void log(const string &in msg, LogLevel level = LogLevel::Info, int line = -1, string _functionName = "") {
+void log(const string &in msg,
+         LogLevel     level         = LogLevel::Info,
+         int          line          = -1,
+         string       _fnName        = "",
+         string       _customTag     = "",
+         string       _customColor   = "\\$f80")
+{
+    array<bool> enabled = {
+        DEV_S_sDebug, DEV_S_sInfo, DEV_S_sNotice,
+        DEV_S_sWarn,  DEV_S_sError, DEV_S_sCritical
+    };
+    if (level != LogLevel::Custom && !enabled[int(level)]) return;
+    if (level == LogLevel::Custom && !DEV_S_sCustom)       return;
+
     string lineInfo = line >= 0 ? " " + tostring(line) : "";
-    int lineLength = lineInfo.Length - 1;
-    string extraSpaces = "";
-    if (lineLength == 1) {        // 1 character
-        extraSpaces = "   ";      // Three extra spaces
-    } else if (lineLength == 2) { // 2 characters
-        extraSpaces = "  ";       // Two extra spaces
-    } else if (lineLength == 3) { // 3 characters
-        extraSpaces = " ";        // One extra space
-    }
-    lineInfo += extraSpaces;
+    if (lineInfo.Length == 2)      { lineInfo += "  "; }
+    else if (lineInfo.Length == 3) { lineInfo += " "; }
 
-    if (_functionName.Length > S_maxFunctionNameLength) {
-        _functionName = _functionName.SubStr(0, S_maxFunctionNameLength);
+    if (_fnName.Length > S_maxFunctionNameLength) _fnName = _fnName.SubStr(0, S_maxFunctionNameLength);
+    while (_fnName.Length < S_maxFunctionNameLength) { _fnName += " "; }
+    if (!S_showFunctionNameInLogs) _fnName = "";
+
+    array<string> tags = {
+        "\\$0ff[DEBUG]  ", // Debug
+        "\\$0f0[INFO]   ", // Info
+        "\\$0ff[NOTICE] ", // Notice (InfoG)
+        "\\$ff0[WARN]   ", // Warn
+        "\\$f00[ERROR]  ", // Error
+        "\\$f00\\$o\\$i\\$w[CRITICAL] " // Critical
+    };
+    array<string> bodies = {
+        "\\$0cc", // Debug
+        "\\$0c0", // Info
+        "\\$0cc", // Notice (InfoG)
+        "\\$cc0", // Warn
+        "\\$c00", // Error
+        "\\$f00\\$o\\$i\\$w" // Critical
+    };
+
+    string prefix;
+    string body;
+    if (level == LogLevel::Custom) {
+        prefix = logging::_Tag(_customTag, _customColor);
+        body   = _customColor;
+    } else {
+        prefix = tags[int(level)];
+        body   = bodies[int(level)];
     }
-    int functionNameLength = _functionName.Length;
-    if (functionNameLength < S_maxFunctionNameLength) {
-        int numSpacesToAdd = S_maxFunctionNameLength - functionNameLength;
-        for (int i = 0; i < numSpacesToAdd; i++) {
-            _functionName += " ";
+
+    string full = prefix + "\\$z" + body + lineInfo + " : " + _fnName + " : \\$z" + msg;
+
+    if (S_showDefaultLogs && level != LogLevel::Custom) {
+        switch (level) {
+            case LogLevel::Warn:      warn(msg);  break;
+            case LogLevel::Error:
+            case LogLevel::Critical:  error(msg); break;
+            default:                  trace(msg); break;
         }
-    }
-
-    bool doLog = false;
-    switch(level) {
-        case LogLevel::Debug:    doLog = DEV_S_sDebug;       break;
-        case LogLevel::Info:     doLog = DEV_S_sInfo;        break;
-        case LogLevel::Notice:   doLog = DEV_S_sNotice;      break;
-        case LogLevel::Warn:     doLog = DEV_S_sWarn;        break;
-        case LogLevel::Error:    doLog = DEV_S_sError;       break;
-        case LogLevel::Critical: doLog = DEV_S_sCritical;    break;
-    }
-
-    if (!S_showFunctionNameInLogs) {_functionName = "";}
-
-    if (doLog) {
-        switch(level) {
-            case LogLevel::Debug:    if(!S_showDefaultLogs) { print("\\$0ff[DEBUG]  " +               "\\$z" + "\\$0cc" +             lineInfo + " : " + _functionName + " : \\$z" + msg); } else { trace(msg); } break;
-            case LogLevel::Info:     if(!S_showDefaultLogs) { print("\\$0f0[INFO]   " +               "\\$z" + "\\$0c0" +             lineInfo + " : " + _functionName + " : \\$z" + msg); } else { trace(msg); } break;
-            case LogLevel::Notice:   if(!S_showDefaultLogs) { print("\\$0ff[NOTICE] " +               "\\$z" + "\\$0cc" +             lineInfo + " : " + _functionName + " : \\$z" + msg); } else { trace(msg); } break;
-            case LogLevel::Warn:     if(!S_showDefaultLogs) { print("\\$ff0[WARN]   " +               "\\$z" + "\\$cc0" +             lineInfo + " : " + _functionName + " : \\$z" + msg); } else { warn(msg);  } break;
-            case LogLevel::Error:    if(!S_showDefaultLogs) { print("\\$f00[ERROR]  " +               "\\$z" + "\\$c00" +             lineInfo + " : " + _functionName + " : \\$z" + msg); } else { error(msg); } break;
-            case LogLevel::Critical: if(!S_showDefaultLogs) { print("\\$f00\\$o\\$i\\$w[CRITICAL] " + "\\$z" + "\\$f00\\$o\\$i\\$w" + lineInfo + " : " + _functionName + " : \\$z" + msg); } else { error("\\$f00\\$o\\$i\\$w" + msg); } break;
-        }
+    } else {
+        print(full);
     }
 }

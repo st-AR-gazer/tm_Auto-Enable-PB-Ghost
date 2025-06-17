@@ -79,7 +79,7 @@
 //             if (mode.Length == 0 || !IsBlacklisted(mode)) {
 //                 isAllowed = true;
 //             } else {
-//                 log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 82, "OnMapLoad");
+//                 log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 82, "OnMapLoad", "", "\\$f80");
 //                 isAllowed = false;
 //             }
 //         }

@@ -4,7 +4,7 @@ namespace Loader::Server {
 
     void EnsurePersonalBestLoaded() {
         if (TryLoadLocalPB()) return;
-        if (!S_useLeaderboardWidgetAsAFallbackWhenAttemptingToLoadPBsOnAServer) { log("Server PB loading disabled in settings", LogLevel::Info, 7, "EnsurePersonalBestLoaded"); return; }
+        if (!S_useLeaderboardWidgetAsAFallbackWhenAttemptingToLoadPBsOnAServer) { log("Server PB loading disabled in settings", LogLevel::Info, 7, "EnsurePersonalBestLoaded", "", "\\$f80"); return; }
         startnew(CoroutineFunc(ToggleLeaderboardPB));
     }
 
@@ -12,7 +12,7 @@ namespace Loader::Server {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
         if (gm is null) return false;
 
-        log("Loading local PB into server GhostMgr", LogLevel::Info, 15, "TryLoadLocalPB");
+        log("Loading local PB into server GhostMgr", LogLevel::Info, 15, "TryLoadLocalPB", "", "\\$f80");
 
         string mapUid = CurrentMapUID;
         int pb = _Game::CurrentPersonalBest(mapUid);
@@ -34,17 +34,17 @@ namespace Loader::Server {
     }
 
     bool LoadReplayIntoMgr(const string &in path, CGameGhostMgrScript@ gm) {
-        log("Loading PB into server GhostMgr: " + path, LogLevel::Info, 37, "LoadReplayIntoMgr");
+        log("Loading PB into server GhostMgr: " + path, LogLevel::Info, 37, "LoadReplayIntoMgr", "", "\\$f80");
         return GhostLoad::InjectReplay(path, gm);
     }
 
     /* ───────── fallback via ML-hook ───────── */
     void ToggleLeaderboardPB() {
-        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No PB on this map to load from leaderboard", LogLevel::Warn, 43, "ToggleLeaderboardPB"); return; }
+        if (!_Game::HasPersonalBest(CurrentMapUID, true)) { log("No PB on this map to load from leaderboard", LogLevel::Warn, 43, "ToggleLeaderboardPB", "", "\\$f80"); return; }
         const string pid = GetApp().LocalPlayerInfo.WebServicesUserId;
-        if (pid == "") { log("Empty WebServices ID, cannot load LB PB", LogLevel::Error, 45, "ToggleLeaderboardPB"); return; }
+        if (pid == "") { log("Empty WebServices ID, cannot load LB PB", LogLevel::Error, 45, "ToggleLeaderboardPB", "", "\\$f80"); return; }
         MLHook::Queue_SH_SendCustomEvent("TMGame_Record_ToggleGhost", {pid});
-        log("Requested leaderboard PB ghost via ML hook", LogLevel::Info, 47, "ToggleLeaderboardPB");
+        log("Requested leaderboard PB ghost via ML hook", LogLevel::Info, 47, "ToggleLeaderboardPB", "", "\\$f80");
     }
 
     bool HasServerPB() {
@@ -63,7 +63,7 @@ namespace Loader::Server {
 
     void DownloadPBFromLeaderboard(const string &in mapUid) {
         if (!_Game::HasPersonalBest(CurrentMapUID, true)) {
-            log("No PB for player on leaderboard; cannot download", LogLevel::Warn, 66, "DownloadPBFromLeaderboard");
+            log("No PB for player on leaderboard; cannot download", LogLevel::Warn, 66, "DownloadPBFromLeaderboard", "", "\\$f80");
             ToggleLeaderboardPB();
             return;
         }
@@ -81,21 +81,21 @@ namespace Loader::Server {
         while (!req.Finished()) { yield(); }
 
         if (req.ResponseCode() != 200) {
-            log("HTTP error " + req.ResponseCode() + " fetching PB record", LogLevel::Error, 84, "DownloadPBFromLeaderboard");
+            log("HTTP error " + req.ResponseCode() + " fetching PB record", LogLevel::Error, 84, "DownloadPBFromLeaderboard", "", "\\$f80");
             ToggleLeaderboardPB();
             return;
         }
 
         Json::Value json = Json::Parse(req.String());
         if (json.GetType() == Json::Type::Null || json.GetType() != Json::Type::Array || json.Length == 0) {
-            log("Invalid JSON during PB record fetch", LogLevel::Error, 91, "DownloadPBFromLeaderboard");
+            log("Invalid JSON during PB record fetch", LogLevel::Error, 91, "DownloadPBFromLeaderboard", "", "\\$f80");
             ToggleLeaderboardPB();
             return;
         }
 
         string fileUrl = json[0]["url"];
         if (fileUrl == "") {
-            log("No URL in PB record JSON", LogLevel::Error, 98, "DownloadPBFromLeaderboard");
+            log("No URL in PB record JSON", LogLevel::Error, 98, "DownloadPBFromLeaderboard", "", "\\$f80");
             ToggleLeaderboardPB();
             return;
         }
@@ -105,6 +105,6 @@ namespace Loader::Server {
 
     void SetPBVisibility(bool show) {
         isLeaderboardPBVisible = show;
-        log("PB visibility set: " + (show ? "Visible" : "Hidden"), LogLevel::Info, 108, "SetPBVisibility");
+        log("PB visibility set: " + (show ? "Visible" : "Hidden"), LogLevel::Info, 108, "SetPBVisibility", "", "\\$f80");
     }
 }

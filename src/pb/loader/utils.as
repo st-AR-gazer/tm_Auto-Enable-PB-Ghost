@@ -14,7 +14,7 @@ namespace Loader::Utils {
 
         if (fastest == 0xFFFFFFFF) return false;
 
-        log("Widget time: " + widgetTime + " | Fastest PB ghost: " + fastest, LogLevel::Info, 17, "FastestPBIsLoaded");
+        log("Widget time: " + widgetTime + " | Fastest PB ghost: " + fastest, LogLevel::Info, 17, "FastestPBIsLoaded", "", "\\$f80");
 
         return widgetTime == int(fastest);
     }
@@ -40,14 +40,14 @@ namespace Loader::Utils {
         req.Start();
         while (!req.Finished()) { yield(); }
 
-        if (req.ResponseCode() != 200) { log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 43, "MapUidToMapId"); return ""; }
+        if (req.ResponseCode() != 200) { log("Failed to fetch map ID, response code: " + req.ResponseCode(), LogLevel::Error, 43, "MapUidToMapId", "", "\\$f80"); return ""; }
 
         Json::Value data = Json::Parse(req.String());
-        if (data.GetType() == Json::Type::Null) { log("Failed to parse response for map ID.", LogLevel::Error, 46, "MapUidToMapId"); return ""; }
-        if (data.GetType() != Json::Type::Array || data.Length == 0) { log("Invalid map data in response.", LogLevel::Error, 47, "MapUidToMapId"); return ""; }
+        if (data.GetType() == Json::Type::Null) { log("Failed to parse response for map ID.", LogLevel::Error, 46, "MapUidToMapId", "", "\\$f80"); return ""; }
+        if (data.GetType() != Json::Type::Array || data.Length == 0) { log("Invalid map data in response.", LogLevel::Error, 47, "MapUidToMapId", "", "\\$f80"); return ""; }
 
         string mapId = data[0]["mapId"];
-        log("Found map ID: " + mapId, LogLevel::Info, 50, "MapUidToMapId");
+        log("Found map ID: " + mapId, LogLevel::Info, 50, "MapUidToMapId", "", "\\$f80");
         return mapId;
     }
 }

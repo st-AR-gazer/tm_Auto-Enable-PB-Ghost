@@ -135,6 +135,6 @@ namespace Index {
         
         Processing::Start();
 
-        log("Index complete | " + g_Root.TotalDirs()  + " dir(s), " + g_Root.TotalFiles() + " file(s).", LogLevel::Info, 138, "Indexer");
+        log("Index complete | " + g_Root.TotalDirs()  + " dir(s), " + g_Root.TotalFiles() + " file(s).", LogLevel::Info, 138, "Indexer", "", "\\$f80");
     }
 }

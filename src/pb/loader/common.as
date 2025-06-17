@@ -49,4 +49,12 @@ namespace Loader {
         while (!IO::FileExists(path) && Time::Now - start < timeoutMs) yield();
         return IO::FileExists(path);
     }
+
+    bool   gLbRequested = false;
+    string gLbMapUid    = "";
+
+    void  ResetLeaderboardPBFlag()  { gLbRequested = false; gLbMapUid = CurrentMapUID; }
+    bool  AlreadyAskedLB(const string &in uid) { return gLbRequested && gLbMapUid == uid; }
+    void  MarkAskedLB   (const string &in uid) { gLbRequested = true;  gLbMapUid = uid; }
+
 }

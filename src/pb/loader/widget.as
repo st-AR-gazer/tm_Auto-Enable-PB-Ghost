@@ -72,7 +72,7 @@ namespace UINav {
 
     CControlFrame@ Traverse(const Path &in p, CControlFrame@ start = Root(), bool skipNull = true) {
         CControlFrame@ cur = start;
-        if (cur is null) return null;
+        if (cur is null) return CControlFrame();
 
         for (uint s = 0; s < p.steps.Length; ++s) {
             Step@ st = p.steps[s];
@@ -84,11 +84,11 @@ namespace UINav {
                     @cur = cast<CControlFrame>(cur.Childs[c]);
                     found = true; break;
                 }
-                if (!found) return null;
+                if (!found) return CControlFrame();
             } else {
                 int idx = st.index;
-                if (idx < 0 || idx >= int(cur.Childs.Length)) return null;
-                if (cur.Childs[idx] is null) return null;
+                if (idx < 0 || idx >= int(cur.Childs.Length)) return CControlFrame();
+                if (cur.Childs[idx] is null) return CControlFrame();
                 @cur = cast<CControlFrame>(cur.Childs[idx]);
             }
         }

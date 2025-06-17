@@ -100,7 +100,7 @@ namespace Processing {
         }
 
         g_BuildFinished = true;
-        log("Queue built " + g_FileQueue.Length + " file(s).", LogLevel::Debug, 116, "QueueBuilderCoroutine");
+        log("Queue built " + g_FileQueue.Length + " file(s).", LogLevel::Debug, 103, "QueueBuilderCoroutine", "", "\\$f80");
         startnew(LauncherCoroutine);
     }
 
@@ -120,10 +120,7 @@ namespace Processing {
         }
 
         g_ParseFinished = true;
-        log("Parsing done | ok:" + g_Parsed + ", skipFmt:" + g_SkippedFormat +
-            ", skipSize:" + g_SkippedLarge + ", timeout:" + g_SkippedTimeout +
-            ", known:" + g_SkippedKnown,
-            LogLevel::Debug, 135, "LauncherCoroutine");
+        log("Parsing done | ok:" + g_Parsed + ", skipFmt:" + g_SkippedFormat + ", skipSize:" + g_SkippedLarge + ", timeout:" + g_SkippedTimeout + ", known:" + g_SkippedKnown, LogLevel::Debug, 123, "LauncherCoroutine", "", "\\$f80");
 
         Database::AddRecords(g_Records);
         g_Running = false;
