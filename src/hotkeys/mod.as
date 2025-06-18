@@ -35,8 +35,9 @@ namespace Hotkey_PBLoadingModule {
 
     Hotkeys::IHotkeyModule@ CreateInstance() { return Module(); }
     void Initialize() {
+        const string PLUGIN = Meta::ExecutingPlugin().Name;
         @g_pbMod = Hotkey_PBLoadingModule::CreateInstance();
-        Hotkeys::RegisterModule(g_pbMod);
+        Hotkeys::RegisterModule(PLUGIN, g_pbMod);
     }
 }
 
@@ -44,5 +45,5 @@ Hotkeys::IHotkeyModule@ g_pbMod;
 
 auto pbloadingmod_initializer = startnew(Hotkey_PBLoadingModule::Initialize);
 void OnUnload() {
-    if (g_pbMod !is null) Hotkeys::UnregisterModule(g_pbMod);
+    if (g_pbMod !is null) Hotkeys::UnregisterModule(Meta::ExecutingPlugin().Name, g_pbMod);
 }

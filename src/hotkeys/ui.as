@@ -1,332 +1,328 @@
-// [SettingsTab name="Hotkeys" icon="KeyboardO" order="2"]
-// void RenderHotkeySettings() {
-//     Hotkeys::RT_Hotkeys();
-// }
+namespace HotkeyUI {
+    const vec4 COL_ERR  = vec4(1, 0.25, 0.25, 1);
+    const vec4 COL_OK   = vec4(0.25, 1, 0.25, 1);
+    const vec4 COL_DEL  = vec4(1, 0.15, 0.15, 1);
+    const vec4 COL_MOVE = vec4(0.5, 0.5, 0.5, 0.65);
 
-// namespace Hotkeys {
-//     [Setting hidden]
-//     bool S_windowOpen = false;
+    const vec2 OP_BTN (34, 0);
+    const vec2 MOVE_BTN(30, 0);
+    const vec2 TOK_BTN (70, 0);
+    const vec2 DEL_BTN (70, 0);
+    const vec2 CAP_BTN (90, 0);
 
-//     bool capturingKey = false;
-//     string filterText = "";
-//     string previewKey = "";
+    const string CFGPATH     = IO::FromDataFolder(Hotkeys::CFG);
+    const string THIS_PLUGIN = Meta::ExecutingPlugin().Name.ToLower();
 
-//     bool editMode = false; 
-//     int editHotkeyIndex = -1;
-//     string editAction = "";
+    string g_HoverText = "";
 
-//     bool editIsOrdered = false;
-//     string editComboString = "";
-//     int editExtraValue = -1;
+    void Hover(const string &in msg) { if (UI::IsItemHovered()) g_HoverText = msg; }
 
-//     array<string> quickKeys;
-//     string quickAction = "";
-//     int quickExtraValue = 1;
-//     bool showQuickAdd = false; 
-//     bool showAdvancedAdd = false; 
+    class Binding {
+        bool   enabled = true;
+        string plugin;
+        string mod;
+        string act;
+        string expr;
+        string desc;
+    }
 
-//     void ResetQuickAdd() {
-//         quickKeys.RemoveRange(0, quickKeys.Length);
-//         quickAction = "";
-//         quickExtraValue = 1;
-//         filterText = "";
-//         capturingKey = false;
-//         previewKey = "";
-//     }
+    class EditTab {
+        int    idx = -1;
+        bool   simple = true;
+        string expr;
+        string desc;
 
-//     string BuildQuickComboString() {
-//         array<string> finalKeys;
-//         for (uint i = 0; i < quickKeys.Length; i++) {
-//             if (quickKeys[i] != "Select Key") {
-//                 finalKeys.InsertLast(quickKeys[i]);
-//             }
-//         }
-//         return string::Join(finalKeys, "+");
-//     }
+        array<string> tokens;
+        bool          capture = false;
+        dictionary    held;
 
-//     void RT_Hotkeys_Popout() {
-//         if (UI::Begin("Hotkeys", S_windowOpen)) {            
-//             RT_Hotkeys();
-//             UI::End();
-//         }
-//     }
+        string Build() const { return string::Join(tokens, " "); }
 
-//     void RT_Hotkeys() {
-//         UI::Text("Hotkey Configuration");
-//         UI::Separator();
+        string Title() const {
+            if (idx < 0) return "＋ New";
+            auto b = g_Binds[uint(idx)];
+            return b.plugin + "." + b.mod + "." + b.act;
+        }
+    }
 
-//         UI::Text("Existing Hotkeys:");
-//         array<string> actions = hotkeyMappings.GetKeys();
-//         if (actions.Length > 0) {
-//             for (uint i = 0; i < actions.Length; i++) {
-//                 array<Hotkey@>@ hotkeysList = cast<array<Hotkey@>@>(hotkeyMappings[actions[i]]);
-//                 for (uint j = 0; j < hotkeysList.Length; j++) {
-//                     Hotkey@ hotkey = hotkeysList[j];
-//                     string currentKeys = hotkey.get_description();
+    array<Binding@> g_Binds;
+    array<EditTab@> g_Tabs;
+    int   g_ActiveTab = -1;
 
-//                     UI::Text(hotkey.action + ": ");
-//                     UI::SameLine();
-//                     if (UI::Button(currentKeys + "##edit" + actions[i] + "-" + j)) {
-//                         editMode = true;
-//                         editHotkeyIndex = j;
-//                         editAction = actions[i];
-//                         editIsOrdered = hotkey.isOrdered;
-//                         editComboString = hotkey.comboString;
-//                         editExtraValue = hotkey.extraValue;
-//                         filterText = "";
-//                         capturingKey = false;
-//                         showQuickAdd = false;
-//                         showAdvancedAdd = true;                        
-//                     }
-//                     UI::SameLine();
-//                     if (UI::Button("Remove##remove" + actions[i] + "-" + j)) {
-//                         RemoveHotkey(actions[i], j);
-//                     }
-//                 }
-//             }
-//         } else {
-//             UI::TextDisabled("No hotkeys configured yet.");
-//         }
+    bool  g_FilterPlugin = false;
+    float g_ChildH      = 120;
 
-//         UI::Dummy(vec2(0, 10));
-//         UI::Separator();
-//         UI::Dummy(vec2(0, 10));
+    bool Pass(const Binding@ b) { return !g_FilterPlugin || b.plugin.ToLower() == THIS_PLUGIN; }
 
-//         if (!editMode && UI::Button("Add New Hotkey")) {
-//             editMode = true;
-//             editHotkeyIndex = -1;
-//             editAction = "";
-//             editComboString = "";
-//             editIsOrdered = false;
-//             editExtraValue = -1;
-//             filterText = "";
-//             capturingKey = false;
-//             showQuickAdd = true;
-//             showAdvancedAdd = false;
-//             ResetQuickAdd();
-//         }
+    void LoadFile() {
+        g_Binds.Resize(0);
+        if (!IO::FileExists(CFGPATH)) return;
 
-//         if (editMode) {
-//             UI::Dummy(vec2(0, 10));
-//             UI::Text("Hotkey Configuration:");
-//             UI::Separator();
+        IO::File f(CFGPATH, IO::FileMode::Read);
+        for (string ln; !f.EOF(); ) {
+            ln = f.ReadLine().Trim();
+            if (ln == "" || ln.StartsWith("#")) continue;
 
-//             UI::BeginTabBar("HotkeyAddTabs");
-//             if (UI::BeginTabItem("Quick Add", showQuickAdd)) {
-//                 showQuickAdd = true;
-//                 showAdvancedAdd = false;
-//                 RenderQuickAddTab();
-//                 UI::EndTabItem();
-//             }
-//             if (UI::BeginTabItem("Advanced Add", showAdvancedAdd)) {
-//                 showQuickAdd = false;
-//                 showAdvancedAdd = true;
-//                 RenderAdvancedAddTab();
-//                 UI::EndTabItem();
-//             }
-//             UI::EndTabBar();
-//         }
-//     }
+            int eq = ln.IndexOf("=");
+            if (eq < 0) continue;
 
-//     void RenderQuickAddTab() {
-//         UI::Text("Select Action:");
-//         auto allActions = GetAllAvailableActions();
-//         if (UI::BeginCombo("##QuickSelectAction", quickAction.Length == 0 ? "Select Action" : quickAction)) {
-//             for (uint i = 0; i < allActions.Length; i++) {
-//                 if (UI::Selectable(allActions[i], allActions[i] == quickAction)) {
-//                     quickAction = allActions[i];
-//                 }
-//             }
-//             UI::EndCombo();
-//         }
+            string lhs = ln.SubStr(0, eq).Trim();
+            string rhs = ln.SubStr(eq + 1).Trim();
 
-//         if (quickAction == "Load X time") {
-//             UI::Dummy(vec2(0, 10));
-//             UI::Text("Specify Position:");
-//             quickExtraValue = Math::Clamp(UI::InputInt("Position (1 for top)", quickExtraValue), 1, 1000);
-//         }
+            string desc;
+            int sc = rhs.IndexOf(";");
+            if (sc >= 0) { desc = rhs.SubStr(sc + 1).Trim();
+            rhs = rhs.SubStr(0, sc).Trim(); }
 
-//         UI::Dummy(vec2(0, 10));
+            int fi = lhs.IndexOf(".");
+            int la = lhs.LastIndexOf(".");
+            if (fi < 0 || la <= fi) continue;
 
-//         UI::Text("Keys:");
-//         UI::TextWrapped("Add keys for a simple combo. Keys are combined with '+'. No order or alternate keys.");
-//         if (UI::Button("Add Key")) {
-//             quickKeys.InsertLast("Select Key");
-//         }
+            Binding b;
+            b.plugin = lhs.SubStr(0, fi).Trim();
+            b.mod    = lhs.SubStr(fi + 1, la - fi - 1).Trim();
+            b.act    = lhs.SubStr(la + 1).Trim();
+            b.expr   = rhs;
+            b.desc   = desc;
+            g_Binds.InsertLast(b);
+        }
+        f.Close();
+    }
 
-//         UI::Dummy(vec2(0, 5));
-//         for (uint i = 0; i < quickKeys.Length; i++) {
-//             UI::PushID("QuickKey"+i);
+    void SaveFile() {
+        IO::File f(CFGPATH, IO::FileMode::Write);
+        f.WriteLine("# Hotkeys.cfg - generated by Hotkey Manager");
+        for (uint i = 0; i < g_Binds.Length; ++i) {
+            auto b = g_Binds[i];
+            if (!b.enabled) continue;
+            string ln = b.plugin + "." + b.mod + "." + b.act + " = " + b.expr;
+            if (b.desc != "") ln += " ; " + b.desc;
+            f.WriteLine(ln);
+        }
+        f.Close();
+        Hotkeys::_Load();
+    }
 
-//             UI::Text("Filter:");
-//             filterText = UI::InputText("##KeyFilterQuick"+i, filterText);
+    UI::InputBlocking OnKeyPress(bool, VirtualKey key) {
+        if (g_ActiveTab < 0) return UI::InputBlocking::DoNothing;
+        auto tab = g_Tabs[g_ActiveTab];
+        if (!tab.capture) return UI::InputBlocking::DoNothing;
 
-//             array<string> allKeys = GenerateKeyList();
-//             array<string> filteredKeys;
-//             string f = filterText.ToLower();
-//             for (uint m = 0; m < allKeys.Length; m++) {
-//                 if (f.Length == 0 || allKeys[m].ToLower().Contains(f)) {
-//                     filteredKeys.InsertLast(allKeys[m]);
-//                 }
-//             }
+        tab.tokens.InsertLast(tostring(key));
+        tab.capture = false;
+        tab.held.DeleteAll();
+        return UI::InputBlocking::DoNothing;
+    }
 
-//             if (UI::BeginCombo("##QuickKeyCombo"+i, quickKeys[i])) {
-//                 for (uint m = 0; m < filteredKeys.Length; m++) {
-//                     if (UI::Selectable(filteredKeys[m], filteredKeys[m] == quickKeys[i])) {
-//                         quickKeys[i] = filteredKeys[m];
-//                     }
-//                 }
-//                 UI::EndCombo();
-//             }
+    void Op(const string &in op, EditTab@ t, const string &in hint) {
+        if (UI::Button(op, OP_BTN)) t.tokens.InsertLast(op);
+        Hover(hint); UI::SameLine();
+    }
 
-//             UI::SameLine();
-//             if (UI::Button("Capture Key")) {
-//                 capturingKey = true;
-//                 previewKey = "Select Key";
-//             }
+    void MoveRow(EditTab@ t) {
+        for (uint i = 0; i < t.tokens.Length; ++i) {
+            UI::PushID(int(i));
+            UI::PushStyleColor(UI::Col::Button, COL_MOVE);
 
-//             UI::SameLine();
-//             if (UI::Button("Remove Key")) {
-//                 quickKeys.RemoveAt(i);
-//                 UI::PopID();
-//                 i--;
-//                 continue;
-//             }
+            UI::BeginDisabled(i == 0);
+            if (UI::Button(Icons::ChevronLeft, MOVE_BTN)) { string tmp = t.tokens[i-1]; t.tokens[i-1] = t.tokens[i]; t.tokens[i] = tmp; }
+            Hover("Move token left");
+            UI::EndDisabled(); UI::SameLine();
 
-//             UI::PopID();
-//             UI::Dummy(vec2(0, 5));
-//         }
+            UI::BeginDisabled(i + 1 >= t.tokens.Length);
+            if (UI::Button(Icons::ChevronRight, MOVE_BTN)) { string tmp = t.tokens[i+1]; t.tokens[i+1] = t.tokens[i]; t.tokens[i] = tmp; }
+            Hover("Move token right");
+            UI::EndDisabled();
 
-//         UI::Separator();
-//         UI::Dummy(vec2(0, 10));
+            UI::PopStyleColor();
+            if (i + 1 < t.tokens.Length) UI::SameLine();
+            UI::PopID();
+        }
+        if (t.tokens.Length > 0) UI::NewLine();
+    }
 
-//         if (UI::Button(editHotkeyIndex == -1 ? "Add Hotkey" : "Update Hotkey")) {
-//             if (quickAction.Length > 0) {
-//                 string combo = BuildQuickComboString();
-//                 if (combo.Length > 0) {
-//                     bool ordered = false;
-//                     if (editHotkeyIndex == -1) {
-//                         RegisterHotkey(quickAction, combo, ordered, quickAction == "Load X time" ? quickExtraValue : -1);
-//                     } else {
-//                         UpdateHotkey(quickAction, editHotkeyIndex, combo, ordered, quickAction == "Load X time" ? quickExtraValue : -1);
-//                     }
-//                     editMode = false;
-//                     showQuickAdd = false;
-//                 }
-//             }
-//         }
-//         UI::SameLine();
-//         if (UI::Button("Cancel")) {
-//             editMode = false;
-//             editHotkeyIndex = -1;
-//             showQuickAdd = false;
-//         }
-//     }
+    void TokenRow(EditTab@ t) {
+        for (uint i = 0; i < t.tokens.Length; ++i) {
+            UI::PushID(int(i));
+            UI::Button(t.tokens[i], TOK_BTN);
+            Hover("Token: " + t.tokens[i]);
+            if (i + 1 < t.tokens.Length) UI::SameLine();
+            UI::PopID();
+        }
+        if (t.tokens.Length > 0) UI::NewLine();
+    }
 
-//     void RenderAdvancedAddTab() {
-//         UI::Text("Action:");
-//         auto allActions = GetAllAvailableActions();
-//         if (UI::BeginCombo("##SelectAction", editAction.Length == 0 ? "Select Action" : editAction)) {
-//             for (uint i = 0; i < allActions.Length; i++) {
-//                 if (UI::Selectable(allActions[i], allActions[i] == editAction)) {
-//                     editAction = allActions[i];
-//                 }
-//             }
-//             UI::EndCombo();
-//         }
+    void DelRow(EditTab@ t) {
+        for (uint i = 0; i < t.tokens.Length; ++i) {
+            UI::PushID(int(i));
+            UI::PushStyleColor(UI::Col::Button, COL_DEL);
+            if (UI::Button("×", DEL_BTN)) { t.tokens.RemoveAt(i); UI::PopStyleColor(); UI::PopID(); i--; continue; }
+            Hover("Remove token");
+            UI::PopStyleColor();
+            if (i + 1 < t.tokens.Length) UI::SameLine();
+            UI::PopID();
+        }
+        if (t.tokens.Length > 0) UI::NewLine();
+    }
 
-//         if (editAction == "Load X time") {
-//             UI::Dummy(vec2(0, 10));
-//             UI::Text("Specify Position:");
-//             editExtraValue = Math::Clamp(UI::InputInt("Position (1 for top)", editExtraValue <= 0 ? 1 : editExtraValue), 1, 1000);
-//         }
+    void DrawTab(EditTab@ t) {
+        if (UI::Selectable("∙ Simple",  t.simple)) t.simple = !t.simple;
+        UI::SameLine();
+        if (UI::Selectable("Advanced", !t.simple)) t.simple = !t.simple;
+        UI::Separator();
 
-//         UI::Dummy(vec2(0, 10));
+        g_HoverText =
+            "Hotkey DSL:\n"
+            "+  AND (all held)\n"
+            "|  OR  (any)\n"
+            "&> Sequence\n"
+            "( ) Group\n"
+            "Click Capture to record one key.";
 
-//         editIsOrdered = UI::Checkbox("Ordered Combo", editIsOrdered);
+        if (t.simple) {
+            if (UI::BeginTable("builder"+t.idx, 2, UI::TableFlags::BordersInnerV)) {
+                UI::TableSetupColumn("edit", UI::TableColumnFlags::WidthFixed, 380);
+                UI::TableNextRow();
+                UI::TableSetColumnIndex(0);
 
-//         UI::Text("Enter Combo String (use '|' for alternate keys):");
-//         editComboString = UI::InputText("##ComboString", editComboString);
+                UI::PushStyleVar(UI::StyleVar::ItemSpacing, vec2(UI::GetStyleVarVec2(UI::StyleVar::ItemSpacing).x, 2));
 
-//         UI::TextWrapped("Instructions:\n- Use '>' to separate ordered steps.\n- Use '+' for multiple keys at once.\n- Use '|' for alternate keys.\nExamples:\nNo order: 'K|T+Numpad3'\nOrder: 'X > Y > Z+W'");
+                if (!t.capture) {
+                    if (UI::Button(Icons::KeyboardO + " Capture", CAP_BTN)) { t.capture = true; t.held.DeleteAll(); }
+                    Hover("Capture a single key");
+                } else { UI::Text("\\$ff0<press>"); }
+                UI::SameLine();
 
-//         UI::Separator();
-//         UI::Text("Key Helper:");
-//         UI::TextWrapped("Use this helper to find and insert keys into your combo. After selecting or capturing a key, press 'Add Key to Combo' to append it at the end.");
+                Op("+",  t, "AND operator");
+                Op("|",  t, "OR operator");
+                Op("&>", t, "Sequence operator");
+                Op("(",  t, "Open parenthesis");
+                if (UI::Button(")", OP_BTN)) t.tokens.InsertLast(")");
+                Hover("Close parenthesis");
+                UI::NewLine();
 
-//         UI::Text("Filter:");
-//         filterText = UI::InputText("##AdvancedKeyFilter", filterText);
+                MoveRow(t);
+                TokenRow(t);
+                DelRow(t);
 
-//         array<string> allKeys = GenerateKeyList();
-//         array<string> filteredKeys;
-//         string f = filterText.ToLower();
-//         for (uint m = 0; m < allKeys.Length; m++) {
-//             if (f.Length == 0 || allKeys[m].ToLower().Contains(f)) {
-//                 filteredKeys.InsertLast(allKeys[m]);
-//             }
-//         }
+                UI::PopStyleVar();
 
-//         if (UI::BeginCombo("##AdvancedKeyCombo", previewKey.Length == 0 ? "Select Key" : previewKey)) {
-//             for (uint m = 0; m < filteredKeys.Length; m++) {
-//                 if (UI::Selectable(filteredKeys[m], filteredKeys[m] == previewKey)) {
-//                     previewKey = filteredKeys[m];
-//                 }
-//             }
-//             UI::EndCombo();
-//         }
-//         UI::SameLine();
-//         if (UI::Button("Capture Key")) {
-//             capturingKey = true;
-//             previewKey = "Select Key";
-//         }
+                t.expr = t.Build();
 
-//         if (previewKey.Length > 0 && previewKey != "Select Key") {
-//             if (UI::Button("Add Key to Combo")) {
-//                 if (editComboString.Length > 0 && !editComboString.EndsWith("+") && !editComboString.EndsWith(">") && !editComboString.EndsWith("|")) {
-//                     editComboString += "+";
-//                 }
-//                 editComboString += previewKey;
-//             }
-//         }
+                UI::TableSetColumnIndex(1);
+                UI::TextWrapped(g_HoverText);
 
-//         UI::Dummy(vec2(0, 10));
+                UI::EndTable();
+            }
+        } else {
+            UI::BeginTable("adv" + t.idx, 2, UI::TableFlags::BordersInnerV);
+            UI::TableSetupColumn("edit", UI::TableColumnFlags::WidthFixed, 380);
+            UI::TableNextRow();
+            UI::TableSetColumnIndex(0);
 
-//         if (UI::Button(editHotkeyIndex == -1 ? "Add Hotkey" : "Update Hotkey")) {
-//             if (editAction.Length > 0 && editComboString.Length > 0) {
-//                 if (editHotkeyIndex == -1) {
-//                     RegisterHotkey(editAction, editComboString, editIsOrdered, editAction == "Load X time" ? editExtraValue : -1);
-//                 } else {
-//                     UpdateHotkey(editAction, editHotkeyIndex, editComboString, editIsOrdered, editAction == "Load X time" ? editExtraValue : -1);
-//                 }
-//                 editMode = false;
-//                 showAdvancedAdd = false;
-//             }
-//         }
-//         UI::SameLine();
-//         if (UI::Button("Cancel")) {
-//             editMode = false;
-//             editHotkeyIndex = -1;
-//             showAdvancedAdd = false;
-//         }
-//     }
+            UI::Text("Expression:");
+            UI::SetNextItemWidth(340);
+            t.expr = UI::InputText("##expr" + t.idx, t.expr);
+            Hover("Edit full expression");
 
-//     UI::InputBlocking HandleCapturingKeyPress(bool down, VirtualKey key) {
-//         if (capturingKey && down) {
-//             string captured = tostring(key);
-//             if (showQuickAdd) {
-//                 for (uint i = 0; i < quickKeys.Length; i++) {
-//                     if (quickKeys[i] == "Select Key") {
-//                         quickKeys[i] = captured;
-//                         break;
-//                     }
-//                 }
-//             } else if (showAdvancedAdd) {
-//                 previewKey = captured;
-//             }
+            UI::TableSetColumnIndex(1);
+            UI::TextWrapped(
+                "Write full DSL, e.g.\n"
+                "  F5 | Ctrl + A\n"
+                "  Ctrl + S &> F\n"
+                "Operators: +  |  &>\n"
+                "Use parentheses to group."
+            );
+            UI::EndTable();
+        }
 
-//             capturingKey = false;
-//             return UI::InputBlocking::Block;
-//         }
-//         return UI::InputBlocking::DoNothing;
-//     }
-// }
+        Hotkeys::Parser p(t.expr);
+        bool ok = p.Parse() !is null;
+        UI::PushStyleColor(UI::Col::Text, ok ? COL_OK : COL_ERR);
+        UI::Text(ok ? "✓ valid" : "× parse error");
+        UI::PopStyleColor();
+        UI::SameLine();
+        if (UI::Button("Apply##"+t.idx) && ok) {
+            if (t.idx < 0) {
+                Binding b;
+                b.plugin = Meta::ExecutingPlugin().Name;
+                b.mod = "Module"; b.act = "Action";
+                b.expr = t.expr;
+                g_Binds.InsertLast(b);
+                t.idx = int(g_Binds.Length) - 1;
+            } else {
+                auto b = g_Binds[uint(t.idx)];
+                b.expr = t.expr;
+            }
+        }
+    }
+
+    [SettingsTab name="Hotkeys" icon="KeyboardO" order="2"]
+    void Draw() {
+        if (g_Binds.Length == 0) LoadFile();
+        float spaceY = UI::GetStyleVarVec2(UI::StyleVar::ItemSpacing).y;
+
+        if (UI::BeginChild("HKMgr", vec2(0, 0), true)) {
+            if (UI::Button(Icons::Plus + "  Add")) { auto@ t = EditTab(); g_Tabs.InsertLast(t); g_ActiveTab = g_Tabs.Length - 1; }
+            UI::SameLine();
+            if (UI::Button(Icons::FloppyO + "  Save & Reload")) SaveFile();
+            UI::SameLine();
+            g_FilterPlugin = UI::Checkbox("Show only this plugin", g_FilterPlugin);
+            UI::Separator();
+
+            if (UI::BeginTable("tbl", 6, UI::TableFlags::Resizable)) {
+                UI::TableSetupColumn("✓", UI::TableColumnFlags::WidthFixed, 35);
+                UI::TableSetupColumn("Plugin");
+                UI::TableSetupColumn("Module");
+                UI::TableSetupColumn("Action");
+                UI::TableSetupColumn("Expression");
+                UI::TableSetupColumn("…", UI::TableColumnFlags::WidthFixed, 60);
+                UI::TableHeadersRow();
+
+                for (uint i = 0; i < g_Binds.Length; ++i) {
+                    auto b = g_Binds[i]; if (!Pass(b)) continue;
+                    UI::TableNextRow();
+                    UI::TableSetColumnIndex(0); UI::Checkbox("##en"+i, b.enabled);
+                    UI::TableSetColumnIndex(1); UI::Text(b.plugin);
+                    UI::TableSetColumnIndex(2); UI::Text(b.mod);
+                    UI::TableSetColumnIndex(3); UI::Text(b.act);
+                    UI::TableSetColumnIndex(4); UI::Text(b.expr);
+                    UI::TableSetColumnIndex(5);
+                    if (UI::Button(Icons::Pencil + "##e" + i)) {
+                        auto t = EditTab();
+                        t.idx = int(i);
+                        t.expr = b.expr;
+                        t.simple = false;
+                        g_Tabs.InsertLast(t);
+                        g_ActiveTab = g_Tabs.Length - 1;
+                    }
+                    UI::SameLine();
+                    if (UI::Button(Icons::Trash+"##d"+i)) g_Binds.RemoveAt(i--);
+                }
+                UI::EndTable();
+            }
+
+            UI::Dummy(vec2(0, UI::GetContentRegionAvail().y - spaceY - g_ChildH));
+            vec2 start = UI::GetCursorPos();
+
+            UI::BeginTabBar("editTabs");
+            for (uint i = 0; i < g_Tabs.Length; ++i) {
+                auto tab = g_Tabs[i]; bool open = true;
+                if (UI::BeginTabItem(tab.Title(), open, i == uint(g_ActiveTab) ? UI::TabItemFlags::SetSelected : UI::TabItemFlags::None)) {
+                    g_ActiveTab = int(i);
+                    DrawTab(tab);
+                    UI::EndTabItem();
+                }
+                if (!open) {
+                    g_Tabs.RemoveAt(i);
+                    if (g_ActiveTab >= int(i)) g_ActiveTab--;
+                    i--;
+                }
+            }
+            UI::EndTabBar();
+
+            g_ChildH = UI::GetCursorPos().y - start.y;
+            UI::EndChild();
+        }
+    }
+}

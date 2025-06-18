@@ -7,11 +7,13 @@ namespace Hotkeys {
         bool          ExecuteAction(const string &in act, Hotkey@ hk);
     }
 
-    void RegisterModule(IHotkeyModule@ m) {
-        modules[m.GetId().ToLower()] = @m;
+    void RegisterModule(const string &in pluginId, IHotkeyModule@ m) {
+        string key = (pluginId + "." + m.GetId()).ToLower();
+        modules[key] = @m;
     }
-    void UnregisterModule(IHotkeyModule@ m) {
-        modules.Delete(m.GetId().ToLower());
+    void UnregisterModule(const string &in pluginId, IHotkeyModule@ m) {
+        string key = (pluginId + "." + m.GetId()).ToLower();
+        modules.Delete(key);
     }
 
     UI::InputBlocking OnKeyPress(bool down, VirtualKey key) {
@@ -43,6 +45,7 @@ namespace Hotkeys {
     void InitHotkeys() { while (true) { Poll(); yield(); } }
 
     class Hotkey {
+        string pluginId;
         string modId;
         string actId;
         string desc;
@@ -224,7 +227,7 @@ namespace Hotkeys {
         }
 
         void Expect(const string &in tok) {
-            if (!Match(tok)) log("expected '" + tok + "' at " + ("" + p), LogLevel::Warn, 227, "Expect", "[Hotkeys-Parse]", "\\$f80");
+            if (!Match(tok)) log("expected '" + tok + "' at " + ("" + p), LogLevel::Warn, 230, "Expect", "Hotkeys-Parse", "\\$f80");
         }
 
         // 
@@ -303,7 +306,7 @@ namespace Hotkeys {
                 ++p;
             }
 
-            if (id.Length == 0) { log("key expected at " + ("" + p), LogLevel::Warn, 306, "Expect", "[Hotkeys-Parse]", "\\$f80"); return null; }
+            if (id.Length == 0) { log("key expected at " + ("" + p), LogLevel::Warn, 309, "Expect", "Hotkeys-Parse", "\\$f80"); return null; }
 
             int vk = _VK(id); if (vk >= 0) return KeyNode(vk);
             int gp = _GP(id); if (gp >= 0) return GPNode(gp);
@@ -311,7 +314,7 @@ namespace Hotkeys {
             int lit;
             if (Text::TryParseInt(id, lit, 0)) return KeyNode(lit);
 
-            log("unknown '" + id + "'", LogLevel::Warn, 314, "Expect", "[Hotkeys-Parse]", "\\$f80");
+            log("unknown '" + id + "'", LogLevel::Warn, 317, "Expect", "Hotkeys-Parse", "\\$f80");
             return null;
         }
 
@@ -382,41 +385,46 @@ namespace Hotkeys {
     void _Load() {
         hotkeys.Resize(0);
         string path = IO::FromDataFolder(CFG);
-        if (!IO::FileExists(path)) { log("no " + CFG, LogLevel::Custom, 385, "_Load", "[Hotkeys-Info] ", "\\$f80"); return; }
+        if (!IO::FileExists(path)) { log("no " + CFG, LogLevel::Custom, 388, "_Load", "Hotkeys-Info", "\\$f80"); return; }
 
         IO::File f(path, IO::FileMode::Read);
-        string raw = f.ReadToEnd();
+        array<string>@ lines = f.ReadToEnd().Split("\n");
         f.Close();
 
-        array<string>@ lines = raw.Split("\n");
         for (uint i = 0; i < lines.Length; ++i) {
             string ln = lines[i].Trim();
             if (ln.Length == 0 || ln.StartsWith("#")) continue;
 
             int eq = ln.IndexOf("=");
-            if (eq < 0) { log("no '=' at line " + (i + 1), LogLevel::Warn, 397, "_Load", "[Hotkeys-Warn]", "\\$f80"); continue; }
-
+            if (eq < 0) { log("no '=' at line " + (i + 1), LogLevel::Warn, 399, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
             string lhs = ln.SubStr(0, eq).Trim();
             string rhs = ln.SubStr(eq + 1).Trim();
-            string desc;
 
+            string desc;
             int sc = rhs.IndexOf(";");
             if (sc >= 0) { desc = rhs.SubStr(sc + 1).Trim(); rhs = rhs.SubStr(0, sc).Trim(); }
 
-            int dot = lhs.IndexOf(".");
-            if (dot < 0) { log("mod.action missing at line " + (i + 1), LogLevel::Warn, 407, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            int first = lhs.IndexOf(".");
+            int last  = lhs.LastIndexOf(".");
+            if (first < 0 || last <= first) { log("plugin.module.action missing at line " + (i + 1), LogLevel::Warn, 409, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            string plugin = lhs.SubStr(0, first).Trim().ToLower();
+            string mod    = lhs.SubStr(first + 1, last - first - 1).Trim().ToLower();
+            string act    = lhs.SubStr(last + 1).Trim();
 
-            string mod = lhs.SubStr(0, dot).Trim().ToLower();
-            string act = lhs.SubStr(dot + 1).Trim();
+            Hotkeys::Parser p(rhs);
+            Hotkeys::Expr@ root = p.Parse();
+            if (root is null) { log("parse error in '" + rhs + "' at line " + (i + 1), LogLevel::Warn, 416, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
 
-            Parser p(rhs);
-            Expr@ root = p.Parse();
-            if (root is null) { log("parse error in '" + rhs + "' at line " + (i + 1), LogLevel::Warn, 414, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
-
-            Hotkey hk; hk.modId = mod; hk.actId = act; hk.desc = desc; @hk.expr = root;
+            Hotkey hk;
+            hk.pluginId = plugin;
+            hk.modId    = mod;
+            hk.actId    = act;
+            hk.desc     = desc;
+            @hk.expr    = root;
             hotkeys.InsertLast(hk);
         }
-        log("Loaded " + ("" + hotkeys.Length) + " hotkey(s)", LogLevel::Custom, 419, "_Load", "Hotkeys-Info", "\\$f80");
+
+        log("Loaded " + hotkeys.Length + " hotkey(s)", LogLevel::Custom, 427, "_Load", "Hotkeys-Info", "\\$f80");
     }
 
     void _EnsureCfg() { if (!cfgLoaded) { cfgLoaded = true; _Load(); } }
@@ -424,12 +432,15 @@ namespace Hotkeys {
     // Dispatch
 
     void _Trigger(Hotkey@ hk) {
+        string key = hk.pluginId + "." + hk.modId;
         Hotkeys::IHotkeyModule@ m;
-        if (!modules.Get(hk.modId, @m)) { log("no module '" + hk.modId + "'", LogLevel::Custom, 428, "_Trigger", "Hotkeys-Info ", "\\$f80"); return; }
-        if (!m.ExecuteAction(hk.actId, hk)) { log("module '" + hk.modId + "' ignored '" + hk.actId + "'", LogLevel::Custom, 429, "_Trigger", "Hotkeys-Info ", "\\$f80"); }
+        if (!modules.Get(key, @m)) { log("no module '" + key + "'", LogLevel::Custom, 437, "_Trigger", "Hotkeys-Info", "\\$f80"); return; }
+        if (!m.ExecuteAction(hk.actId, hk)) { log("module '" + hk.modId + "' ignored '" + hk.actId + "'", LogLevel::Custom, 438, "_Trigger", "Hotkeys-Info ", "\\$f80"); }
     }
 }
 
 UI::InputBlocking OnKeyPress(bool down, VirtualKey key) {
-    return Hotkeys::OnKeyPress(down, key);
+    HotkeyUI::OnKeyPress(down, key);
+    Hotkeys::OnKeyPress(down, key);
+    return UI::InputBlocking::DoNothing;
 }
