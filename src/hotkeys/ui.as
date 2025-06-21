@@ -3,19 +3,30 @@ namespace HotkeyUI {
     const vec4 COL_OK   = vec4(0.25, 1, 0.25, 1);
     const vec4 COL_DEL  = vec4(1, 0.15, 0.15, 1);
     const vec4 COL_MOVE = vec4(0.5, 0.5, 0.5, 0.65);
+    const vec4 COL_ROW  = vec4(0.35, 0.35, 0.15, 0.35);
 
     const vec2 OP_BTN (34, 0);
     const vec2 MOVE_BTN(30, 0);
-    const vec2 TOK_BTN (70, 0);
+    const vec2 TOK_BTN (70, 60);
     const vec2 DEL_BTN (70, 0);
     const vec2 CAP_BTN (90, 0);
+
+    const string DSL_INFO =
+        "Hotkey DSL\n"
+        "+   AND        - all held together\n"
+        "|   OR         - any key\n"
+        "&>  Sequence   - press in order\n"
+        "( ) Group      - precedence\n\n"
+        "Examples\n"
+        "  F5 | Ctrl + A\n"
+        "  Ctrl + S &> F";
 
     const string CFGPATH     = IO::FromDataFolder(Hotkeys::CFG);
     const string THIS_PLUGIN = Meta::ExecutingPlugin().Name.ToLower();
 
-    string g_HoverText = "";
+    void Hover(const string &in msg) { if (UI::IsItemHovered()) UI::SetTooltip(msg); }
 
-    void Hover(const string &in msg) { if (UI::IsItemHovered()) g_HoverText = msg; }
+    int g_UidCounter = 0;
 
     class Binding {
         bool   enabled = true;
@@ -30,27 +41,30 @@ namespace HotkeyUI {
         int    idx = -1;
         bool   simple = true;
         string expr;
-        string desc;
 
+        string plugin, mod, act;
         array<string> tokens;
-        bool          capture = false;
-        dictionary    held;
+        bool   capture = false;
+        dictionary held;
+
+        float  hscroll = 0.0f;
+        string uid;
+        bool   focus = true;
 
         string Build() const { return string::Join(tokens, " "); }
-
-        string Title() const {
-            if (idx < 0) return "＋ New";
-            auto b = g_Binds[uint(idx)];
-            return b.plugin + "." + b.mod + "." + b.act;
-        }
+        string VisibleName() const { return idx < 0 ? "＋ New" : plugin + "." + mod + "." + act; }
+        string Title() const { return VisibleName() + "###" + uid; }
     }
 
     array<Binding@> g_Binds;
     array<EditTab@> g_Tabs;
     int   g_ActiveTab = -1;
 
-    bool  g_FilterPlugin = false;
-    float g_ChildH      = 120;
+    [Setting hidden] bool g_FilterPlugin = true;
+
+    float g_ChildH = 120;
+    int   g_PendingDel = -1;
+    bool  g_LaunchPopup = false;
 
     bool Pass(const Binding@ b) { return !g_FilterPlugin || b.plugin.ToLower() == THIS_PLUGIN; }
 
@@ -59,7 +73,7 @@ namespace HotkeyUI {
         if (!IO::FileExists(CFGPATH)) return;
 
         IO::File f(CFGPATH, IO::FileMode::Read);
-        for (string ln; !f.EOF(); ) {
+        for (string ln; !f.EOF();) {
             ln = f.ReadLine().Trim();
             if (ln == "" || ln.StartsWith("#")) continue;
 
@@ -71,8 +85,7 @@ namespace HotkeyUI {
 
             string desc;
             int sc = rhs.IndexOf(";");
-            if (sc >= 0) { desc = rhs.SubStr(sc + 1).Trim();
-            rhs = rhs.SubStr(0, sc).Trim(); }
+            if (sc >= 0) { desc = rhs.SubStr(sc + 1).Trim(); rhs = rhs.SubStr(0, sc).Trim(); }
 
             int fi = lhs.IndexOf(".");
             int la = lhs.LastIndexOf(".");
@@ -119,19 +132,27 @@ namespace HotkeyUI {
         Hover(hint); UI::SameLine();
     }
 
+    float TokensTotalWidth(EditTab@ t) {
+        if (t.tokens.Length == 0) return 0.0f;
+        float sp     = UI::GetStyleVarVec2(UI::StyleVar::ItemSpacing).x;
+        float moveW  = MOVE_BTN.x + sp + MOVE_BTN.x;
+        float widest = Math::Max(Math::Max(TOK_BTN.x, DEL_BTN.x), moveW);
+        return t.tokens.Length * widest + (t.tokens.Length - 1) * sp;
+    }
+
     void MoveRow(EditTab@ t) {
         for (uint i = 0; i < t.tokens.Length; ++i) {
             UI::PushID(int(i));
             UI::PushStyleColor(UI::Col::Button, COL_MOVE);
 
             UI::BeginDisabled(i == 0);
-            if (UI::Button(Icons::ChevronLeft, MOVE_BTN)) { string tmp = t.tokens[i-1]; t.tokens[i-1] = t.tokens[i]; t.tokens[i] = tmp; }
-            Hover("Move token left");
+            if (UI::Button(Icons::ChevronLeft, MOVE_BTN)) { string tmp = t.tokens[i - 1]; t.tokens[i - 1]=t.tokens[i]; t.tokens[i] = tmp; }
+            Hover("Move left");
             UI::EndDisabled(); UI::SameLine();
 
             UI::BeginDisabled(i + 1 >= t.tokens.Length);
-            if (UI::Button(Icons::ChevronRight, MOVE_BTN)) { string tmp = t.tokens[i+1]; t.tokens[i+1] = t.tokens[i]; t.tokens[i] = tmp; }
-            Hover("Move token right");
+            if (UI::Button(Icons::ChevronRight, MOVE_BTN)) { string tmp = t.tokens[i + 1]; t.tokens[i + 1]=t.tokens[i]; t.tokens[i] = tmp; }
+            Hover("Move right");
             UI::EndDisabled();
 
             UI::PopStyleColor();
@@ -157,12 +178,90 @@ namespace HotkeyUI {
             UI::PushID(int(i));
             UI::PushStyleColor(UI::Col::Button, COL_DEL);
             if (UI::Button("×", DEL_BTN)) { t.tokens.RemoveAt(i); UI::PopStyleColor(); UI::PopID(); i--; continue; }
-            Hover("Remove token");
+            Hover("Remove");
             UI::PopStyleColor();
             if (i + 1 < t.tokens.Length) UI::SameLine();
             UI::PopID();
         }
         if (t.tokens.Length > 0) UI::NewLine();
+    }
+
+    void DrawTokenRows(EditTab@ t, float xOffset) {
+        vec2 cur = UI::GetCursorPos();
+
+        UI::SetCursorPos(vec2(cur.x + xOffset, cur.y - 2));
+        MoveRow(t);
+        float y = UI::GetCursorPos().y;
+
+        UI::SetCursorPos(vec2(cur.x + xOffset, y - 13));
+        TokenRow(t);
+        y = UI::GetCursorPos().y;
+
+        UI::SetCursorPos(vec2(cur.x + xOffset, y - 11));
+        DelRow(t);
+    }
+
+    void ScrollableTokenArea(EditTab@ t) {
+        float availW = UI::GetContentRegionAvail().x;
+        float maxScr = Math::Max(0.0f, TokensTotalWidth(t) - availW);
+        t.hscroll    = Math::Clamp(t.hscroll, 0.0f, maxScr);
+
+        UI::BeginChild("tokBlock" + t.uid, vec2(availW, 140), false);
+        DrawTokenRows(t, -t.hscroll);
+        UI::EndChild();
+
+        if (maxScr > 0.5f) {
+            UI::SetNextItemWidth(availW);
+            t.hscroll = UI::SliderFloat("##scr" + t.uid, t.hscroll, 0, maxScr, "", UI::SliderFlags::AlwaysClamp);
+        } else {
+            UI::Dummy(vec2(0, UI::GetFrameHeight()));
+        }
+    }
+
+    void ModuleActionUI(EditTab@ t) {
+        array<string> keys = Hotkeys::modules.GetKeys();
+        array<string> modIds, modKeys;
+        string prefix = t.plugin.ToLower() + ".";
+        for (uint i = 0; i < keys.Length; ++i) {
+            if (!keys[i].StartsWith(prefix)) continue;
+            modKeys.InsertLast(keys[i]);
+            modIds.InsertLast(keys[i].SubStr(prefix.Length));
+        }
+
+        if (modIds.Length == 0) { UI::Text("\\$f80<no modules>"); return; }
+
+        int curMod = modIds.Find(t.mod);
+        if (UI::BeginCombo("Module", curMod >= 0 ? modIds[uint(curMod)] : "<module>")) {
+            for (uint i = 0; i < modIds.Length; ++i) {
+                bool sel = int(i) == curMod;
+                if (UI::Selectable(modIds[i], sel)) { curMod = int(i); t.mod = modIds[i]; t.act = ""; }
+                if (sel) UI::SetItemDefaultFocus();
+            }
+            UI::EndCombo();
+        }
+
+        Hotkeys::IHotkeyModule@ m;
+        if (curMod >= 0 && Hotkeys::modules.Get(modKeys[uint(curMod)], @m)) {
+            array<string> acts = m.GetAvailableActions();
+            int curAct = acts.Find(t.act);
+            if (UI::BeginCombo("Action", curAct >= 0 ? acts[uint(curAct)] : "<action>")) {
+                for (uint i = 0; i < acts.Length; ++i) {
+                    bool sel = int(i) == curAct;
+                    if (UI::Selectable(acts[i], sel)) { curAct = int(i); t.act = acts[i]; }
+                    if (sel) UI::SetItemDefaultFocus();
+                }
+                UI::EndCombo();
+            }
+        }
+
+        UI::Separator();
+        if (UI::Button("?")) UI::OpenPopup("dslHelp");
+        if (UI::BeginPopup("dslHelp")) {
+            UI::TextWrapped(DSL_INFO);
+            UI::Separator();
+            if (UI::Button("Close")) UI::CloseCurrentPopup();
+            UI::EndPopup();
+        }
     }
 
     void DrawTab(EditTab@ t) {
@@ -171,17 +270,9 @@ namespace HotkeyUI {
         if (UI::Selectable("Advanced", !t.simple)) t.simple = !t.simple;
         UI::Separator();
 
-        g_HoverText =
-            "Hotkey DSL:\n"
-            "+  AND (all held)\n"
-            "|  OR  (any)\n"
-            "&> Sequence\n"
-            "( ) Group\n"
-            "Click Capture to record one key.";
-
         if (t.simple) {
-            if (UI::BeginTable("builder"+t.idx, 2, UI::TableFlags::BordersInnerV)) {
-                UI::TableSetupColumn("edit", UI::TableColumnFlags::WidthFixed, 380);
+            if (UI::BeginTable("builder"+t.uid, 2, UI::TableFlags::BordersInnerV | UI::TableFlags::Resizable)) {
+                UI::TableSetupColumn("edit", UI::TableColumnFlags::WidthFixed, 650);
                 UI::TableNextRow();
                 UI::TableSetColumnIndex(0);
 
@@ -189,130 +280,208 @@ namespace HotkeyUI {
 
                 if (!t.capture) {
                     if (UI::Button(Icons::KeyboardO + " Capture", CAP_BTN)) { t.capture = true; t.held.DeleteAll(); }
-                    Hover("Capture a single key");
+                    Hover("Capture one key");
                 } else { UI::Text("\\$ff0<press>"); }
                 UI::SameLine();
-
-                Op("+",  t, "AND operator");
-                Op("|",  t, "OR operator");
-                Op("&>", t, "Sequence operator");
-                Op("(",  t, "Open parenthesis");
+                Op("+",  t, "AND");
+                Op("|",  t, "OR");
+                Op("&>", t, "Sequence");
+                Op("(",  t, "(");
                 if (UI::Button(")", OP_BTN)) t.tokens.InsertLast(")");
-                Hover("Close parenthesis");
+                Hover(")");
+
                 UI::NewLine();
-
-                MoveRow(t);
-                TokenRow(t);
-                DelRow(t);
-
+                ScrollableTokenArea(t);
                 UI::PopStyleVar();
 
                 t.expr = t.Build();
 
                 UI::TableSetColumnIndex(1);
-                UI::TextWrapped(g_HoverText);
-
+                ModuleActionUI(t);
                 UI::EndTable();
             }
         } else {
-            UI::BeginTable("adv" + t.idx, 2, UI::TableFlags::BordersInnerV);
+            UI::BeginTable("adv" + t.uid, 2, UI::TableFlags::BordersInnerV);
             UI::TableSetupColumn("edit", UI::TableColumnFlags::WidthFixed, 380);
             UI::TableNextRow();
             UI::TableSetColumnIndex(0);
 
             UI::Text("Expression:");
             UI::SetNextItemWidth(340);
-            t.expr = UI::InputText("##expr" + t.idx, t.expr);
-            Hover("Edit full expression");
+            t.expr = UI::InputText("##expr" + t.uid, t.expr);
+            Hover("Edit expression");
 
             UI::TableSetColumnIndex(1);
-            UI::TextWrapped(
-                "Write full DSL, e.g.\n"
-                "  F5 | Ctrl + A\n"
-                "  Ctrl + S &> F\n"
-                "Operators: +  |  &>\n"
-                "Use parentheses to group."
-            );
+            ModuleActionUI(t);
             UI::EndTable();
         }
 
         Hotkeys::Parser p(t.expr);
-        bool ok = p.Parse() !is null;
-        UI::PushStyleColor(UI::Col::Text, ok ? COL_OK : COL_ERR);
-        UI::Text(ok ? "✓ valid" : "× parse error");
+        bool exprOk = p.Parse() !is null;
+        bool haveMod = t.mod != "";
+        bool haveAct = t.act != "";
+        bool ready = exprOk && haveMod && haveAct;
+
+        UI::PushStyleColor(UI::Col::Text, exprOk ? COL_OK : COL_ERR);
+        UI::Text(exprOk ? "✓ valid" : "× parse error");
         UI::PopStyleColor();
         UI::SameLine();
-        if (UI::Button("Apply##"+t.idx) && ok) {
+
+        string btnLabel = (t.idx < 0 ? "Add##" : "Confirm##") + t.uid;
+
+        UI::BeginDisabled(!ready);
+        bool pressed = UI::Button(btnLabel);
+        UI::EndDisabled();
+
+        if (!ready && UI::IsItemHovered(UI::HoveredFlags::AllowWhenDisabled)) {
+            string reason;
+            if (!exprOk)  reason += (reason==""? "" : "\n") + "Expression is invalid";
+            if (!haveMod) reason += (reason==""? "" : "\n") + "Select a module";
+            if (!haveAct) reason += (reason==""? "" : "\n") + "Select an action";
+            UI::SetTooltip(reason);
+        }
+
+        if (pressed) {
             if (t.idx < 0) {
                 Binding b;
-                b.plugin = Meta::ExecutingPlugin().Name;
-                b.mod = "Module"; b.act = "Action";
+                b.plugin = t.plugin;
+                b.mod = t.mod;
+                b.act = t.act;
                 b.expr = t.expr;
                 g_Binds.InsertLast(b);
-                t.idx = int(g_Binds.Length) - 1;
+                t.idx = int(g_Binds.Length)-1;
             } else {
                 auto b = g_Binds[uint(t.idx)];
+                b.plugin = t.plugin;
+                b.mod = t.mod;
+                b.act = t.act;
                 b.expr = t.expr;
             }
+            SaveFile();
         }
     }
 
-    [SettingsTab name="Hotkeys" icon="KeyboardO" order="2"]
+    [SettingsTab name="Hotkeys" icon="KeyboardO" order="10"]
     void Draw() {
         if (g_Binds.Length == 0) LoadFile();
         float spaceY = UI::GetStyleVarVec2(UI::StyleVar::ItemSpacing).y;
 
         if (UI::BeginChild("HKMgr", vec2(0, 0), true)) {
-            if (UI::Button(Icons::Plus + "  Add")) { auto@ t = EditTab(); g_Tabs.InsertLast(t); g_ActiveTab = g_Tabs.Length - 1; }
+
+            if (UI::Button(Icons::Plus + "  Add")) {
+                auto t=EditTab(); t.uid=tostring(g_UidCounter++); t.plugin=THIS_PLUGIN;
+                array<string> ks=Hotkeys::modules.GetKeys();
+                for (uint i = 0; i < ks.Length; i++) {
+                    if (ks[i].StartsWith(THIS_PLUGIN+".")) {
+                        t.mod = ks[i].SubStr((THIS_PLUGIN+".").Length);
+                        break;
+                    }
+                }
+                t.act = "";
+                g_Tabs.InsertLast(t);
+                g_ActiveTab = g_Tabs.Length - 1;
+            }
             UI::SameLine();
             if (UI::Button(Icons::FloppyO + "  Save & Reload")) SaveFile();
             UI::SameLine();
             g_FilterPlugin = UI::Checkbox("Show only this plugin", g_FilterPlugin);
             UI::Separator();
 
-            if (UI::BeginTable("tbl", 6, UI::TableFlags::Resizable)) {
+            if (UI::BeginTable("tbl", 5, UI::TableFlags::Resizable)) {
                 UI::TableSetupColumn("✓", UI::TableColumnFlags::WidthFixed, 35);
-                UI::TableSetupColumn("Plugin");
                 UI::TableSetupColumn("Module");
                 UI::TableSetupColumn("Action");
                 UI::TableSetupColumn("Expression");
-                UI::TableSetupColumn("…", UI::TableColumnFlags::WidthFixed, 60);
+                UI::TableSetupColumn("...", UI::TableColumnFlags::WidthFixed, 60);
                 UI::TableHeadersRow();
 
+                int activeIdx = (g_ActiveTab >= 0 && g_ActiveTab < int(g_Tabs.Length)) ? g_Tabs[g_ActiveTab].idx : -1;
+
                 for (uint i = 0; i < g_Binds.Length; ++i) {
-                    auto b = g_Binds[i]; if (!Pass(b)) continue;
+                    auto b = g_Binds[i];
+                    if (!Pass(b)) continue;
+
                     UI::TableNextRow();
-                    UI::TableSetColumnIndex(0); UI::Checkbox("##en"+i, b.enabled);
-                    UI::TableSetColumnIndex(1); UI::Text(b.plugin);
-                    UI::TableSetColumnIndex(2); UI::Text(b.mod);
-                    UI::TableSetColumnIndex(3); UI::Text(b.act);
-                    UI::TableSetColumnIndex(4); UI::Text(b.expr);
-                    UI::TableSetColumnIndex(5);
+                    if (int(i) == activeIdx) UI::TableSetBgColor(UI::TableBgTarget::RowBg0, COL_ROW);
+
+                    UI::TableSetColumnIndex(0);
+                    bool newState = UI::Checkbox("##en" + i, b.enabled);
+                    if (newState != b.enabled) {
+                        b.enabled = newState;
+                        SaveFile();
+                    }
+
+                    UI::TableSetColumnIndex(1); UI::Text(b.mod);
+                    UI::TableSetColumnIndex(2); UI::Text(b.act);
+                    UI::TableSetColumnIndex(3); UI::Text(b.expr);
+                    UI::TableSetColumnIndex(4);
+
                     if (UI::Button(Icons::Pencil + "##e" + i)) {
                         auto t = EditTab();
-                        t.idx = int(i);
-                        t.expr = b.expr;
-                        t.simple = false;
+                        t.uid    = tostring(g_UidCounter++);
+                        t.idx    = int(i);
+                        t.expr   = b.expr;
+                        t.plugin = b.plugin;
+                        t.mod    = b.mod;
+                        t.act    = b.act;
+                        t.tokens = b.expr.Split(" ");
+                        t.simple = true;
                         g_Tabs.InsertLast(t);
                         g_ActiveTab = g_Tabs.Length - 1;
                     }
                     UI::SameLine();
-                    if (UI::Button(Icons::Trash+"##d"+i)) g_Binds.RemoveAt(i--);
+
+                    UI::PushID(int(i));
+                    bool left   = UI::Button(Icons::Trash + "##trash", DEL_BTN);
+                    bool middle = UI::IsItemClicked(UI::MouseButton::Middle);
+                    UI::PopID();
+
+                    if (middle) { g_Binds.RemoveAt(i--); SaveFile(); continue; }
+                    if (left)   { g_PendingDel = int(i); g_LaunchPopup = true; }
                 }
                 UI::EndTable();
             }
 
-            UI::Dummy(vec2(0, UI::GetContentRegionAvail().y - spaceY - g_ChildH));
+            if(g_LaunchPopup){ UI::OpenPopup("delConfirm"); g_LaunchPopup=false; }
+            if(UI::BeginPopupModal("delConfirm", UI::WindowFlags::AlwaysAutoResize)) {
+                UI::Text("Delete this hotkey binding?");
+                
+                UI::Separator();
+                
+                if(UI::Button("Yes", vec2(80, 0))) {
+                    if (g_PendingDel >= 0 && g_PendingDel < int(g_Binds.Length)) {
+                        g_Binds.RemoveAt(uint(g_PendingDel));
+                        SaveFile();
+                    }
+                    g_PendingDel = -1;
+                    UI::CloseCurrentPopup();
+                }
+                UI::SameLine();
+                
+                if (UI::Button("No", vec2(80, 0))) {
+                    g_PendingDel=-1;
+                    UI::CloseCurrentPopup();
+                }
+                
+                UI::EndPopup();
+            }
+
+            UI::Dummy(vec2(0,UI::GetContentRegionAvail().y - spaceY - g_ChildH));
             vec2 start = UI::GetCursorPos();
 
             UI::BeginTabBar("editTabs");
-            for (uint i = 0; i < g_Tabs.Length; ++i) {
-                auto tab = g_Tabs[i]; bool open = true;
-                if (UI::BeginTabItem(tab.Title(), open, i == uint(g_ActiveTab) ? UI::TabItemFlags::SetSelected : UI::TabItemFlags::None)) {
+            for (uint i = 0; i < g_Tabs.Length; i++) {
+                auto tab = g_Tabs[i];
+                bool open = true;
+                int flags = tab.focus ? UI::TabItemFlags::SetSelected : UI::TabItemFlags::None;
+
+                if (UI::BeginTabItem(tab.Title(), open, flags)) {
+                    tab.focus = false;
                     g_ActiveTab = int(i);
                     DrawTab(tab);
                     UI::EndTabItem();
                 }
+
                 if (!open) {
                     g_Tabs.RemoveAt(i);
                     if (g_ActiveTab >= int(i)) g_ActiveTab--;

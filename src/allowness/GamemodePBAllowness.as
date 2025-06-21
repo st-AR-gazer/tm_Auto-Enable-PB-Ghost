@@ -137,5 +137,6 @@ main() {
     }
 }
 
-void OnDestroyed() { GamemodePBAllownessCheck::_Unload(); }
-void OnDisabled() { GamemodePBAllownessCheck::_Unload(); }
+void Allowness_GamemodePBAllownessCheck_OnUnload() {
+    GamemodePBAllownessCheck::_Unload();
+}

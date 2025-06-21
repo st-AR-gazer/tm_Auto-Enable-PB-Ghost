@@ -306,7 +306,7 @@ namespace Hotkeys {
                 ++p;
             }
 
-            if (id.Length == 0) { log("key expected at " + ("" + p), LogLevel::Warn, 309, "Expect", "Hotkeys-Parse", "\\$f80"); return null; }
+            if (id.Length == 0) { /*log("key expected at " + ("" + p), LogLevel::Warn, 309, "Expect", "Hotkeys-Parse", "\\$f80");*/ return null; }
 
             int vk = _VK(id); if (vk >= 0) return KeyNode(vk);
             int gp = _GP(id); if (gp >= 0) return GPNode(gp);

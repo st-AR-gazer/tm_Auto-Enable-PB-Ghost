@@ -42,8 +42,8 @@ namespace Hotkey_PBLoadingModule {
 }
 
 Hotkeys::IHotkeyModule@ g_pbMod;
-
 auto pbloadingmod_initializer = startnew(Hotkey_PBLoadingModule::Initialize);
-void OnUnload() {
+
+void Hotkey_PBLoadingModule_OnUnload() {
     if (g_pbMod !is null) Hotkeys::UnregisterModule(Meta::ExecutingPlugin().Name, g_pbMod);
 }
