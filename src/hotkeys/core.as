@@ -410,14 +410,14 @@ namespace Hotkeys {
 
             int first = lhs.IndexOf(".");
             int last  = lhs.LastIndexOf(".");
-            if (first < 0 || last <= first) { log("plugin.module.action missing at line " + (i + 1), LogLevel::Warn, 409, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            if (first < 0 || last <= first) { log("plugin.module.action missing at line " + (i + 1), LogLevel::Warn, 413, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
             string plugin = lhs.SubStr(0, first).Trim().ToLower();
             string mod    = lhs.SubStr(first + 1, last - first - 1).Trim().ToLower();
             string act    = lhs.SubStr(last + 1).Trim();
 
             Hotkeys::Parser p(rhs);
             Hotkeys::Expr@ root = p.Parse();
-            if (root is null) { log("parse error in '" + rhs + "' at line " + (i + 1), LogLevel::Warn, 416, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            if (root is null) { log("parse error in '" + rhs + "' at line " + (i + 1), LogLevel::Warn, 420, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
 
             Hotkey hk;
             hk.pluginId = plugin;
@@ -428,7 +428,7 @@ namespace Hotkeys {
             hotkeys.InsertLast(hk);
         }
 
-        log("Loaded " + hotkeys.Length + " hotkey(s)", LogLevel::Custom, 427, "_Load", "Hotkeys-Info", "\\$f80");
+        log("Loaded " + hotkeys.Length + " hotkey(s)", LogLevel::Custom, 431, "_Load", "Hotkeys-Info", "\\$f80");
     }
 
     void _EnsureCfg() { if (!cfgLoaded) { cfgLoaded = true; _Load(); } }
@@ -438,8 +438,8 @@ namespace Hotkeys {
     void _Trigger(Hotkey@ hk) {
         string key = hk.pluginId + "." + hk.modId;
         Hotkeys::IHotkeyModule@ m;
-        if (!modules.Get(key, @m)) { log("no module '" + key + "'", LogLevel::Custom, 437, "_Trigger", "Hotkeys-Info", "\\$f80"); return; }
-        if (!m.ExecuteAction(hk.actId, hk)) { log("module '" + hk.modId + "' ignored '" + hk.actId + "'", LogLevel::Custom, 438, "_Trigger", "Hotkeys-Info ", "\\$f80"); }
+        if (!modules.Get(key, @m)) { log("no module '" + key + "'", LogLevel::Custom, 441, "_Trigger", "Hotkeys-Info", "\\$f80"); return; }
+        if (!m.ExecuteAction(hk.actId, hk)) { log("module '" + hk.modId + "' ignored '" + hk.actId + "'", LogLevel::Custom, 442, "_Trigger", "Hotkeys-Info ", "\\$f80"); }
     }
 }
 

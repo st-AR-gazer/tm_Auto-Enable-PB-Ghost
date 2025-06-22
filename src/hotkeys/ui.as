@@ -77,7 +77,7 @@ namespace HotkeyUI {
         if (ch == 32 || ch == 9)   return true;                             // space / tab
         if (ch == 40 || ch == 41)  return true;                             // ( )
         if (ch == 43 || ch == 124) return true;                             // + |
-        if (ch == 38 || ch == 62)  return true;                             // & >
+        if (ch == 38 || ch == 62)  return true;                             // & >&
         if (ch == 95)              return true;                             // _
         return false;
     }
@@ -196,7 +196,7 @@ namespace HotkeyUI {
 
         string plugin, mod, act;
         array<string> tokens;
-
+        int    selTok = -1;
         bool   capture = false;
         dictionary held;
 
@@ -283,16 +283,31 @@ namespace HotkeyUI {
         auto tab = g_Tabs[g_ActiveTab];
         if (!tab.capture) return UI::InputBlocking::DoNothing;
 
-        tab.tokens.InsertLast(tostring(key));
+        string tok = tostring(key);
+        if (tab.selTok >= 0 && tab.selTok < int(tab.tokens.Length)) {
+            tab.tokens[tab.selTok] = tok;
+            tab.selTok = -1;
+        } else {
+            tab.tokens.InsertLast(tok);
+        }
         tab.capture = false;
         tab.held.DeleteAll();
+
         return UI::InputBlocking::DoNothing;
     }
 
 
     void Op(const string &in op, EditTab@ t, const string &in hint) {
-        if (UI::Button(op, OP_BTN)) t.tokens.InsertLast(op);
-        Hover(hint); UI::SameLine();
+        if (UI::Button(op, OP_BTN)) {
+            if (t.selTok >= 0 && t.selTok < int(t.tokens.Length)) {
+                t.tokens[t.selTok] = op;
+                t.selTok = -1;
+            } else {
+                t.tokens.InsertLast(op);
+            }
+        }
+        Hover(hint);
+        UI::SameLine();
     }
 
     float TokensTotalWidth(EditTab@ t) {
@@ -304,17 +319,34 @@ namespace HotkeyUI {
     }
 
     void MoveRow(EditTab@ t) {
+        if (t.tokens.Length == 0) return;
+
+        vec2 pos = UI::GetCursorPos();
+        UI::SetCursorPos(vec2(pos.x, pos.y + 2));
+
         for (uint i = 0; i < t.tokens.Length; ++i) {
             UI::PushID(int(i));
             UI::PushStyleColor(UI::Col::Button, COL_MOVE);
 
             UI::BeginDisabled(i == 0);
-            if (UI::Button(Icons::ChevronLeft, MOVE_BTN)) { string tmp = t.tokens[i - 1]; t.tokens[i - 1] = t.tokens[i]; t.tokens[i] = tmp; }
+            if (UI::Button(Icons::ChevronLeft, MOVE_BTN)) {
+                string tmp = t.tokens[i - 1];
+                t.tokens[i - 1] = t.tokens[i];
+                t.tokens[i] = tmp;
+                     if (t.selTok == int(i))     { t.selTok = int(i - 1); }
+                else if (t.selTok == int(i - 1)) { t.selTok = int(i); }
+            }
+
             Hover("Move left");
             UI::EndDisabled(); UI::SameLine();
 
             UI::BeginDisabled(i + 1 >= t.tokens.Length);
-            if (UI::Button(Icons::ChevronRight, MOVE_BTN)) { string tmp = t.tokens[i + 1]; t.tokens[i + 1] = t.tokens[i]; t.tokens[i] = tmp; }
+            if (UI::Button(Icons::ChevronRight, MOVE_BTN)) {
+                string tmp = t.tokens[i + 1]; t.tokens[i + 1] = t.tokens[i]; t.tokens[i] = tmp;
+                     if (t.selTok == int(i))     { t.selTok = int(i + 1); }
+                else if (t.selTok == int(i + 1)) { t.selTok = int(i); }
+            }
+
             Hover("Move right");
             UI::EndDisabled();
 
@@ -326,10 +358,25 @@ namespace HotkeyUI {
     }
 
     void TokenRow(EditTab@ t) {
+        // OBS: Some token representations are wider than the button itself, when the Fonts:: Namespace is releaseed we should use 
+        // something like Fonts::GetTextSize(t.tokens[i], TOK_BTN.x) to calculate the the scale we should display the text at...
         for (uint i = 0; i < t.tokens.Length; ++i) {
             UI::PushID(int(i));
-            UI::Button(t.tokens[i], TOK_BTN);
-            Hover("Token: " + t.tokens[i]);
+
+            bool sel = (t.selTok == int(i));
+            if (sel) {
+                UI::PushStyleColor(UI::Col::Button,        vec4(0.45f, 0.35f, 0.8f, 1));
+                UI::PushStyleColor(UI::Col::ButtonHovered, vec4(0.60f, 0.40f, 0.8f, 1));
+            }
+
+            if (UI::Button(t.tokens[i], TOK_BTN)) {
+                if (t.selTok == int(i)) { t.selTok = -1; }
+                else                    { t.selTok = int(i); }
+            }
+
+            if (sel) UI::PopStyleColor(2);
+
+            Hover("Token: " + t.tokens[i] + (sel ? " (selected)" : ""));
             if (i + 1 < t.tokens.Length) UI::SameLine();
             UI::PopID();
         }
@@ -340,7 +387,12 @@ namespace HotkeyUI {
         for (uint i = 0; i < t.tokens.Length; ++i) {
             UI::PushID(int(i));
             UI::PushStyleColor(UI::Col::Button, COL_DEL);
-            if (UI::Button(Icons::Times, DEL_BTN)) { t.tokens.RemoveAt(i); UI::PopStyleColor(); UI::PopID(); i--; continue; }
+            if (UI::Button(Icons::Times, DEL_BTN)) {
+                       if (t.selTok == int(i)) { t.selTok = -1;
+                } else if (t.selTok > int(i))  { t.selTok--; }
+                t.tokens.RemoveAt(i);
+                UI::PopStyleColor(); UI::PopID(); i--; continue;
+            }
             Hover("Remove");
             UI::PopStyleColor();
             if (i + 1 < t.tokens.Length) UI::SameLine();
@@ -366,19 +418,21 @@ namespace HotkeyUI {
 
     void ScrollableTokenArea(EditTab@ t) {
         float availW = UI::GetContentRegionAvail().x;
-        float maxScr = Math::Max(0.0f, TokensTotalWidth(t) - availW);
-        t.hscroll    = Math::Clamp(t.hscroll, 0.0f, maxScr);
 
-        UI::BeginChild("tokBlock" + t.uid, vec2(availW, 140), false);
+        UI::BeginChild("tokBlock" + t.uid, vec2(availW, 156), false, UI::WindowFlags::HorizontalScrollbar);
         DrawTokenRows(t, -t.hscroll);
         UI::EndChild();
 
-        if (maxScr > 0.5f) {
-            UI::SetNextItemWidth(availW);
-            t.hscroll = UI::SliderFloat("##scr" + t.uid, t.hscroll, 0, maxScr, "", UI::SliderFlags::AlwaysClamp);
-        } else {
-            UI::Dummy(vec2(0, UI::GetFrameHeight()));
-        }
+        // Forgot that UI::WindowFalgs::HorizontalScrollbar was needed, I was looking through UI::ChildFlags, which doesn't have the horizontal scrollbar flag xD
+        // float maxScr = Math::Max(0.0f, TokensTotalWidth(t) - availW);
+        // t.hscroll    = Math::Clamp(t.hscroll, 0.0f, maxScr);
+        // if (maxScr > 0.5f) {
+        //     UI::Dummy(vec2(0, -100));
+        //     UI::SetNextItemWidth(availW);
+        //     t.hscroll = UI::SliderFloat("##scr" + t.uid, t.hscroll, 0, maxScr, "", UI::SliderFlags::AlwaysClamp);
+        // } else {
+        //     UI::Dummy(vec2(0, UI::GetFrameHeight()));
+        // }
     }
 
 
@@ -394,7 +448,11 @@ namespace HotkeyUI {
 
         if (modIds.Length == 0) { UI::Text("\\$f80<no modules>"); return; }
 
+        if (t.mod == "" && modIds.Length == 1) t.mod = modIds[0];
+
         int curMod = modIds.Find(t.mod);
+
+
         if (UI::BeginCombo("Module", curMod >= 0 ? modIds[uint(curMod)] : "<module>")) {
             for (uint i = 0; i < modIds.Length; ++i) {
                 bool sel = int(i) == curMod;
@@ -407,6 +465,8 @@ namespace HotkeyUI {
         Hotkeys::IHotkeyModule@ m;
         if (curMod >= 0 && Hotkeys::modules.Get(modKeys[uint(curMod)], @m)) {
             array<string> acts = m.GetAvailableActions();
+            if (t.act == "" && acts.Length == 1) t.act = acts[0];
+
             int curAct = acts.Find(t.act);
             if (UI::BeginCombo("Action", curAct >= 0 ? acts[uint(curAct)] : "<action>")) {
                 for (uint i = 0; i < acts.Length; ++i) {
@@ -438,14 +498,25 @@ namespace HotkeyUI {
             if (!t.capture) {
                 if (UI::Button(Icons::KeyboardO + " Capture", CAP_BTN)) { t.capture = true; t.held.DeleteAll(); }
                 Hover("Capture one key");
-            } else { UI::Text("\\$ff0<press>"); }
+            } else {
+                UI::AlignTextToFramePadding();
+                UI::Text("\\$ff0<press>");
+            }
             UI::SameLine();
             Op("+",  t, "AND");
             Op("|",  t, "OR");
             Op("&>", t, "Sequence");
             Op("(",  t, "(");
-            if (UI::Button(")", OP_BTN)) t.tokens.InsertLast(")");
+            if (UI::Button(")", OP_BTN)) {
+                if (t.selTok >= 0 && t.selTok < int(t.tokens.Length)) {
+                    t.tokens[t.selTok] = ")";
+                    t.selTok = -1;
+                } else {
+                    t.tokens.InsertLast(")");
+                }
+            }
             Hover(")");
+
 
             UI::NewLine();
             ScrollableTokenArea(t);
@@ -463,6 +534,7 @@ namespace HotkeyUI {
                 string formatted = FormatExpr(newExpr, toks);
                 t.expr   = formatted;
                 t.tokens = toks;
+                t.selTok = -1;
             }
 
             UI::TableSetColumnIndex(1);
@@ -489,23 +561,19 @@ namespace HotkeyUI {
         string msg;
         vec4   col = UI::GetStyleColor(UI::Col::Text);
 
-        if (isEmpty)          { msg = Icons::Minus + " empty expression"; }
-        else if (exprOk)      { msg = Icons::Check + " valid";          col = COL_OK; }
-        else if (unsupported) { msg = Icons::Times + " invalid char";   col = COL_ERR; }
-        else if (!syntaxOk)   { msg = Icons::Times + " invalid syntax"; col = COL_ERR; }
-        else if (!keysValid)  { msg = Icons::Times + " invalid key";    col = COL_ERR; }
-        else                  { msg = Icons::Times + " parse error";    col = COL_ERR; }
-
-        UI::PushStyleColor(UI::Col::Text, col);
-        UI::Text(msg);
-        UI::PopStyleColor();
-        UI::SameLine();
+        if (isEmpty)          { msg = Icons::Minus + " Empty Expression"; }
+        else if (exprOk)      { msg = Icons::Check + " Valid";          col = COL_OK; }
+        else if (unsupported) { msg = Icons::Times + " Invalid Char";   col = COL_ERR; }
+        else if (!syntaxOk)   { msg = Icons::Times + " Invalid Syntax"; col = COL_ERR; }
+        else if (!keysValid)  { msg = Icons::Times + " Invalid Key";    col = COL_ERR; }
+        else                  { msg = Icons::Times + " Parse Error";    col = COL_ERR; }
 
         string btnLabel = (t.idx < 0 ? "Add##" : "Confirm##") + t.uid;
 
         UI::BeginDisabled(!ready);
         bool pressed = UI::Button(btnLabel);
         UI::EndDisabled();
+        UI::SameLine();
 
         if (!ready && UI::IsItemHovered(UI::HoveredFlags::AllowWhenDisabled)) {
             string reason;
@@ -515,6 +583,26 @@ namespace HotkeyUI {
             if (!haveMod)        reason += (reason == "" ? "" : "\n") + "Select a module";
             if (!haveAct)        reason += (reason == "" ? "" : "\n") + "Select an action";
             UI::SetTooltip(reason);
+        }
+
+        UI::PushStyleColor(UI::Col::Text, col);
+        UI::AlignTextToFramePadding();
+        UI::Text(msg);
+        UI::PopStyleColor();
+
+        bool dup = false;
+        string canon = CanonKey(t.expr);
+        for (uint i = 0; i < g_Binds.Length; ++i) {
+            if (t.idx >= 0 && int(i) == t.idx) continue;
+            if (CanonKey(g_Binds[i].expr) == canon) { dup = true; break; }
+        }
+        
+        if (dup && !isEmpty) {
+            UI::SameLine();
+            UI::PushStyleColor(UI::Col::Text, vec4(1, 0.65f, 0, 1));
+            UI::Text(Icons::ExclamationTriangle);
+            UI::PopStyleColor();
+            Hover("Another binding has an identical expression");
         }
 
         if (pressed) {
@@ -528,9 +616,10 @@ namespace HotkeyUI {
                 SaveFile();
 
                 t.tokens.Resize(0);
-                t.expr  = "";
-                t.mod   = "";
-                t.act   = "";
+                t.expr   = "";
+                t.mod    = "";
+                t.act    = "";
+                t.selTok = -1;
             } else {
                 auto b = g_Binds[uint(t.idx)];
                 b.plugin = t.plugin;
@@ -556,12 +645,13 @@ namespace HotkeyUI {
                     t.plugin = THIS_PLUGIN;
 
                     array<string> ks = Hotkeys::modules.GetKeys();
+                    array<string> mods;
                     for (uint i = 0; i < ks.Length; ++i) {
                         if (ks[i].StartsWith(THIS_PLUGIN + ".")) {
-                            t.mod = ks[i].SubStr((THIS_PLUGIN + ".").Length);
-                            break;
+                            mods.InsertLast(ks[i].SubStr((THIS_PLUGIN + ".").Length));
                         }
                     }
+                    if (mods.Length == 1) t.mod = mods[0];
                     g_Tabs.InsertLast(t);
                     g_ActiveTab = g_Tabs.Length - 1;
                 }
@@ -584,9 +674,21 @@ namespace HotkeyUI {
                       "from every plugin and reveal duplicates across plugins.");
 
                 UI::SameLine();
+                // 
+                float helpW  = 175.0f;
+                // float labelW = Fonts::CalcTextSize(THIS_PLUGIN).x; // Whenever the Fonts:: namespace is released
+                float labelW = 220.0f;
+                float avail  = UI::GetContentRegionAvail().x - helpW;
 
-                float pad = UI::GetContentRegionAvail().x - 175.0f;
-                if (pad > 0) { UI::Dummy(vec2(pad, 0)); UI::SameLine(); }
+                float pad = Math::Max(0.0f, (avail - labelW) * 0.5f);
+                UI::Dummy(vec2(pad, 0)); UI::SameLine();
+
+                UI::TextDisabled(THIS_PLUGIN);
+                UI::SameLine();
+
+                float padR = UI::GetContentRegionAvail().x - helpW;
+                if (padR > 0) { UI::Dummy(vec2(padR, 0)); UI::SameLine(); }
+                // 
 
                 if (UI::Button(Icons::Question + "  Help & Explanations")) g_HelpMode = true;
                 Hover("Open a detailed guide to the DSL, modules, and actions");
@@ -596,11 +698,23 @@ namespace HotkeyUI {
                 if (UI::Button(Icons::ArrowLeft + "  Back to editor")) g_HelpMode = false;
                 Hover("Return to the main hotkey editor");
 
+                // 
+                UI::SameLine();
+                float helpW  = 175.0f;
+                // float labelW = Fonts::CalcTextSize(THIS_PLUGIN).x; // Whenever the Fonts:: namespace is released
+                float labelW = 200.0f;
+                float avail  = UI::GetContentRegionAvail().x - helpW;
+
+                float pad = Math::Max(0.0f, (avail - labelW) * 0.5f);
+                UI::Dummy(vec2(pad, 0)); UI::SameLine();
+
+                UI::TextDisabled(THIS_PLUGIN);
                 UI::SameLine();
 
-                UI::BeginDisabled();
-                float pad = UI::GetContentRegionAvail().x - 175.0f;
-                if (pad > 0) { UI::Dummy(vec2(pad, 0)); UI::SameLine(); }
+                float padR = UI::GetContentRegionAvail().x - helpW;
+                if (padR > 0) { UI::Dummy(vec2(padR, 0)); UI::SameLine(); }
+                // 
+
                 if (UI::Button(Icons::Question + "  Help & Explanations")) g_HelpMode = true;
                 Hover("Open a detailed guide to the DSL, modules and actions");
                 UI::EndDisabled();
@@ -618,6 +732,9 @@ namespace HotkeyUI {
                     "* **`KEY &> KEY`** - `SEQUENCE opperator`, the first `KEY` element _has_ to be followed by the second `KEY` element in the given left-to-right order "
                         "to satisfy the condition  \n"
                     "* **`( KEY +/|/&> KEY )`** `GROUP opperator`, Use parentheses **( )** to group and control in what order `KEY` elements are forced to interact\n\n"
+                    "**OBS:** due to a quirk in how I designed the DSL, you cannot use the  \" | \",   \" ( \",   \" ) \"   \" + \"   \" ; \"   \" &> \"   "
+                    "characters as part of a key name, as this would cause the parser to misinterpret your expression. Though the only character that is likely to "
+                    "affect you as the end user is \"+\"...  \n"
                     "## Key tokens\n"
                     "* **Keyboard:** single characters (`A`, `7`, ...) or VirtualKey names (`F5`, `Shift`, `Oem3`, ...)  \n"
                     "* **Game-pad:** tokens prefixed with `gp_` (`gp_a`, `gp_lb`, `gp_rt`, ...)  \n"
@@ -726,7 +843,23 @@ namespace HotkeyUI {
                                                                            UI::SelectableFlags::Disabled);
                     UI::PopStyleColor(2);
 
-                    if (UI::IsItemHovered(UI::HoveredFlags::AllowWhenDisabled)) UI::TableSetBgColor(UI::TableBgTarget::RowBg1, HOVER_CLR);
+                    if (UI::IsItemHovered(UI::HoveredFlags::AllowWhenDisabled)) {
+                        UI::TableSetBgColor(UI::TableBgTarget::RowBg1, HOVER_CLR);
+
+                        if (UI::IsMouseDoubleClicked(UI::MouseButton::Left)) {
+                            auto t   = EditTab();
+                            t.uid    = tostring(g_UidCounter++);
+                            t.idx    = int(i);
+                            array<string> toks;
+                            t.expr   = FormatExpr(b.expr, toks);
+                            t.tokens = toks;
+                            t.plugin = b.plugin;
+                            t.mod    = b.mod;
+                            t.act    = b.act;
+                            g_Tabs.InsertLast(t);
+                            g_ActiveTab = g_Tabs.Length - 1;
+                        }
+                    }
 
                     UI::TableSetColumnIndex(0);
                 }
@@ -736,7 +869,15 @@ namespace HotkeyUI {
 
             if (g_LaunchPopup) { UI::OpenPopup("Confirm Deletion"); g_LaunchPopup = false; }
             if (UI::BeginPopupModal("Confirm Deletion", UI::WindowFlags::AlwaysAutoResize)) {
-                UI::Text("Delete this hotkey binding?");
+                UI::Text("Delete this hotkey?");
+                if (g_PendingDel >= 0 && g_PendingDel < int(g_Binds.Length)) {
+                    auto d = g_Binds[uint(g_PendingDel)];
+                    UI::Separator();
+                    UI::Text("Plugin : " + d.plugin);
+                    UI::Text("Module : " + d.mod);
+                    UI::Text("Action : " + d.act);
+                    UI::Text("Expr : " + d.expr);
+                }
                 UI::Separator();
                 if (UI::Button("Yes", vec2(80, 0))) {
                     if (g_PendingDel >= 0 && g_PendingDel < int(g_Binds.Length)) {
