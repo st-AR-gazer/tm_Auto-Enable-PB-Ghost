@@ -8,7 +8,7 @@ namespace Hotkey_MODULE_NAME_HERE {
         bool exampleVar = true;
 
         void Example_Function() {
-            Loader::LoadPBFlow();
+            print("Example function called!");
         }
 
         void Other_Example_Functions() {
@@ -61,7 +61,11 @@ namespace Hotkey_MODULE_NAME_HERE {
 Hotkeys::IHotkeyModule@ g_MODULE_NAME_HERE;
 // This method under can be used to provide another entry point for script execution, this is done here so that we don't have to call this from void Main()
 // Don't forget to change both the variable and the function name to match your module name.
+// OBS: This has to ben uncommented to work, it has been comment out here to avoid confusion with the _actual_ modules used in this plugin, but this should 
+// be uncommented in your own module:
+/*
 auto MODULE_NAME_HERE_initializer = startnew(Hotkey_MODULE_NAME_HERE::Initialize);
+*/
 
 // To my knowledge there isn't a way to provide an entry point for unloading the module without using the OnDestroyed / OnDisabled callbacks, make sure to 
 // call this function when the plugin is meant to be unloaded, though something like this:

@@ -192,12 +192,18 @@ namespace Hotkeys {
                 return true;
             }
 
-            if (s[idx].Eval(k, g, e)) {
+            if (idx > 0 && !s[idx - 1].Eval(k, g, false)) {
+                Reset();
+                return false;
+            }
+
+            if (e && s[idx].Eval(k, g, true)) {
                 ++idx;
                 if (idx >= s.Length) { active = true; return true; }
             }
             return false;
         }
+
         void Reset() {
             idx = 0;
             active = false;
