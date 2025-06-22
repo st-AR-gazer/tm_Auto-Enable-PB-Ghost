@@ -404,6 +404,10 @@ namespace Hotkeys {
             int sc = rhs.IndexOf(";");
             if (sc >= 0) { desc = rhs.SubStr(sc + 1).Trim(); rhs = rhs.SubStr(0, sc).Trim(); }
 
+            bool enabled = true;
+            if (rhs.StartsWith("!")) { enabled = false; rhs = rhs.SubStr(1).Trim(); }
+            if (!enabled) continue;
+
             int first = lhs.IndexOf(".");
             int last  = lhs.LastIndexOf(".");
             if (first < 0 || last <= first) { log("plugin.module.action missing at line " + (i + 1), LogLevel::Warn, 409, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
