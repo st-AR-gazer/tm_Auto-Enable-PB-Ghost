@@ -69,7 +69,11 @@ namespace Database {
         rec.Path         = finalPath;
 
         InsertOne(rec);
-        log("Downloaded replay added (" + rec.MapUid + ", " + rec.BestTime + " ms).", LogLevel::Info, 72, "Coro_DownloadAndAdd", "", "\\$f80");
+        log("Downloaded replay added to db (" + rec.MapUid + ", " + rec.BestTime + " ms).", LogLevel::Info, 72, "Coro_DownloadAndAdd", "", "\\$f80");
+        log("Replay saved to: " + finalPath + "from URL: " + url + " with tmp path: " + tmpPath, LogLevel::Debug, 73, "Coro_DownloadAndAdd", "", "\\$f80");
+        yield(5);
+        
+        Loader::StartLoadProcess();
     }
 
     ReplayRecord@ ParseReplay(const string &in fullPath) {

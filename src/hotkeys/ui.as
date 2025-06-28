@@ -715,6 +715,7 @@ namespace HotkeyUI {
                 if (padR > 0) { UI::Dummy(vec2(padR, 0)); UI::SameLine(); }
                 // 
 
+                UI::BeginDisabled();
                 if (UI::Button(Icons::Question + "  Help & Explanations")) g_HelpMode = true;
                 Hover("Open a detailed guide to the DSL, modules and actions");
                 UI::EndDisabled();

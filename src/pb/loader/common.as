@@ -1,17 +1,20 @@
 namespace Loader {
 
-    bool IsPB(const string &in name)           { return name.ToLower().Contains("personal best"); }
-    bool IsPluginGhost(const string &in nick)  { return nick.Contains("$g$h$o$s$t$"); }
+    bool IsPB(const string &in name)          { return name.ToLower().Contains("personal best"); }
+    bool IsPluginGhost(const string &in nick) { return nick.Contains("$g$h$o$s$t$"); }
+    bool IsGameGhost(const string &in nick)   { return nick.StartsWith("") && IsPB(nick); }
+    // OBS: The game loaded ghosts DO NOT star with "?" they start with what ever this: "" is xD
 
-    enum PBGhostSource { Clips, DfmClient, DfmArena, Disk, Leaderboard }
+    enum PBGhostSource { Clips, DfmNetwork, DfmPlaygroundScript, Disk, Leaderboard, GhostMgr }
 
     string SrcStr(PBGhostSource s) {
         switch (s) {
-            case PBGhostSource::Clips:       return "Clips";
-            case PBGhostSource::DfmClient:   return "DFM-C";
-            case PBGhostSource::DfmArena:    return "DFM-A";
-            case PBGhostSource::Disk:        return "Disk";
-            case PBGhostSource::Leaderboard: return "LB";
+            case PBGhostSource::Clips:               return "Clips";
+            case PBGhostSource::DfmNetwork:          return "DFM-N";
+            case PBGhostSource::DfmPlaygroundScript: return "DFM-P";
+            case PBGhostSource::Disk:                return "Disk";
+            case PBGhostSource::Leaderboard:         return "LB";
+            case PBGhostSource::GhostMgr:            return "GhostMgr";
         }
         return "?";
     }

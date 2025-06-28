@@ -25,10 +25,9 @@ namespace Loader {
 
     void StartPostLoadMonitor() { startnew(CoroutineFunc(PostLoadMonitor)); }
     void PostLoadMonitor() {
-        const uint start = Time::Now;
-        while (Time::Now - start < 8000) {
+        while (true) {
             Loader::CullPBs();
-            yield(250);
+            yield(500);
         }
     }
 
