@@ -137,6 +137,5 @@ main() {
     }
 }
 
-void Allowness_GamemodePBAllownessCheck_OnUnload() {
-    GamemodePBAllownessCheck::_Unload();
-}
+class Allowness_GamemodePBAllownessCheck_OnUnload { ~Allowness_GamemodePBAllownessCheck_OnUnload() { GamemodePBAllownessCheck::_Unload(); } }
+Allowness_GamemodePBAllownessCheck_OnUnload gamemodepballowness_unloader;

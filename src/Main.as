@@ -1,7 +1,5 @@
 void Main() {
-    if (S_markPluginLoadedPBs == "i") { S_markPluginLoadedPBs = GetApp().LocalPlayerInfo.Trigram.SubStr(0, 1); }
-
-    startnew(Hotkeys::InitHotkeys);
-    startnew(MapTracker::MapMonitor);
-    startnew(PBVisibilityHook::InitializeHook);
+    if (S_markPluginLoadedPBs == "i") {
+        S_markPluginLoadedPBs = GetApp().LocalPlayerInfo.Trigram.SubStr(0, 1);
+    }
 }

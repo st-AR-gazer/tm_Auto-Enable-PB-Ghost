@@ -73,7 +73,7 @@ namespace Database {
         log("Replay saved to: " + finalPath + "from URL: " + url + " with tmp path: " + tmpPath, LogLevel::Debug, 73, "Coro_DownloadAndAdd", "", "\\$f80");
         yield(5);
         
-        Loader::StartLoadProcess();
+        Loader::StartPBFlow();
     }
 
     ReplayRecord@ ParseReplay(const string &in fullPath) {

@@ -1,3 +1,5 @@
+auto mapmonitor_initializer = startnew(MapTracker::MapMonitor);
+
 namespace MapTracker {
     string oldMapUid = "";
 
@@ -25,7 +27,10 @@ namespace MapTracker {
                 }
 
                 if (status == AllowCheck::ConditionStatus::ALLOWED) {
-                    Loader::StartLoadProcess();
+                    
+                    Loader::StartPBFlow();
+
+
                 } else {
                     NotifyWarn("You cannot load records on this map: " + AllowCheck::DissalowReason());
                 }

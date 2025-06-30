@@ -1,3 +1,5 @@
+auto hook_initializer = startnew(PBVisibilityHook::InitializeHook);
+
 namespace PBVisibilityHook {
     bool pbToggleReceived = false;
 
@@ -9,8 +11,7 @@ namespace PBVisibilityHook {
         void OnEvent(MLHook::PendingEvent@ event) override {
             if (this.type == "TMGame_Record_TogglePB") {
                 pbToggleReceived = true;
-            }
-            else if (this.type == "TMGame_Record_UpdatePBGhostVisibility") {
+            } else if (this.type == "TMGame_Record_UpdatePBGhostVisibility") {
                 if (!pbToggleReceived) {
                     return;
                 }
@@ -18,7 +19,6 @@ namespace PBVisibilityHook {
                 pbToggleReceived = false;
 
                 bool shouldShow = tostring(event.data[0]).ToLower().Contains("true");
-                Loader::Server::SetPBVisibility(shouldShow);
 
                 if (shouldShow) {
                     t_hook_shouldLoadPBnow = true;
@@ -64,10 +64,10 @@ void Update(float dt) {
     // I hate that this took me so long to think of :xdd:
     if (PBVisibilityHook::t_hook_shouldLoadPBnow) {
         PBVisibilityHook::t_hook_shouldLoadPBnow = false;
-        startnew(Loader::StartLoadProcess);
+        startnew(Loader::StartPBFlow);
     }
     if (PBVisibilityHook::t_hook_shouldUnloadPBnow) {
         PBVisibilityHook::t_hook_shouldUnloadPBnow = false;
-        Loader::UnloadPBGhost();
+        startnew(Loader::StopPBFlow);
     }
 }

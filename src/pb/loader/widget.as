@@ -140,8 +140,13 @@ namespace UINav {
     bool HasLabel(CControlFrame@ n, const string &in txt) {
         if (n is null) return false;
         for (uint i = 0; i < n.Childs.Length; ++i) {
+            if (n.Childs[i] is null) continue;
+
             CControlLabel@ lbl = cast<CControlLabel>(n.Childs[i]);
             if (lbl !is null && lbl.Label == txt) return true;
+
+            CControlFrame@ sub = cast<CControlFrame>(n.Childs[i]);
+            if (sub !is null && HasLabel(sub, txt)) return true;
         }
         return false;
     }
@@ -165,9 +170,10 @@ namespace UINav {
     0/ Childs[0] (CControlFrame@) > <CControlFrame@> "#0" // Full WidgetUI Container
     1/ Childs[1] (CControlFrame@) > <CControlFrame@> "#1" // Widget Records Only // #0 is the button to hide the widget
 */
-    const Path@ RECORDS_ROWS   = RECORDS_WIDGET + ParsePath("7");
 /*  7/ Childs[7] (CControlFrame@) > <CControlFrame@> "RecordsRows" // Actual dropdowns in the widget itself
+    0/ Childs[0] (CControlFrame@) > <CControlFrame@> "RecordsRows" // Just a container for the rows
 */
+    const Path@ RECORDS_ROWS = ParsePath("0/2/8/*/1/2/0/0/1/7/0/*");
 
     string g_targetLabel;
     bool   _MatchRow(CControlFrame@ n) { return HasLabel(n, g_targetLabel); }
@@ -178,7 +184,7 @@ namespace UINav {
     }
 
     int WidgetPlayerPB() {
-        CControlFrame@ row = PlayerRow();
+        CControlFrame@ row = PlayerRow();        
         if (row is null || row.Childs.Length < 8) return -1;
 
         CControlLabel@ lbl = cast<CControlLabel>(row.Childs[7]);
@@ -187,7 +193,3 @@ namespace UINav {
     }
 
 }
-
-/* ------------------ Legacy :ReallyMad: ------------------ */
-CControlFrame@ GetRecordsWidget_FullWidgetUI() { return UINav::Traverse(UINav::RECORDS_WIDGET); }
-int GetRecordsWidget_PlayerUIPB() { return UINav::WidgetPlayerPB(); }

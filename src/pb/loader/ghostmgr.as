@@ -1,20 +1,39 @@
 namespace GhostMgrHelper {
 
-    const uint16 O_CSmArenaInterfaceUI_GhostMgr = GetOffset("CSmArenaInterfaceUI", "ManialinkPage") - (0x518 - 0x500);
+    const uint CACHE_VALID_MS = 500;
 
-    CGameGhostMgrScript@ g_cached = null;
-    uint g_stamp = 0;
+    CGameGhostMgrScript@ s_cached = null;
+    uint64               s_stamp  = 0;
 
     CGameGhostMgrScript@ Get() {
-        if (g_cached !is null && Time::Now - g_stamp < 500) return g_cached;
+        if (s_cached !is null && (Time::Now - s_stamp) < CACHE_VALID_MS) return s_cached;
 
-        g_stamp = Time::Now;
-        @g_cached = null;
+        s_stamp  = Time::Now;
+        @s_cached = null;
 
-        CSmArenaClient@ pg = cast<CSmArenaClient>(GetApp().CurrentPlayground);
-        if (pg is null || pg.Interface is null) return null;
+        auto app = cast<CTrackMania>(GetApp());
+        if (app is null) return null;
 
-        @g_cached = cast<CGameGhostMgrScript>(Dev::GetOffsetNod(pg.Interface, O_CSmArenaInterfaceUI_GhostMgr));
-        return g_cached;
+        if (_Game::IsPlayingLocal()) {
+            CSmArenaRulesMode@ rules = cast<CSmArenaRulesMode>(app.PlaygroundScript);
+            if (rules !is null && rules.GhostMgr !is null) {
+                @s_cached = rules.GhostMgr;
+                return s_cached;
+            }
+        }
+
+        if (_Game::IsPlayingOnServer()) {
+            const uint16 O_CSmArenaInterfaceUI_GhostMgr = GetOffset("CSmArenaInterfaceUI", "ManialinkPage") - (0x518 - 0x500);
+
+            CSmArenaClient@ pg = cast<CSmArenaClient>(app.CurrentPlayground);
+            if (pg !is null && pg.Interface !is null) {
+                @s_cached = cast<CGameGhostMgrScript>(Dev::GetOffsetNod(pg.Interface, O_CSmArenaInterfaceUI_GhostMgr));
+
+                if (s_cached !is null) return s_cached;
+            }
+        }
+
+        return null;
     }
+
 }

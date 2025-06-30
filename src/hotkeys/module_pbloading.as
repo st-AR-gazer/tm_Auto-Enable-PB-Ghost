@@ -4,8 +4,8 @@ namespace Hotkey_PBLoadingModule {
     namespace Loader_Internal {
         bool ghostVisible = true;
 
-        void StartLoadProcess() { Loader::LoadPBFlow(); }
-        void HidePB()           { Loader::HidePB(); }
+        void StartLoadProcess() { Loader::StartPBFlow(); }
+        void HidePB()           { Loader::StopPBFlow(); }
 
         void TogglePB() {
             if (ghostVisible) {
@@ -47,8 +47,9 @@ namespace Hotkey_PBLoadingModule {
 }
 
 Hotkeys::IHotkeyModule@ g_pbMod;
-auto pbloadingmod_initializer = startnew(Hotkey_PBLoadingModule::Initialize);
 
-void Hotkey_PBLoadingModule_OnUnload() {
-    if (g_pbMod !is null) Hotkeys::UnregisterModule(Meta::ExecutingPlugin().Name, g_pbMod);
-}
+// Plugin entry for this module
+auto pbloadingmod_initializer = startnew(Hotkey_PBLoadingModule::Initialize);
+// Unload handler to unregister the module
+class Hotkey_PBLoadingModule_OnUnload { ~Hotkey_PBLoadingModule_OnUnload() { if (g_pbMod !is null) Hotkeys::UnregisterModule(Meta::ExecutingPlugin().Name, g_pbMod); } }
+Hotkey_PBLoadingModule_OnUnload pbloadingmod_unloader;

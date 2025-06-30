@@ -1,19 +1,7 @@
-/**
- * Thank you to XertroV for making G++ that could copy off of :upside_down:
- * Original file can be found here:
- * https://github.com/XertroV/tm-ghosts-plus-plus/blob/master/src/GhostClips.as
- */
-
-bool IsPBGhostPresent_Clips() {
-    auto mgr = GhostClipsMgr::Get(GetApp());
-    if (mgr is null) return false;
-    for (uint i = 0; i < mgr.Ghosts.Length; i++) {
-        string gName = mgr.Ghosts[i].GhostModel.GhostNickname;
-        if (gName.ToLower().Contains("personal best")) {
-            return true;
-        }
-    }
-    return false;
+uint16 GetOffset(const string &in className, const string &in memberName) {
+    auto ty = Reflection::GetType(className);
+    auto memberTy = ty.GetMember(memberName);
+    return memberTy.Offset;
 }
 
 NGameGhostClips_SMgr@ GetGhostClipsMgr(CGameCtnApp@ app) {
@@ -24,24 +12,14 @@ NGameGhostClips_SMgr@ GetGhostClipsMgr(CGameCtnApp@ app) {
 }
 
 namespace GhostClipsMgr {
-    const uint16 GhostsOffset = GetOffset("NGameGhostClips_SMgr", "Ghosts");
+    const uint16 GhostsOffset       = GetOffset("NGameGhostClips_SMgr", "Ghosts");
     const uint16 GhostInstIdsOffset = GhostsOffset + 0x10;
 
     NGameGhostClips_SMgr@ Get(CGameCtnApp@ app) {
         return GetGhostClipsMgr(app);
     }
 
-    array<NGameGhostClips_SClipPlayerGhost@> Find(NGameGhostClips_SMgr@ mgr, const string &in loginOrName) {
-        array<NGameGhostClips_SClipPlayerGhost@> ghosts;
-        for (uint i = 0; i < mgr.Ghosts.Length; i++) {
-            auto @pghost = mgr.Ghosts[i];
-            if (pghost.GhostModel.GhostLogin == loginOrName || pghost.GhostModel.GhostNickname == loginOrName) {
-                ghosts.InsertLast(pghost);
-            }
-        }
-        return ghosts;
-    }
-
+    // matches index of .Ghosts
     uint GetInstanceIdAtIx(NGameGhostClips_SMgr@ mgr, uint ix) {
         if (mgr is null) return uint(-1);
         auto bufOffset = GhostInstIdsOffset;
@@ -66,11 +44,25 @@ namespace GhostClipsMgr {
         // auto msb = Dev::ReadUInt32(bufPtr + (bufCapacity*4*2) + slot * 4) & 0xFF000000;
         // trace('msb: ' + msb);
     }
+
+    NGameGhostClips_SClipPlayerGhost@ GetGhostFromInstanceId(NGameGhostClips_SMgr@ mgr, uint instanceId) {
+        auto lsb = instanceId & 0x000FFFFF;
+        auto bufOffset = GhostInstIdsOffset;
+        // auto bufPtr = Dev::GetOffsetUint64(mgr, bufOffset);
+        // auto nextIdOrSomething = Dev::GetOffsetUint32(mgr, bufOffset + 0x8);
+        // auto bufLen = Dev::GetOffsetUint32(mgr, bufOffset + 0xC);
+        auto bufCapacity = Dev::GetOffsetUint32(mgr, bufOffset + 0x10);
+        if (lsb > bufCapacity) {
+            warn('unexpectedly high ghost instance ID: ' + Text::Format("0x%08x", lsb));
+            return null;
+        }
+        for (uint i = 0; i < bufCapacity; i++) {
+            if (GetInstanceIdAtIx(mgr, i) == instanceId) {
+                return mgr.Ghosts[i];
+            }
+        }
+        return null;
+    }
 }
 
-uint16 GetOffset(const string &in className, const string &in memberName) {
-    // throw exception when something goes wrong.
-    auto ty = Reflection::GetType(className);
-    auto memberTy = ty.GetMember(memberName);
-    return memberTy.Offset;
-}
+// ty to XertroV for helping with understanding the clips mgr :PeepoHeart:

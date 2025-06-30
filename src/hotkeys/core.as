@@ -1,3 +1,5 @@
+auto hotkeys_initializer = startnew(Hotkeys::InitHotkeys);
+
 namespace Hotkeys {
 
     interface IHotkeyModule {
