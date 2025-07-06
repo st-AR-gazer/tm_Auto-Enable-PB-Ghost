@@ -25,7 +25,7 @@ namespace Loader::PBMonitor {
         }
     }
 
-        void _Tick() {
+    void _Tick() {
         CGameCtnApp@ app = GetApp();
         if (app.RootMap is null) return;
 
@@ -64,12 +64,54 @@ namespace Loader::PBMonitor {
 
         if (gameFastest < storedFastest) {
             UnloadPluginGhosts();
-            if (!Loader::Remote::AlreadyAskedLB(g_mapUid)) {
-                Loader::Remote::MarkAskedLB(g_mapUid);
-                Loader::Remote::DownloadPBFromLeaderboard(g_mapUid);
-            }
+            _CacheGamePB(gameFastest);
             return;
         }
+    }
+
+    void _CacheGamePB(uint targetTime) {
+        CGameCtnApp@ app = GetApp(); // if (app.Editor !is null) return; // debating whether or not to cache PBs in editor mode xdd
+        CGameCtnNetwork@ net = cast<CGameCtnNetwork>(app.Network); if (net is null) return;
+        CGameManiaAppPlayground@ cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground); if (cmap is null) return;
+        CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(cmap.DataFileMgr); if (dfm is null) return;
+
+        CGameGhostScript@ ghost = null;
+        for (uint i = 0; i < dfm.Ghosts.Length; ++i) {
+            CGameGhostScript@ g = cast<CGameGhostScript>(dfm.Ghosts[i]);
+            if (g is null) continue;
+
+            if (g.Nickname != GetApp().LocalPlayerInfo.Name) continue;
+            if (g.Result.Time != targetTime) continue;
+
+            @ghost = g;
+            break;
+        }
+        if (ghost is null) return;
+
+        log("Caching PB ghost for " + g_mapUid + " with time " + targetTime + " ms | nickname: " + ghost.Nickname + " | trigram: " + ghost.Trigram + " | id: " + ghost.IdName + ")", LogLevel::Info, 91, "_CacheGamePB", "", "\\$f80");
+
+        string baseDir = IO::FromUserGameFolder("Replays_Offload/zzAutoEnablePBGhost/improvements/");
+        IO::CreateFolder(baseDir);
+
+        string fileName = g_mapUid + "_" + targetTime + ".Replay.Gbx";
+        string fullPath = baseDir + fileName;
+
+        string  origIdName   = ghost.IdName;
+        string  origNick     = ghost.Nickname;
+        string  origTrigram  = ghost.Trigram;
+
+        CGameGhostScript@ ghost = Loader::GhostIO::DecoratePB(ghost);
+
+        dfm.Replay_Save(fullPath, app.RootMap, ghost);
+        yield();
+
+        ghost.IdName   = origIdName;
+        ghost.Nickname = origNick;
+        ghost.Trigram  = origTrigram;
+
+        Database::AddRecordFromLocalFile(fullPath, targetTime, g_mapUid);
+
+        log("Cached new PB replay to " + fullPath, LogLevel::Info, 114, "_CacheGamePB", "", "\\$f80");
     }
 
     void _DeduplicatePluginGhosts() {
@@ -158,8 +200,7 @@ namespace Loader::PBMonitor {
     }
 
     bool _IsPluginGhost(const string &in nick) { return nick.Contains("$g$h$o$s$t$"); }
-
-    bool _IsGameGhost(const string &in nick) { return nick.StartsWith("?") || nick.StartsWith("$7FA"); }
+    bool _IsGameGhost(const string &in nick) { return nick.StartsWith("") || nick.StartsWith("$7FA"); }
 
     int _HintedPB() {
         int v1 = _Game::CurrentPersonalBest(g_mapUid);
@@ -227,5 +268,5 @@ namespace Loader::PBMonitor {
         }
     }
 
-    const bool HideSlowerGamePB = false;
+    const bool HideSlowerGamePB = true;
 }

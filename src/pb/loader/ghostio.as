@@ -6,7 +6,7 @@ namespace Loader::GhostIO {
 
     bool Load(const string &in filePath) {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 9, "Load", "", "\\$f80"); return false; }
 
         string lower = filePath.ToLower();
         if (lower.EndsWith(".replay.gbx")) {
@@ -14,7 +14,7 @@ namespace Loader::GhostIO {
         } else if (lower.EndsWith(".ghost.gbx")) {
             return FromGhost(filePath, gm);
         } else {
-            log("Unsupported file type: " + filePath, LogLevel::Error);
+            log("Unsupported file type: " + filePath, LogLevel::Error, 17, "Load", "", "\\$f80");
             return false;
         }
     }
@@ -23,7 +23,7 @@ namespace Loader::GhostIO {
         SourceFormat fmt = FromNodeType(rec.NodeType);
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 26, "Load", "", "\\$f80"); return false; }
 
         if (fmt == SourceFormat::ReplayFile) {
             return FromReplay(rec.Path, gm);
@@ -45,7 +45,7 @@ namespace Loader::GhostIO {
             _IO::File::CopyFileTo(srcPath, dstPath);
 
             if (!WaitUntilFileExists(dstPath, 2000)) {
-                log("CopyToReplays failed: " + dstPath, LogLevel::Error);
+                log("CopyToReplays failed: " + dstPath, LogLevel::Error, 48, "FromReplay", "", "\\$f80");
                 return false;
             }
             loadPath = dstPath;
@@ -53,14 +53,14 @@ namespace Loader::GhostIO {
         }
 
         auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        if (ps is null) { log("PlaygroundScript null (Replay)", LogLevel::Error); return false; }
+        if (ps is null) { log("PlaygroundScript null (Replay)", LogLevel::Error, 56, "FromReplay", "", "\\$f80"); return false; }
         CGameDataFileManagerScript@ dfm = ps.DataFileMgr;
 
         auto task = dfm.Replay_Load(loadPath);
         while (task.IsProcessing) { yield(); }
 
         if (!task.HasSucceeded) {
-            log("Replay_Load failed: " + task.ErrorCode, LogLevel::Error);
+            log("Replay_Load failed: " + task.ErrorCode, LogLevel::Error, 63, "FromReplay", "", "\\$f80");
             return false;
         }
 
@@ -83,14 +83,14 @@ namespace Loader::GhostIO {
         string url = "http://" + HOST + ":" + PORT + "/get_ghost/" + fname;
 
         auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        if (ps is null) { log("PlaygroundScript null (Ghost)", LogLevel::Error); return false; }
+        if (ps is null) { log("PlaygroundScript null (Ghost)", LogLevel::Error, 86, "FromGhost", "", "\\$f80"); return false; }
         CGameDataFileManagerScript@ dfm = ps.DataFileMgr;
 
         CWebServicesTaskResult_GhostScript@ task = dfm.Ghost_Download("", url);
         while (task.IsProcessing) { yield(); }
 
         if (!task.HasSucceeded) {
-            log("Ghost_Download failed: " + task.ErrorDescription, LogLevel::Error);
+            log("Ghost_Download failed: " + task.ErrorDescription, LogLevel::Error, 93, "FromGhost", "", "\\$f80");
             return false;
         }
 
@@ -109,6 +109,13 @@ namespace Loader::GhostIO {
                      "$7fa" <-- green‑ish,  default PB colour                                   */
         g.Nickname = "$fd8" + "Personal Best" + "$g$h$o$s$t$" + Math::Rand(0, 999);
         g.Trigram  = "PB" + S_markPluginLoadedPBs;
+    }
+
+    CGameGhostScript@ DecoratePB(const CGameGhostScript@ g) {
+        g.IdName   = "Personal best";
+        g.Nickname = "$fd8" + "Personal Best" + "$g$h$o$s$t$" + Math::Rand(0, 999);
+        g.Trigram  = "PB" + S_markPluginLoadedPBs;
+        return g;
     }
 
     bool WaitUntilFileExists(const string &in path, uint timeoutMs) {

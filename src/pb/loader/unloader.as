@@ -2,7 +2,7 @@ namespace Loader::Unloader {
 
     void RemoveAll() {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error); return; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 5, "RemoveAll", "", "\\$f80"); return; }
 
         auto list = Loader::GhostRegistry::Mutable();
         for (int i = int(list.Length) - 1; i >= 0; --i) {

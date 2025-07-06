@@ -256,4 +256,44 @@ namespace Database {
             }
         }
     }
+
+    ReplayRecord@ ParseReplay(const string &in fullPath) {
+        const string DOC_ROOT = IO::FromUserGameFolder("");
+        string rel = fullPath.StartsWith(DOC_ROOT) ? fullPath.SubStr(DOC_ROOT.Length) : fullPath;
+
+        CSystemFidFile@ fid = Fids::GetUser(rel);
+        if (fid is null) return null;
+
+        CMwNod@ nod = Fids::Preload(fid);
+        if (nod is null) return null;
+
+        ReplayRecord r;
+        r.FileName = Path::GetFileName(fullPath);
+        r.Path = fullPath;
+
+
+        // This isn't really nessary, but idk what Save_Replay actually saves the replay as, be that a ReplayRecord or a ReplayRecordInfo (or tbh could be something else entirely).
+        // So this is just what I gotta do :xdd:
+        CGameCtnReplayRecord@ rr = cast<CGameCtnReplayRecord>(nod);
+        if (rr !is null && rr.Ghosts.Length > 0 && rr.Challenge !is null) {
+            r.MapUid   = rr.Challenge.IdName;
+            r.PlayerLogin    = rr.Ghosts[0].GhostLogin;
+            r.PlayerNickname = rr.Ghosts[0].GhostNickname;
+            r.BestTime = rr.Ghosts[0].RaceTime;
+            r.NodeType = "CGameCtnReplayRecord";
+            return r;
+        }
+
+        CGameCtnReplayRecordInfo@ info = cast<CGameCtnReplayRecordInfo>(nod);
+        if (info !is null) {
+            r.MapUid   = info.MapUid;
+            r.PlayerLogin    = info.PlayerLogin;
+            r.PlayerNickname = info.PlayerNickname;
+            r.BestTime = info.BestTime;
+            r.NodeType = "CGameCtnReplayRecordInfo";
+            return r;
+        }
+
+        return null;
+    }
 }
