@@ -29,7 +29,7 @@ You can also index _just_ the `C:/[...]/Trackmania(2020)/Replays/` folder if you
    ![CLI Screenshot](https://github.com/user-attachments/assets/65065c06-6ac1-4770-b3a2-a013607fdf0f)
 
 3. Enter the folder that contains all your replays.
-   do not store my ~200 000 replays in the main Replays/ folder, as this massively increases boot time. So I have to enter this path:
+   I do not store my ~200 000 replays in the main Replays/ folder, as this massively increases boot time. So I have to enter this path:
    ```
    C:\Users\ar\Documents\Trackmania2020\Replays_Offload\
    ```
@@ -38,7 +38,7 @@ You can also index _just_ the `C:/[...]/Trackmania(2020)/Replays/` folder if you
 5. Optional: type your **login identifier** to filter out other players' replays (or use `*` to index everything).
    You can find your login on your profile at **trackmania.io**—it looks like `0QzczTHnSR-VBNcu46cN5g`.
 
-   > **OOPS:** a trackmania login-identifier is NOT the same as your login credentials, the login-identifier (internally just called a 'login') is the identifier used for your account, mine is `0QzczTHnSR-VBNcu46cN5g`, and you can find yours by login in on the `trackmania.io` and opening your user profile.
+   > **OOPS:** a trackmania login-identifier is NOT the same as your login credentials, the login-identifier (internally just called a 'login') is the identifier used for your account, mine is `0QzczTHnSR-VBNcu46cN5g`, and you can find yours by login in on the `trackmania.io` website and opening your user profile.
 
    ![image](https://github.com/user-attachments/assets/c40bb234-cf8c-43ca-b83d-496f17d378c8)
 
