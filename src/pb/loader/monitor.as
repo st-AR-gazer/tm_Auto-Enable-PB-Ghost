@@ -100,7 +100,7 @@ namespace Loader::PBMonitor {
         string  origNick     = ghost.Nickname;
         string  origTrigram  = ghost.Trigram;
 
-        CGameGhostScript@ ghost = Loader::GhostIO::DecoratePB(ghost);
+        Loader::GhostIO::DecoratePB(ghost);
 
         dfm.Replay_Save(fullPath, app.RootMap, ghost);
         yield();

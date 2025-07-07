@@ -102,17 +102,11 @@ namespace Loader::GhostIO {
         return true;
     }
 
-    void DecoratePB(CGameGhostScript@ g) {
+    CGameGhostScript@ DecoratePB(CGameGhostScript@ g) {
         g.IdName = "Personal best";
                   /* "$fd8" <-- yellow‑ish, used for testing
                      "$5d8" <-- green‑ish,  non‑default PB colour
                      "$7fa" <-- green‑ish,  default PB colour                                   */
-        g.Nickname = "$fd8" + "Personal Best" + "$g$h$o$s$t$" + Math::Rand(0, 999);
-        g.Trigram  = "PB" + S_markPluginLoadedPBs;
-    }
-
-    CGameGhostScript@ DecoratePB(const CGameGhostScript@ g) {
-        g.IdName   = "Personal best";
         g.Nickname = "$fd8" + "Personal Best" + "$g$h$o$s$t$" + Math::Rand(0, 999);
         g.Trigram  = "PB" + S_markPluginLoadedPBs;
         return g;

@@ -30,7 +30,7 @@ namespace HotkeyUI {
     string FormatExpr(const string &in raw, array<string>@ outTokens) {
         outTokens.Resize(0);
         uint i = 0;
-        while (i < raw.Length) {
+        while (i < uint(raw.Length)) {
             string c = raw.SubStr(i, 1);
             if (c == " " || c == "\t") {
                 ++i;
@@ -43,14 +43,14 @@ namespace HotkeyUI {
                 continue;
             }
 
-            if (c == "&" && i + 1 < raw.Length && raw.SubStr(i + 1, 1) == ">") {
+            if (c == "&" && i + 1 < uint(raw.Length) && raw.SubStr(i + 1, 1) == ">") {
                 outTokens.InsertLast("&>");
                 i += 2;
                 continue;
             }
 
             string word;
-            while (i < raw.Length) {
+            while (i < uint(raw.Length)) {
                 string d = raw.SubStr(i, 1);
                 if (d == " " || d == "\t" || d == "(" || d == ")" || d == "+" || d == "|" || d == "&") break;
                 word += d;
@@ -82,7 +82,7 @@ namespace HotkeyUI {
         return false;
     }
     bool HasUnsupported(const string &in s) {
-        for (uint i = 0; i < s.Length; ++i) {
+        for (uint i = 0; i < uint(s.Length); ++i) {
             if (!IsAllowed(uint8(s[i]))) return true;
         }
         return false;
