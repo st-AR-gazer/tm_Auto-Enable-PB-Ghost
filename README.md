@@ -21,7 +21,7 @@ You can also index _just_ the `C:/[...]/Trackmania(2020)/Replays/` folder if you
 
 ## Using the companion CLI (`pbghost-cli.exe`)
 
-1. Download **`pbghost-cli.exe`** from the [latest release](...) or directly from
+1. Download **`pbghost-cli.exe`** from the [latest release](https://github.com/st-AR-gazer/tm_Auto-Enable-PB-Ghost/releases/tag/v0.4.0) or directly from
    `github/st-ar-gazer/tm_Auto-Enable-PB-Ghost/pbghost-cli/pbghost-cli.exe`.
 
 2. Run the file -- you'll see a prompt like this:
