@@ -1,5 +1,7 @@
 auto mapmonitor_initializer = startnew(MapTracker::MapMonitor);
 
+bool allownessPassedForCurrentMap = false;
+
 namespace MapTracker {
     string oldMapUid = "";
 
@@ -14,7 +16,7 @@ namespace MapTracker {
                 if (get_CurrentMapUID() == "") { oldMapUid = ""; continue; }
                 while (!_Game::IsPlayingMap()) yield();
 
-                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 17, "MapMonitor", "", "\\$f80");
+                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 19, "MapMonitor", "", "\\$f80");
 
                 uint timeout = 500;
                 uint startTime = Time::Now;
@@ -29,10 +31,11 @@ namespace MapTracker {
                 if (status == AllowCheck::ConditionStatus::ALLOWED) {
                     
                     Loader::StartPBFlow();
-
+                    allownessPassedForCurrentMap = true;
 
                 } else {
                     NotifyWarn("You cannot load records on this map: " + AllowCheck::DissalowReason());
+                    allownessPassedForCurrentMap = false;
                 }
             }
 

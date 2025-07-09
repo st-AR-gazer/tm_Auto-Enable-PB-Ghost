@@ -18,7 +18,7 @@ namespace Database {
     array<ReplayRecord@>@ g_Pending = null;
 
     void EnsureOpen() {
-        if (g_Ready) return;
+        if (g_Ready) return; // If g_Ready is true then the database is already open and ready to use.
 
         IO::CreateFolder(DB_DIR);
         @g_Db = SQLite::Database(DB_PATH);
@@ -128,25 +128,32 @@ namespace Database {
     void InsertOne(ReplayRecord@ rec) {
         EnsureOpen();
         
-        auto stmt = g_Db.Prepare(
-            "INSERT OR IGNORE INTO replays "
-            "(MapUid,PlayerLogin,PlayerNick,FileName,Path,BestTime,"
-            " ReplayHash,NodeType,FoundThrough,AddedAtUnix) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?);"
-        );
+        try {
+            auto stmt = g_Db.Prepare(
+                "INSERT OR IGNORE INTO replays "
+                "(MapUid,PlayerLogin,PlayerNick,FileName,Path,BestTime,"
+                " ReplayHash,NodeType,FoundThrough,AddedAtUnix) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?);"
+            );
 
-        int col = 1;
-        stmt.Bind(col++, rec.MapUid);
-        stmt.Bind(col++, rec.PlayerLogin);
-        stmt.Bind(col++, rec.PlayerNickname);
-        stmt.Bind(col++, rec.FileName);
-        stmt.Bind(col++, rec.Path);
-        stmt.Bind(col++, int64(rec.BestTime));
-        stmt.Bind(col++, rec.ReplayHash);
-        stmt.Bind(col++, rec.NodeType);
-        stmt.Bind(col++, rec.FoundThrough);
-        stmt.Bind(col++, int64(Time::Stamp));
-        stmt.Execute();
+            int col = 1;
+            stmt.Bind(col++, rec.MapUid);
+            stmt.Bind(col++, rec.PlayerLogin);
+            stmt.Bind(col++, rec.PlayerNickname);
+            stmt.Bind(col++, rec.FileName);
+            stmt.Bind(col++, rec.Path);
+            stmt.Bind(col++, int64(rec.BestTime));
+            stmt.Bind(col++, rec.ReplayHash);
+            stmt.Bind(col++, rec.NodeType);
+            stmt.Bind(col++, rec.FoundThrough);
+            stmt.Bind(col++, int64(Time::Stamp));
+            stmt.Execute();
+
+            log("Database: Inserted replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Info, 152, "InsertOne", "", "\\$f80");
+        } catch {
+            log("Database: Failed to insert replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Error, 154, "InsertOne", "", "\\$f80");
+            return;
+        }
     }
 
     bool HashExists(const string &in hash) {

@@ -41,7 +41,7 @@ namespace PBVisibilityHook {
         @updateVisibilityHook = PBVisibilityUpdateHook("TMGame_Record_UpdatePBGhostVisibility");
         MLHook::RegisterMLHook(updateVisibilityHook, "TMGame_Record_UpdatePBGhostVisibility", true);
 
-        log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Debug, 44, "InitializeHook", "", "\\$f80");
+        // log("PBVisibilityHook: Hooks registered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Debug, 44, "InitializeHook", "", "\\$f80");
     }
     
     void UninitializeHook() {
@@ -53,7 +53,7 @@ namespace PBVisibilityHook {
             MLHook::UnregisterMLHookFromAll(updateVisibilityHook);
             @updateVisibilityHook = null;
         }
-        log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 56, "UninitializeHook", "", "\\$f80");
+        // log("PBVisibilityHook: Hooks unregistered for TogglePB and UpdatePBGhostVisibility.", LogLevel::Info, 56, "UninitializeHook", "", "\\$f80");
     }
 
     bool t_hook_shouldLoadPBnow = false;

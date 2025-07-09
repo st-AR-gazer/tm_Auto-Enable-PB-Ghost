@@ -2,11 +2,11 @@ namespace Loader::GhostIO {
 
     const string HOST   = "127.0.0.1";
     const uint   PORT   = 4567;
-    const string SRV_FS = IO::FromDataFolder("ghostsrv/");
+    const string SRV_FS = IO::FromUserGameFolder("Replays_Offload/AutoEnablePBGhost/ghostsrv/");
 
     bool Load(const string &in filePath) {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 9, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warn, 9, "Load", "", "\\$f80"); return false; }
 
         string lower = filePath.ToLower();
         if (lower.EndsWith(".replay.gbx")) {
@@ -23,7 +23,7 @@ namespace Loader::GhostIO {
         SourceFormat fmt = FromNodeType(rec.NodeType);
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 26, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warn, 26, "Load", "", "\\$f80"); return false; }
 
         if (fmt == SourceFormat::ReplayFile) {
             return FromReplay(rec.Path, gm);
@@ -52,15 +52,18 @@ namespace Loader::GhostIO {
             startnew(CoroutineFuncUserdataString(DeleteTempFileDelayed), loadPath);
         }
 
-        auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        if (ps is null) { log("PlaygroundScript null (Replay)", LogLevel::Error, 56, "FromReplay", "", "\\$f80"); return false; }
-        CGameDataFileManagerScript@ dfm = ps.DataFileMgr;
+        CGameCtnNetwork@ net = cast<CGameCtnNetwork>(GetApp().Network);
+        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 56, "FromReplay", "", "\\$f80"); return false; }
+        CGameManiaAppPlayground@ cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
+        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 58, "FromReplay", "", "\\$f80"); return false; }
+        CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(cmap.DataFileMgr);
+        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 60, "FromReplay", "", "\\$f80"); return false; }
 
         auto task = dfm.Replay_Load(loadPath);
         while (task.IsProcessing) { yield(); }
 
         if (!task.HasSucceeded) {
-            log("Replay_Load failed: " + task.ErrorCode, LogLevel::Error, 63, "FromReplay", "", "\\$f80");
+            log("Replay_Load failed: " + task.ErrorCode, LogLevel::Error, 66, "FromReplay", "", "\\$f80");
             return false;
         }
 
@@ -82,15 +85,18 @@ namespace Loader::GhostIO {
 
         string url = "http://" + HOST + ":" + PORT + "/get_ghost/" + fname;
 
-        auto ps = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
-        if (ps is null) { log("PlaygroundScript null (Ghost)", LogLevel::Error, 86, "FromGhost", "", "\\$f80"); return false; }
-        CGameDataFileManagerScript@ dfm = ps.DataFileMgr;
+        CGameCtnNetwork@ net = cast<CGameCtnNetwork>(GetApp().Network);
+        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 89, "FromGhost", "", "\\$f80"); return false; }
+        CGameManiaAppPlayground@ cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
+        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 91, "FromGhost", "", "\\$f80"); return false; }
+        CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(cmap.DataFileMgr);
+        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 93, "FromGhost", "", "\\$f80"); return false; }
 
         CWebServicesTaskResult_GhostScript@ task = dfm.Ghost_Download("", url);
         while (task.IsProcessing) { yield(); }
 
         if (!task.HasSucceeded) {
-            log("Ghost_Download failed: " + task.ErrorDescription, LogLevel::Error, 93, "FromGhost", "", "\\$f80");
+            log("Ghost_Download failed: " + task.ErrorDescription, LogLevel::Error, 99, "FromGhost", "", "\\$f80");
             return false;
         }
 

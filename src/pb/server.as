@@ -6,7 +6,7 @@ namespace Server {
 
     const string HTTP_BASE_URL = "http://" + HOSTNAME + ":" + PORT + "/";
 
-    const string serverDir = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/");
+    const string serverDir = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/ghostsrv/");
     const string serverDirectoryAutoMove = IO::FromUserGameFolder("Replays/zzAutoEnablePBGhost/tmp/");
 
     HttpServer@ server = null;
