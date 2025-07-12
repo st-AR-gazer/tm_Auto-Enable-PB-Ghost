@@ -1,6 +1,8 @@
 const float INDENT = 20.0f;
 const vec2  BAR_W  = vec2(520, 0);
 
+bool showDeleteConfirmModal = false;
+
 bool UI_ButtonColored(const string &in label, float r, float g, float b) {
     UI::PushStyleColor(UI::Col::Button,        vec4(r, g, b, 1));
     UI::PushStyleColor(UI::Col::ButtonHovered, vec4(r, g, b, 1) * 1.20f);
@@ -67,7 +69,7 @@ void RT_T_Indexing() {
         + IO::FromUserGameFolder("Replays_Offload/"));
 
     UI::BeginDisabled(Index::IsScanning());
-    if (UI_ButtonColored("Index folder", 0.55f, 0.80f, 0.60f)) {
+    if (UI_ButtonColored("Index folder", 0.35f, 0.60f, 0.40f)) {
         if (IO::FolderExists(S_customFolderIndexingLocation)) {
             Index::StartIndexing(S_customFolderIndexingLocation);
         } else {
@@ -78,7 +80,7 @@ void RT_T_Indexing() {
 
     UI::SameLine();
 
-    if (UI_ButtonColored("Delete database", 0.50f, 0.00f, 0.12f)) Database::DeleteDatabase();
+    if (UI_ButtonColored("Delete database", 0.50f, 0.00f, 0.12f)) { showDeleteConfirmModal = true; }
 
     if (Index::IsScanning() || Database::IsAddingToDatabase() || Processing::IsProcessing()) {
         UI::Text("\\$aaaIndexing in progress, please wait...");
@@ -147,5 +149,28 @@ void RT_T_Indexing() {
 
     } else {
         UI::Text("\\$888No scan yet.");
+    }
+    
+    if (showDeleteConfirmModal) { UI::OpenPopup("Delete Database Confirmation"); }
+    
+    if (UI::BeginPopupModal("Delete Database Confirmation", showDeleteConfirmModal, UI::WindowFlags::AlwaysAutoResize)) {
+        UI::Text("Are you sure you want to delete the database?");
+        UI::Text("\\$f80This action cannot be undone!");
+        UI::Separator();
+        
+        if (UI_ButtonColored("Yes, Delete", 0.50f, 0.00f, 0.12f)) {
+            Database::DeleteDatabase();
+            showDeleteConfirmModal = false;
+            UI::CloseCurrentPopup();
+        }
+        
+        UI::SameLine();
+        
+        if (UI::Button("Cancel")) {
+            showDeleteConfirmModal = false;
+            UI::CloseCurrentPopup();
+        }
+        
+        UI::EndPopup();
     }
 }

@@ -204,6 +204,31 @@ namespace Database {
         return mine ? 1 : 0;
     }
 
+    ReplayRecord@ GetReplayByHash(const string &in hash) {
+        EnsureReady();
+        SQLite::Statement@ st = g_Db.Prepare(
+            "SELECT MapUid,PlayerLogin,PlayerNick,FileName,Path,BestTime,"
+            "       ReplayHash,NodeType,FoundThrough "
+            "FROM replays WHERE ReplayHash = ?1 LIMIT 1");
+        st.Bind(1, hash);
+
+        if (!st.NextRow()) { st.Reset(); return null; }
+
+        ReplayRecord r;
+        r.MapUid         = st.GetColumnString("MapUid");
+        r.PlayerLogin    = st.GetColumnString("PlayerLogin");
+        r.PlayerNickname = st.GetColumnString("PlayerNick");
+        r.FileName       = st.GetColumnString("FileName");
+        r.Path           = st.GetColumnString("Path");
+        r.BestTime       = uint(st.GetColumnInt("BestTime"));
+        r.ReplayHash     = st.GetColumnString("ReplayHash");
+        r.NodeType       = st.GetColumnString("NodeType");
+        r.FoundThrough   = st.GetColumnString("FoundThrough");
+
+        st.Reset();
+        return r;
+    }
+
     string _localLogin() { return GetApp().LocalPlayerInfo.Login; }
     
     // -------------------------------------------------------------------------

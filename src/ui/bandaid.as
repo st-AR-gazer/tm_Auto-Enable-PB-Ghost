@@ -13,6 +13,9 @@ void RT_Settings() {
 }
 
 [Setting hidden]
+bool S_showPermissionWarnings = true;
+
+[Setting hidden]
 bool S_skipPathsWith_Archivist_InTheName = true;
 
 [Setting hidden]
@@ -28,10 +31,6 @@ string S_customFolderIndexingLocation = IO::FromUserGameFolder("Replays_Offload/
 string S_markPluginLoadedPBs = "very secret id";
 [Setting hidden]
 bool S_useLeaderboardWidgetAsAFallbackWhenAttemptingToLoadPBsOnAServer = false;
-[Setting hidden]
-bool S_useLeaderBoardAsLastResort = true;
-[Setting hidden]
-bool S_onlyLoadFastestPB = true;
 
 
 [Setting hidden]

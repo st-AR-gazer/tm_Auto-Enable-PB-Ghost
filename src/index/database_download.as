@@ -46,9 +46,9 @@ namespace Database {
         string hash = Crypto::MD5(buf);
         string finalPath = DL_FINAL_DIR + hash + ".Replay.Gbx";
 
-        if (IO::FileExists(finalPath)) { // Should probably be using Databse::HashExists(hash) instead xdd
+        if (IO::FileExists(finalPath) && Database::HashExists(hash)) {
             IO::Delete(tmpPath);
-            log("Duplicate replay ignored (hash exists) | hash: " + hash, LogLevel::Info, 51, "Coro_DownloadAndAdd", "", "\\$f80");
+            Loader::StartPBFlow();            
             return;
         }
 

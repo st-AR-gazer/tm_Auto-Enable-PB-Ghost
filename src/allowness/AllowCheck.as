@@ -1,61 +1,30 @@
-// https://patorjk.com/software/taag/#p=display&f=Small
-
 namespace AllowCheck {
-    interface IAllownessCheck {
-        void Initialize();
-        bool IsConditionMet();
-        string GetDisallowReason();
-        bool IsInitialized();
-    }
 
-    array<IAllownessCheck@> allownessModules;
-    bool isInitializing = false;
+    bool permissionsCheckInitialized = false;
+    uint permissionsCheckStartTime = 0;
+    uint permissionsCheckTimeout = 500;
 
-    enum ConditionStatus { ALLOWED, DISALLOWED, UNCHECKED }
-
-    void InitializeAllowCheck() {
-        if (isInitializing) { return; }
-        isInitializing = true;
-
-        while (allownessModules.Length > 0) {allownessModules.RemoveLast();}
-
-        // 
-
-        allownessModules.InsertLast(GamemodePBAllownessCheck::CreateInstance());
-        // allownessModules.InsertLast(GamemodeAllowness::CreateInstance());
-        // allownessModules.InsertLast(MapcommentAllowness::CreateInstance());
-        // allownessModules.InsertLast(MapUidAllowness::CreateInstance());
-
-        // 
-
-        startnew(InitializeAllModules);
-    }
-
-    void InitializeAllModules() {
-        for (uint i = 0; i < allownessModules.Length; i++) { allownessModules[i].Initialize(); }
-        isInitializing = false;
-    }
-
-    ConditionStatus ConditionCheckStatus() {
-        bool allInitialized = true;
-        bool allConditionsMet = true;
-        for (uint i = 0; i < allownessModules.Length; i++) {
-            auto module = allownessModules[i];
-            if (!module.IsInitialized()) { allInitialized = false; }
-            if (!module.IsConditionMet()) { allConditionsMet = false; }
+    bool IsPermissionsCheckComplete() {
+        if (!permissionsCheckInitialized) {
+            AllowCheck::InitializeAllowCheck();
+            permissionsCheckStartTime = Time::Now;
+            permissionsCheckInitialized = true;
         }
-        if (!allInitialized) return ConditionStatus::UNCHECKED;
-        if (!allConditionsMet) return ConditionStatus::DISALLOWED;
-        return ConditionStatus::ALLOWED;
+        
+        AllowCheck::ConditionStatus status = AllowCheck::ConditionCheckStatus();
+        
+        if (status != AllowCheck::ConditionStatus::UNCHECKED) {
+            permissionsCheckInitialized = false;
+            return true;
+        }
+        
+        if (Time::Now - permissionsCheckStartTime > permissionsCheckTimeout) {
+            NotifyWarn("Condition check timed out (" + permissionsCheckTimeout + " ms).");
+            permissionsCheckInitialized = false;
+            return true;
+        }
+        
+        return false;
     }
 
-    string DissalowReason() {
-        string reason = "";
-        for (uint i = 0; i < allownessModules.Length; i++) {
-            if (!allownessModules[i].IsConditionMet()) {
-                reason += allownessModules[i].GetDisallowReason() +  " ";
-            }
-        }
-        return reason.Trim().Length > 0 ? reason.Trim() : "Unknown reason.";
-    }
 }

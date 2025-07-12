@@ -20,7 +20,7 @@ namespace Loader::PBMonitor {
             if (Time::Now - g_lastCheck >= 750) {
                 g_lastCheck = Time::Now;
 
-                if (allownessPassedForCurrentMap) {
+                if (allownessPassedForCurrentFlowCall) {
                     _Tick();
                 } else {
                     UnloadPluginGhosts();
@@ -67,6 +67,7 @@ namespace Loader::PBMonitor {
 
         if (loadedPlugin == gameFastest) { UnloadPluginGhosts(); return; }
 
+        // print(gameFastest + " vs " + loadedPlugin + " vs " + storedFastest);
         if (gameFastest < storedFastest) {
             UnloadPluginGhosts();
             _CacheGamePB(gameFastest);
@@ -93,7 +94,7 @@ namespace Loader::PBMonitor {
         }
         if (ghost is null) return;
 
-        log("Caching PB ghost for " + g_mapUid + " with time " + targetTime + " ms | nickname: " + ghost.Nickname + " | trigram: " + ghost.Trigram + " | id: " + ghost.IdName + ")", LogLevel::Info, 96, "_CacheGamePB", "", "\\$f80");
+        log("Caching PB ghost for " + g_mapUid + " with time " + targetTime + " ms | nickname: " + ghost.Nickname + " | trigram: " + ghost.Trigram + " | id: " + ghost.IdName + ")", LogLevel::Info, 97, "_CacheGamePB", "", "\\$f80");
 
         string baseDir = IO::FromUserGameFolder("Replays_Offload/zzAutoEnablePBGhost/improvements/");
         IO::CreateFolder(baseDir);
@@ -116,7 +117,7 @@ namespace Loader::PBMonitor {
 
         Database::AddRecordFromLocalFile(fullPath, targetTime, g_mapUid);
 
-        log("Cached new PB replay to " + fullPath, LogLevel::Info, 119, "_CacheGamePB", "", "\\$f80");
+        log("Cached new PB replay to " + fullPath, LogLevel::Info, 120, "_CacheGamePB", "", "\\$f80");
     }
 
     void _DeduplicatePluginGhosts() {
@@ -147,7 +148,7 @@ namespace Loader::PBMonitor {
 
         for (uint j = 0; j < pluginInstIds.Length; ++j) {
             if (pluginInstIds[j] != fastestInstId) {
-                gm.Ghost_Remove(MwId(pluginInstIds[j]));
+                Loader::Unloader::RemoveGhost(gm, MwId(pluginInstIds[j]));
             }
         }
     }
@@ -247,7 +248,8 @@ namespace Loader::PBMonitor {
             if (!_IsPluginGhost(model.GhostNickname)) continue;
 
             uint instId = GhostClipsMgr::GetInstanceIdAtIx(mgr, i);
-            gm.Ghost_Remove(MwId(instId));
+
+            Loader::Unloader::RemoveGhost(gm, instId);
         }
     }
 
@@ -268,7 +270,7 @@ namespace Loader::PBMonitor {
 
             if (model.RaceTime > fastestAllowed) {
                 uint instId = GhostClipsMgr::GetInstanceIdAtIx(mgr, i);
-                gm.Ghost_Remove(MwId(instId));
+                Loader::Unloader::RemoveGhost(gm, MwId(instId));
             }
         }
     }

@@ -1,6 +1,6 @@
 auto mapmonitor_initializer = startnew(MapTracker::MapMonitor);
 
-bool allownessPassedForCurrentMap = false;
+bool allownessPassedForCurrentFlowCall = false;
 
 namespace MapTracker {
     string oldMapUid = "";
@@ -15,31 +15,49 @@ namespace MapTracker {
             if (oldMapUid != get_CurrentMapUID() && S_enableGhosts) {
                 if (get_CurrentMapUID() == "") { oldMapUid = ""; continue; }
                 while (!_Game::IsPlayingMap()) yield();
+                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 18, "MapMonitor", "", "\\$f80");
+                
+                // Permission check moved to the start of the PB loading flow
 
-                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 19, "MapMonitor", "", "\\$f80");
-
-                uint timeout = 500;
-                uint startTime = Time::Now;
-                AllowCheck::ConditionStatus status = AllowCheck::ConditionStatus::UNCHECKED;
-                AllowCheck::InitializeAllowCheck();
-                while (status == AllowCheck::ConditionStatus::UNCHECKED) {
-                    if (Time::Now - startTime > timeout) { NotifyWarn("Condition check timed out (" + timeout + " ms)."); break; }
-                    yield();
-                    status = AllowCheck::ConditionCheckStatus();
-                }
-
-                if (status == AllowCheck::ConditionStatus::ALLOWED) {
-                    
-                    Loader::StartPBFlow();
-                    allownessPassedForCurrentMap = true;
-
-                } else {
-                    NotifyWarn("You cannot load records on this map: " + AllowCheck::DissalowReason());
-                    allownessPassedForCurrentMap = false;
-                }
+                Loader::StartPBFlow();
             }
 
             oldMapUid = get_CurrentMapUID();
         }
     }
+}
+
+string get_CurrentMapUID() {
+    if (_Game::IsMapLoaded()) {
+        CTrackMania@ app = cast<CTrackMania>(GetApp());
+        if (app is null) return "";
+        CGameCtnChallenge@ map = app.RootMap;
+        if (map is null) return "";
+        return map.MapInfo.MapUid;
+    }
+    return "";
+}
+
+string get_CurrentMapName() {
+    if (_Game::IsMapLoaded()) {
+        CTrackMania@ app = cast<CTrackMania>(GetApp());
+        if (app is null) return "";
+        CGameCtnChallenge@ map = app.RootMap;
+        if (map is null) return "";
+        return map.MapInfo.Name;
+    }
+    return "";
+}
+
+string get_CurrentGamemode() {
+    if (_Game::IsMapLoaded()) {
+        CTrackMania@ app = cast<CTrackMania>(GetApp());
+        if (app is null) return "";
+        CGameCtnNetwork@ net = cast<CGameCtnNetwork>(app.Network);
+        if (net is null) return "";
+        CTrackManiaNetworkServerInfo@ cnsi = cast<CTrackManiaNetworkServerInfo>(net.ServerInfo);
+        if (cnsi is null) return "";
+        return cnsi.CurGameModeStr;
+    }
+    return "";
 }

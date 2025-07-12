@@ -20,4 +20,12 @@ namespace Loader::Unloader {
         return clip !is null;
     }
 
+    void RemoveGhost(CGameGhostMgrScript@ gm, MwId id) {
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 24, "RemoveGhost", "", "\\$f80"); return; }
+        if (id.Value == 0) return;
+
+        Loader::GhostRegistry::Forget(Loader::GhostRegistry::FindByInstanceId(id));
+        gm.Ghost_Remove(id);
+    }
+
 }
