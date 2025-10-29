@@ -78,7 +78,7 @@ namespace GamemodeAllowness {
             if (mode.Length == 0 || !IsBlacklisted(mode)) {
                 isAllowed = true;
             } else {
-                log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warn, 81, "OnMapLoad", "", "\\$f80");
+                log("Map loading disabled due to blacklisted mode: " + mode, LogLevel::Warning, 81, "OnMapLoad", "", "\\$f80");
                 isAllowed = false;
             }
         }

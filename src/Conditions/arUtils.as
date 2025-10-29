@@ -74,16 +74,11 @@ namespace _IO {
     }
 
     namespace File {
-        bool IsFile(const string &in path) {
-            if (IO::FileExists(path)) return true;
-            return false;
-        }
-
         void WriteFile(string _path, const string &in content, bool verbose = false) {
             string path = _path;
-            if (verbose) log("Writing to file: " + path, LogLevel::Info, 84, "WriteFile", "", "\\$f80");
+            if (verbose) log("Writing to file: " + path, LogLevel::Info, 79, "WriteFile", "", "\\$f80");
 
-            if (path.EndsWith("/") || path.EndsWith("\\")) { log("Invalid file path: " + path, LogLevel::Error, 86, "WriteFile", "", "\\$f80"); return; }
+            if (path.EndsWith("/") || path.EndsWith("\\")) { log("Invalid file path: " + path, LogLevel::Error, 81, "WriteFile", "", "\\$f80"); return; }
 
             if (!IO::FolderExists(Path::GetDirectoryName(path))) { IO::CreateFolder(Path::GetDirectoryName(path), true); }
 
@@ -106,15 +101,10 @@ namespace _IO {
             return path.SubStr(0, index);
         }
 
-        void WriteJsonFile(const string &in path, const Json::Value &in value) {
-            string content = Json::Write(value);
-            WriteFile(path, content);
-        }
-
         // Read from file
         string ReadFileToEnd(const string &in path, bool verbose = false) {
-            if (verbose) log("Reading file: " + path, LogLevel::Info, 116, "ReadFileToEnd", "", "\\$f80");
-            if (!IO::FileExists(path)) { log("File does not exist: " + path, LogLevel::Error, 117, "ReadFileToEnd", "", "\\$f80"); return ""; }
+            if (verbose) log("Reading file: " + path, LogLevel::Info, 106, "ReadFileToEnd", "", "\\$f80");
+            if (!IO::FileExists(path)) { log("File does not exist: " + path, LogLevel::Error, 107, "ReadFileToEnd", "", "\\$f80"); return ""; }
 
             IO::File file(path, IO::FileMode::Read);
             string content = file.ReadToEnd();
@@ -123,7 +113,7 @@ namespace _IO {
         }
         
         string ReadSourceFileToEnd(const string &in path, bool verbose = false) {
-            if (!IO::FileExists(path)) { log("File does not exist: " + path, LogLevel::Error, 126, "ReadSourceFileToEnd", "", "\\$f80"); return ""; }
+            if (!IO::FileExists(path)) { log("File does not exist: " + path, LogLevel::Error, 116, "ReadSourceFileToEnd", "", "\\$f80"); return ""; }
 
             IO::FileSource f(path);
             string content = f.ReadToEnd();
@@ -132,57 +122,32 @@ namespace _IO {
 
         // Move file
         void CopySourceFileToNonSource(const string &in originalPath, const string &in storagePath, bool verbose = false) {
-            if (verbose) log("Moving the file content", LogLevel::Info, 135, "CopySourceFileToNonSource", "", "\\$f80");
+            if (verbose) log("Moving the file content", LogLevel::Info, 125, "CopySourceFileToNonSource", "", "\\$f80");
             
             string fileContents = ReadSourceFileToEnd(originalPath, verbose);
             WriteFile(storagePath, fileContents, verbose);
 
-            if (verbose) log("Finished moving the file", LogLevel::Info, 140, "CopySourceFileToNonSource", "", "\\$f80");
+            if (verbose) log("Finished moving the file", LogLevel::Info, 130, "CopySourceFileToNonSource", "", "\\$f80");
 
             // TODO: Must check how IO::Move works with source files
         }
 
         // Copy file
         void CopyFileTo(const string &in source, const string &in destination, bool verbose = false) {
-            if (!IO::FileExists(source)) { if (verbose) log("Source file does not exist: " + source, LogLevel::Error, 147, "CopyFileTo", "", "\\$f80"); return; }
-            if (IO::FileExists(destination)) { if (verbose) log("Destination file already exists: " + destination, LogLevel::Error, 148, "CopyFileTo", "", "\\$f80"); return; }
+            if (!IO::FileExists(source)) { if (verbose) log("Source file does not exist: " + source, LogLevel::Error, 137, "CopyFileTo", "", "\\$f80"); return; }
+            if (IO::FileExists(destination)) { if (verbose) log("Destination file already exists: " + destination, LogLevel::Error, 138, "CopyFileTo", "", "\\$f80"); return; }
 
             string content = ReadFileToEnd(source, verbose);
             WriteFile(destination, content, verbose);
         }
 
-        // Rename file
-        void RenameFile(const string &in filePath, const string &in newFileName, bool verbose = false) {
-            if (verbose) log("Attempting to rename file: " + filePath, LogLevel::Info, 156, "RenameFile", "", "\\$f80");
-            if (!IO::FileExists(filePath)) { log("File does not exist: " + filePath, LogLevel::Error, 157, "RenameFile", "", "\\$f80"); return; }
-
-            string currentPath = filePath;
-            string newPath;
-
-            string sanitizedNewName = Path::SanitizeFileName(newFileName);
-
-            if (Directory::IsDirectory(newPath)) {
-                while (currentPath.EndsWith("/") || currentPath.EndsWith("\\")) {
-                    currentPath = currentPath.SubStr(0, currentPath.Length - 1);
-                }
-
-                string parentDirectory = Path::GetDirectoryName(currentPath);
-                newPath = Path::Join(parentDirectory, sanitizedNewName);
-            } else {
-                string directoryPath = Path::GetDirectoryName(currentPath);
-                string extension = Path::GetExtension(currentPath);
-                newPath = Path::Join(directoryPath, sanitizedNewName + extension);
-            }
-
-            IO::Move(currentPath, newPath);
-        }
     }
 
     void OpenFolder(const string &in path, bool verbose = false) {
         if (IO::FolderExists(path)) {
             OpenExplorerPath(path);
         } else {
-            if (verbose) log("Folder does not exist: " + path, LogLevel::Info, 185, "OpenFolder", "", "\\$f80");
+            if (verbose) log("Folder does not exist: " + path, LogLevel::Info, 150, "OpenFolder", "", "\\$f80");
         }
     }
 }
@@ -222,28 +187,6 @@ namespace _Game {
         return false;
     }
 
-    bool IsInEditor() {
-        CTrackMania@ app = cast<CTrackMania>(GetApp());
-        if (app is null) return false;
-
-        CSmArenaClient@ e = cast<CSmArenaClient>(app.Editor);
-        if (e !is null) return true;
-        return false;
-    }
-
-    bool IsPlayingInEditor() {
-        CTrackMania@ app = cast<CTrackMania>(GetApp());
-        if (app is null) return false;
-
-        CSmArenaClient@ e = cast<CSmArenaClient>(app.Editor);
-        if (e is null) return false;
-        
-        CSmArenaClient@ playground = cast<CSmArenaClient>(app.CurrentPlayground);
-        if (playground is null) return false;
-
-        return true;
-    }
-
     bool HasPersonalBest(const string &in mapUid, bool verbose = false) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
         string _mapUid = mapUid;
@@ -262,205 +205,34 @@ namespace _Game {
         CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
         int pbTime = scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
 
-        if (verbose) log(mapUid + " | " + pbTime, LogLevel::Debug, 265, "HasPersonalBest", "", "\\$f80");
+        if (verbose) log(mapUid + " | " + pbTime, LogLevel::Debug, 208, "HasPersonalBest", "", "\\$f80");
         return pbTime > 0;
     }
 
     int CurrentPersonalBest(const string &in mapUid, bool verbose = false) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
-        if (app is null) { if (verbose) log("app is null", LogLevel::Error, 271, "CurrentPersonalBest", "", "\\$f80"); return 0; }
+        if (app is null) { if (verbose) log("app is null", LogLevel::Error, 214, "CurrentPersonalBest", "", "\\$f80"); return 0; }
 
         string _mapUid = mapUid;
         if (_mapUid == "") {
             CGameCtnChallenge@ map = app.RootMap;
-            if (map is null || map.MapInfo.MapUid == "") { if (verbose) log("no map or UID", LogLevel::Error, 276, "CurrentPersonalBest", "", "\\$f80"); return 0; }
+            if (map is null || map.MapInfo.MapUid == "") { if (verbose) log("no map or UID", LogLevel::Error, 219, "CurrentPersonalBest", "", "\\$f80"); return 0; }
             _mapUid = map.MapInfo.MapUid;
         }
 
-        if (verbose) log("querying PB for UID '" + _mapUid + "'", LogLevel::Info, 280, "CurrentPersonalBest", "", "\\$f80");
+        if (verbose) log("querying PB for UID '" + _mapUid + "'", LogLevel::Info, 223, "CurrentPersonalBest", "", "\\$f80");
 
         CTrackManiaNetwork@ network = cast<CTrackManiaNetwork>(app.Network);
-        if (network.ClientManiaAppPlayground is null) { if (verbose) log("no playground available", LogLevel::Error, 283, "CurrentPersonalBest", "", "\\$f80"); return 0; }
+        if (network.ClientManiaAppPlayground is null) { if (verbose) log("no playground available", LogLevel::Error, 226, "CurrentPersonalBest", "", "\\$f80"); return 0; }
 
         CGameUserManagerScript@ userMgr = network.ClientManiaAppPlayground.UserMgr;
         MwId userId = (userMgr.Users.Length > 0) ? userMgr.Users[0].Id : MwId(uint(-1));
-        if (verbose) log("using user ID " + userId.GetName(), LogLevel::Debug, 287, "CurrentPersonalBest", "", "\\$f80");
+        if (verbose) log("using user ID " + userId.GetName(), LogLevel::Debug, 230, "CurrentPersonalBest", "", "\\$f80");
 
         CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
         int pbTime = scoreMgr.Map_GetRecord_v2(userId, _mapUid, "PersonalBest", "", "TimeAttack", "");
 
-        if (verbose) log("result = " + pbTime, LogLevel::Info, 292, "CurrentPersonalBest", "", "\\$f80");
+        if (verbose) log("result = " + pbTime, LogLevel::Info, 235, "CurrentPersonalBest", "", "\\$f80");
         return pbTime;
-    }
-
-    int GetPersonalBestTime() {
-        CTrackMania@ app = cast<CTrackMania>(GetApp());
-        CGameCtnChallenge@ map = app.RootMap;
-        if (map is null || map.MapInfo.MapUid == "") return 0;
-
-        CTrackManiaNetwork@ network = cast<CTrackManiaNetwork>(app.Network);
-        if (network.ClientManiaAppPlayground is null) return 0;
-
-        CGameUserManagerScript@ userMgr = network.ClientManiaAppPlayground.UserMgr;
-        MwId userId = (userMgr.Users.Length > 0) ? userMgr.Users[0].Id : MwId(uint(-1));
-
-        CGameScoreAndLeaderBoardManagerScript@ scoreMgr = network.ClientManiaAppPlayground.ScoreMgr;
-        return scoreMgr.Map_GetRecord_v2(userId, map.MapInfo.MapUid, "PersonalBest", "", "TimeAttack", "");
-    }
-}
-
-namespace _Net {
-    dictionary downloadedData;
-
-    array<UserData@> userData;
-
-    class UserData {
-        string key;
-        string[] values;
-
-        UserData(const string &in _key, const string[] &_values) {
-            key = _key;
-            values = _values;
-        }
-    }
-
-    void GetRequestToEndpoint(const string &in url, const string &in key) {
-        auto data = UserData(key, {url});
-        userData.InsertLast(data);
-        startnew(Hidden::Coro_GetRequestToEndpoint, @data);
-    }
-
-    void PostJsonToEndpoint(const string &in url, const string &in payload, const string &in key) {
-        auto data = UserData(key, {url, payload});
-        userData.InsertLast(data);
-        startnew(Hidden::Coro_PostJsonToEndpoint, @data);
-    }
-    
-    void DownloadFileToDestination(const string &in url, const string &in destination, const string &in key, const string &in overwriteFileName = "", bool noTmp = false) {
-        auto data = UserData(key, {url, destination, overwriteFileName, noTmp ? "true" : "false"});
-        userData.InsertLast(data);
-        startnew(Hidden::Coro_DownloadFileToDestination, @data);
-    }
-
-    namespace Hidden {
-        void Coro_GetRequestToEndpoint(ref@ _ud) {
-            UserData@ data = cast<UserData@>(_ud);
-
-            if (data.values.Length < 1) { log("Insufficient data in UserData for GetRequestToEndpoint", LogLevel::Error, 349, "Coro_GetRequestToEndpoint", "", "\\$f80"); return; }
-
-            string url = data.values[0];
-            string key = data.key;
-
-            Net::HttpRequest@ request = Net::HttpRequest();
-            request.Url = url;
-            request.Method = Net::HttpMethod::Get;
-            request.Start();
-
-            while (!request.Finished()) { yield(); }
-
-            if (request.ResponseCode() == 200) {
-                downloadedData[key] = request.String();
-                log("Successfully stored raw response for key: " + key, LogLevel::Info, 363, "Coro_GetRequestToEndpoint", "", "\\$f80");
-            } else {
-                log("Failed to fetch data from endpoint: " + url + ". Response code: " + request.ResponseCode(), LogLevel::Error, 365, "Coro_GetRequestToEndpoint", "", "\\$f80");
-                downloadedData[key] = "{\"error\": \"Failed to fetch data\", \"code\": " + request.ResponseCode() + "}";
-            }
-        }
-
-        void Coro_PostJsonToEndpoint(ref@ _ud) {
-            UserData@ data = cast<UserData@>(_ud);
-            if (data.values.Length < 1) { log("Insufficient data in UserData for PostJsonToEndpoint", LogLevel::Error, 372, "Coro_PostJsonToEndpoint", "", "\\$f80"); return; }
-
-            string url = data.values[0];
-            string payload = data.values[1];
-            string key = data.key;
-
-            Net::HttpRequest@ request = Net::HttpRequest();
-            request.Url = url;
-            request.Method = Net::HttpMethod::Post;
-            request.Body = payload;
-            request.Start();
-
-            while (!request.Finished()) { yield(); }
-
-            if (request.ResponseCode() == 200) {
-                downloadedData[key] = request.String();
-                log("Successfully stored raw response for key: " + key, LogLevel::Info, 388, "Coro_PostJsonToEndpoint", "", "\\$f80");
-            } else {
-                log("Failed to post JSON to endpoint: " + url + ". Response code: " + request.ResponseCode(), LogLevel::Error, 390, "Coro_PostJsonToEndpoint", "", "\\$f80");
-                downloadedData[key] = "{\"error\": \"Failed to fetch data\", \"code\": " + request.ResponseCode() + "}";
-            }
-        }
-
-        void Coro_DownloadFileToDestination(ref@ _ud) {
-            UserData@ data = cast<UserData@>(_ud);
-            if (data.values.Length < 4) { log("Insufficient data in UserData for DownloadFileToDestination", LogLevel::Error, 397, "Coro_DownloadFileToDestination", "", "\\$f80"); return; }
-
-            string url = data.values[0];
-            string destination = data.values[1];
-            string overwriteFileName = data.values[2];
-            bool noTmp = data.values[3] == "true";
-
-            destination = Path::GetDirectoryName(destination);
-
-            Net::HttpRequest@ request = Net::HttpRequest();
-            request.Url = url;
-            request.Method = Net::HttpMethod::Get;
-            request.Start();
-
-            while (!request.Finished()) { yield(); }
-
-            if (request.ResponseCode() == 200) {
-                string contentDisposition = Json::Write(request.ResponseHeaders().ToJson().Get("content-disposition"));
-                string fileName = overwriteFileName;
-
-                if (fileName == "") {
-                    if (contentDisposition != "") {
-                        int index = contentDisposition.IndexOf("filename=");
-                        if (index != -1) {
-                            fileName = contentDisposition.SubStr(index + 9);
-                            fileName = fileName.Trim();
-                            fileName = fileName.Replace("\"", "");
-                        }
-                    }
-
-                    if (fileName == "") {
-                        fileName = Path::GetFileName(url);
-                    }
-                }
-
-                destination = Path::Join(destination, fileName);
-                if (destination.EndsWith("/") || destination.EndsWith("\\")) {
-                    destination = destination.SubStr(0, destination.Length - 1);
-                }
-
-                string tmpPath = Path::Join(IO::FromUserGameFolder(""), fileName);
-
-                request.SaveToFile(tmpPath);
-                _IO::File::CopyFileTo(tmpPath, destination);
-
-                if (!IO::FileExists(tmpPath)) { log("Failed to save file to: " + tmpPath, LogLevel::Error, 442, "Coro_DownloadFileToDestination", "", "\\$f80"); return; }
-
-                if (!IO::FileExists(destination)) { log("Failed to move file to: " + destination, LogLevel::Error, 444, "Coro_DownloadFileToDestination", "", "\\$f80"); return; }
-
-                IO::Delete(tmpPath);
-
-                if (!IO::FileExists(tmpPath) && IO::FileExists(destination)) {
-                    log("File downloaded successfully, saving " + fileName + " to: " + destination, LogLevel::Info, 449, "Coro_DownloadFileToDestination", "", "\\$f80");
-
-                    downloadedData[data.key] = destination;
-
-                    while (true) {
-                        sleep(10000);
-                        array<string> keys = downloadedData.GetKeys();
-                        for (uint i = 0; i < keys.Length; i++) {
-                            downloadedData.Delete(keys[i]);
-                        }
-                    }
-                }
-            } else {
-                log("Failed to download file. Response code: " + request.ResponseCode(), LogLevel::Error, 462, "Coro_DownloadFileToDestination", "", "\\$f80");
-            }
-        }
     }
 }

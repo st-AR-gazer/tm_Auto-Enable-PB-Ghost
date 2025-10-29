@@ -6,7 +6,7 @@ namespace Loader::GhostIO {
 
     bool Load(const string &in filePath) {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warn, 9, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 9, "Load", "", "\\$f80"); return false; }
 
         string lower = filePath.ToLower();
         if (lower.EndsWith(".replay.gbx")) {
@@ -23,7 +23,7 @@ namespace Loader::GhostIO {
         SourceFormat fmt = FromNodeType(rec.NodeType);
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warn, 26, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 26, "Load", "", "\\$f80"); return false; }
 
         if (fmt == SourceFormat::ReplayFile) {
             return FromReplay(rec.Path, gm);

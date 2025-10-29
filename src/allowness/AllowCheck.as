@@ -19,7 +19,7 @@ namespace AllowCheck {
         }
         
         if (Time::Now - permissionsCheckStartTime > permissionsCheckTimeout) {
-            NotifyWarn("Condition check timed out (" + permissionsCheckTimeout + " ms).");
+            NotifyWarning("Condition check timed out (" + permissionsCheckTimeout + " ms).");
             permissionsCheckInitialized = false;
             return true;
         }

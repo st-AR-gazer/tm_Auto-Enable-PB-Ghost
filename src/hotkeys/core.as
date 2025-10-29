@@ -235,7 +235,7 @@ namespace Hotkeys {
         }
 
         void Expect(const string &in tok) {
-            if (!Match(tok)) log("expected '" + tok + "' at " + ("" + p), LogLevel::Warn, 238, "Expect", "Hotkeys-Parse", "\\$f80");
+            if (!Match(tok)) log("expected '" + tok + "' at " + ("" + p), LogLevel::Warning, 238, "Expect", "Hotkeys-Parse", "\\$f80");
         }
 
         // 
@@ -314,7 +314,7 @@ namespace Hotkeys {
                 ++p;
             }
 
-            if (id.Length == 0) { /*log("key expected at " + ("" + p), LogLevel::Warn, 317, "Expect", "Hotkeys-Parse", "\\$f80");*/ return null; }
+            if (id.Length == 0) { /*log("key expected at " + ("" + p), LogLevel::Warning, 317, "Expect", "Hotkeys-Parse", "\\$f80");*/ return null; }
 
             int vk = _VK(id); if (vk >= 0) return KeyNode(vk);
             int gp = _GP(id); if (gp >= 0) return GPNode(gp);
@@ -322,7 +322,7 @@ namespace Hotkeys {
             int lit;
             if (Text::TryParseInt(id, lit, 0)) return KeyNode(lit);
 
-            log("unknown '" + id + "'", LogLevel::Warn, 325, "Expect", "Hotkeys-Parse", "\\$f80");
+            log("unknown '" + id + "'", LogLevel::Warning, 325, "Expect", "Hotkeys-Parse", "\\$f80");
             return null;
         }
 
@@ -404,7 +404,7 @@ namespace Hotkeys {
             if (ln.Length == 0 || ln.StartsWith("#")) continue;
 
             int eq = ln.IndexOf("=");
-            if (eq < 0) { log("no '=' at line " + (i + 1), LogLevel::Warn, 407, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            if (eq < 0) { log("no '=' at line " + (i + 1), LogLevel::Warning, 407, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
             string lhs = ln.SubStr(0, eq).Trim();
             string rhs = ln.SubStr(eq + 1).Trim();
 
@@ -418,14 +418,14 @@ namespace Hotkeys {
 
             int first = lhs.IndexOf(".");
             int last  = lhs.LastIndexOf(".");
-            if (first < 0 || last <= first) { log("plugin.module.action missing at line " + (i + 1), LogLevel::Warn, 421, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            if (first < 0 || last <= first) { log("plugin.module.action missing at line " + (i + 1), LogLevel::Warning, 421, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
             string plugin = lhs.SubStr(0, first).Trim().ToLower();
             string mod    = lhs.SubStr(first + 1, last - first - 1).Trim().ToLower();
             string act    = lhs.SubStr(last + 1).Trim();
 
             Hotkeys::Parser p(rhs);
             Hotkeys::Expr@ root = p.Parse();
-            if (root is null) { log("parse error in '" + rhs + "' at line " + (i + 1), LogLevel::Warn, 428, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
+            if (root is null) { log("parse error in '" + rhs + "' at line " + (i + 1), LogLevel::Warning, 428, "_Load", "Hotkeys-Warn", "\\$f80"); continue; }
 
             Hotkey hk;
             hk.pluginId = plugin;

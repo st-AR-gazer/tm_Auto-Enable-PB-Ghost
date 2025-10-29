@@ -24,6 +24,8 @@ namespace Loader::Unloader {
         if (gm is null) { log("GhostMgr unavailable.", LogLevel::Error, 24, "RemoveGhost", "", "\\$f80"); return; }
         if (id.Value == 0) return;
 
+        log("Removing ghost with ID: " + id.Value, LogLevel::Info, 27, "RemoveGhost", "", "\\$f80");
+
         Loader::GhostRegistry::Forget(Loader::GhostRegistry::FindByInstanceId(id));
         gm.Ghost_Remove(id);
     }

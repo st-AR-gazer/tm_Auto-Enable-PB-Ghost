@@ -73,7 +73,7 @@ void RT_T_Indexing() {
         if (IO::FolderExists(S_customFolderIndexingLocation)) {
             Index::StartIndexing(S_customFolderIndexingLocation);
         } else {
-            NotifyWarn("Folder does not exist!");
+            NotifyWarning("Folder does not exist!");
         }
     }
     UI::EndDisabled();

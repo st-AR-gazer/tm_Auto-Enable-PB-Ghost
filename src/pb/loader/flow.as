@@ -9,8 +9,8 @@ namespace Loader {
             PBMonitor::Start();
         
         } else {
-            if (S_showPermissionWarnings) NotifyWarn("You cannot load records on this map: " + AllowCheck::DissalowReason());
-            log("Allowness check failed: " + AllowCheck::DissalowReason(), LogLevel::Warn, 13, "StartPBFlow", "", "\\$f80");
+            if (S_showPermissionWarnings) NotifyWarning("You cannot load records on this map: " + AllowCheck::DissalowReason());
+            log("Allowness check failed: " + AllowCheck::DissalowReason(), LogLevel::Warning, 13, "StartPBFlow", "", "\\$f80");
             allownessPassedForCurrentFlowCall = false;
         }
     }

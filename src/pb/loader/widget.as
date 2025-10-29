@@ -192,4 +192,6 @@ namespace UINav {
         return ToMs(lbl.Label);
     }
 
+    // OOPS: WidgetPlayerPB seems to sometimes be returning the time set on the previous map, not the current one.
+    // On a game restart this was no longer the case, and I can no longer reproduce the issue :xdd:
 }

@@ -4,7 +4,7 @@ namespace Database {
     const string DL_FINAL_DIR = IO::FromUserGameFolder("Replays_Offload/zzAutoEnablePBGhost/downloaded/");
 
     void AddRecordFromUrl(const string &in url) {
-        if (url.Length == 0) { log("AddRecordFromUrl: empty URL", LogLevel::Warn, 7, "AddRecordFromUrl", "", "\\$f80"); return; }
+        if (url.Length == 0) { log("AddRecordFromUrl: empty URL", LogLevel::Warning, 7, "AddRecordFromUrl", "", "\\$f80"); return; }
         IO::CreateFolder(DL_TMP_DIR);
         IO::CreateFolder(DL_FINAL_DIR);
 
@@ -13,13 +13,13 @@ namespace Database {
 
     void Coro_DownloadAndAdd(const string &in url) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());
-        if (app is null) { return; }
+        if (app is null) { log("CTrackMania is null | download skipped (cannot save locally without this)", LogLevel::Error, 16, "Coro_DownloadAndAdd", "", "\\$f80"); return; }
 
         CGameCtnNetwork@ net = cast<CGameCtnNetwork>(app.Network);
-        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 19, "Coro_DownloadAndAdd", "", "\\$f80"); return; }
+        if (net is null) { log("CGameCtnNetwork is null | download skipped (cannot save locally without this)", LogLevel::Error, 19, "Coro_DownloadAndAdd", "", "\\$f80"); return; }
 
         CGameManiaAppPlayground@ cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
-        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 22, "Coro_DownloadAndAdd", "", "\\$f80"); return; }
+        if (cmap is null) { log("CGameManiaAppPlayground is null | download skipped (cannot save locally without this)", LogLevel::Error, 22, "Coro_DownloadAndAdd", "", "\\$f80"); return; }
 
         CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(cmap.DataFileMgr);
         if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 25, "Coro_DownloadAndAdd", "", "\\$f80"); return; }
@@ -61,8 +61,8 @@ namespace Database {
         rec.Path         = finalPath;
 
         InsertOne(rec);
-        log("Downloaded replay added to db (" + rec.MapUid + ", " + rec.BestTime + " ms).", LogLevel::Info, 64, "Coro_DownloadAndAdd", "", "\\$f80");
-        log("Replay saved to: " + finalPath + "from URL: " + url + " with tmp path: " + tmpPath, LogLevel::Debug, 65, "Coro_DownloadAndAdd", "", "\\$f80");
+        log("Downloaded replay added to db (" + rec.MapUid + ", " + rec.BestTime + " ms, " + ghost.Nickname + ").", LogLevel::Info, 64, "Coro_DownloadAndAdd", "", "\\$f80");
+        log("Replay saved to: " + finalPath + " from URL: " + url + " with tmp path: " + tmpPath, LogLevel::Debug, 65, "Coro_DownloadAndAdd", "", "\\$f80");
         yield(5);
         
         Loader::StartPBFlow();

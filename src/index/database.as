@@ -18,6 +18,7 @@ namespace Database {
     array<ReplayRecord@>@ g_Pending = null;
 
     void EnsureOpen() {
+        log("Ensuring database is open...", LogLevel::Debug, 21, "EnsureOpen", "", "\\$f80");
         if (g_Ready) return; // If g_Ready is true then the database is already open and ready to use.
 
         IO::CreateFolder(DB_DIR);
@@ -72,7 +73,7 @@ namespace Database {
         if (recs is null || recs.Length == 0) return;
         EnsureOpen();
 
-        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warn, 75, "AddRecords", "", "\\$f80"); return; }
+        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warning, 76, "AddRecords", "", "\\$f80"); return; }
 
         g_Adding   = true;
         g_AddTot   = recs.Length;
@@ -122,7 +123,7 @@ namespace Database {
         g_Db.Execute("COMMIT;");
         g_Adding = false;
         @g_Pending = null;
-        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 125, "Coro_Add", "", "\\$f80");
+        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 126, "Coro_Add", "", "\\$f80");
     }
 
     void InsertOne(ReplayRecord@ rec) {
@@ -149,9 +150,9 @@ namespace Database {
             stmt.Bind(col++, int64(Time::Stamp));
             stmt.Execute();
 
-            log("Database: Inserted replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Info, 152, "InsertOne", "", "\\$f80");
+            log("Database: Inserted replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Info, 153, "InsertOne", "", "\\$f80");
         } catch {
-            log("Database: Failed to insert replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Error, 154, "InsertOne", "", "\\$f80");
+            log("Database: Failed to insert replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Error, 155, "InsertOne", "", "\\$f80");
             return;
         }
     }

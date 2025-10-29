@@ -29,7 +29,7 @@ namespace Server {
         log("Route: " + route, LogLevel::Info, 29, "StartHttpServer", "", "\\$f80");
         log("Data length: " + data.Length, LogLevel::Info, 30, "StartHttpServer", "", "\\$f80");
         if (route.StartsWith('/get_ghost/')) return HandleGetGhost(type, route, headers, data);
-        log("Did not find route.", LogLevel::Warn, 32, "StartHttpServer", "", "\\$f80");
+        log("Did not find route.", LogLevel::Warning, 32, "StartHttpServer", "", "\\$f80");
         return _404_Response;
     }
 
@@ -190,7 +190,7 @@ namespace Server {
         protected void RunRequest(Net::Socket@ client) {
             string reqLine;
             if (!client.ReadLine(reqLine)) {
-                log("RunRequest: could not read first line!", LogLevel::Warn, 193, "RunRequest", "", "\\$f80");
+                log("RunRequest: could not read first line!", LogLevel::Warning, 193, "RunRequest", "", "\\$f80");
                 return;
             }
             reqLine = reqLine.Trim();
@@ -203,7 +203,7 @@ namespace Server {
             auto reqRoute = reqParts[1];
             auto httpVersion = reqParts[2];
             if (!httpVersion.StartsWith("HTTP/1.")) {
-                log("Unsupported HTTP version: " + httpVersion, LogLevel::Warn, 206, "RunRequest", "", "\\$f80");
+                log("Unsupported HTTP version: " + httpVersion, LogLevel::Warning, 206, "RunRequest", "", "\\$f80");
                 return;
             }
             string data;
@@ -212,7 +212,7 @@ namespace Server {
                 data = client.ReadRaw(len);
             }
             if (client.Available() > 0) {
-                log("After reading headers and body there are " + client.Available() + " bytes remaining!", LogLevel::Warn, 215, "RunRequest", "", "\\$f80");
+                log("After reading headers and body there are " + client.Available() + " bytes remaining!", LogLevel::Warning, 215, "RunRequest", "", "\\$f80");
             }
             HttpResponse@ resp = HttpResponse();
             try {
@@ -257,7 +257,7 @@ namespace Server {
         protected void AddHeader(dictionary@ d, const string &in line) {
             auto parts = line.Split(":", 2);
             if (parts.Length < 2) {
-                log("Header line failed to parse: " + line + " // " + parts[0], LogLevel::Warn, 260, "AddHeader", "", "\\$f80");
+                log("Header line failed to parse: " + line + " // " + parts[0], LogLevel::Warning, 260, "AddHeader", "", "\\$f80");
             } else {
                 d[parts[0]] = parts[1];
                 if (parts[0].ToLower().Contains("authorization")) {
