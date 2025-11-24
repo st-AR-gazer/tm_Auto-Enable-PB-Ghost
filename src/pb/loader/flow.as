@@ -16,6 +16,7 @@ namespace Loader {
     }
 
     void StopPBFlow() {
+        log("Stopping PB Flow and unloading plugin ghosts.", LogLevel::Debug, 19, "StopPBFlow", "", "\\$f80");
         PBMonitor::Stop();
         Unloader::RemoveAll();
     }

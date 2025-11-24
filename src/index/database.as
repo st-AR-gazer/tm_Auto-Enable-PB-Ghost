@@ -18,8 +18,8 @@ namespace Database {
     array<ReplayRecord@>@ g_Pending = null;
 
     void EnsureOpen() {
-        log("Ensuring database is open...", LogLevel::Debug, 21, "EnsureOpen", "", "\\$f80");
         if (g_Ready) return; // If g_Ready is true then the database is already open and ready to use.
+        log("Ensuring database is open...", LogLevel::Debug, 22, "EnsureOpen", "", "\\$f80");
 
         IO::CreateFolder(DB_DIR);
         @g_Db = SQLite::Database(DB_PATH);

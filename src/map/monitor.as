@@ -27,6 +27,10 @@ namespace MapTracker {
     }
 }
 
+string get_PreviousMapUID() {
+    return MapTracker::oldMapUid;
+}
+
 string get_CurrentMapUID() {
     if (_Game::IsMapLoaded()) {
         CTrackMania@ app = cast<CTrackMania>(GetApp());

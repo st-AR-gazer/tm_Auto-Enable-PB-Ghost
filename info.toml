@@ -1,8 +1,9 @@
 [meta]
 name = "Auto Enable PB Ghost"
 author = "ar"
-version = "0.4.3"
+version = "0.4.3.1"
 category = "Utilities"
+siteid = 648
 
 [script]
 dependencies = [ "MLHook", "NadeoServices" ]

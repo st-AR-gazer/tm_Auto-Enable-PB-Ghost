@@ -154,6 +154,7 @@ namespace Loader::PBMonitor {
     }
 
     uint _FastestStoredTime() {
+        if (get_CurrentMapUID() != get_PreviousMapUID()) return 0xFFFFFFFF;
         auto reps = Database::GetReplays(g_mapUid);
         uint best = 0xFFFFFFFF;
 
@@ -163,28 +164,27 @@ namespace Loader::PBMonitor {
         return best;
     }
 
-        uint _BestLoadedPluginTime() {
-            auto list = Loader::GhostRegistry::All();
-            uint best = 0xFFFFFFFF;
+    uint _BestLoadedPluginTime() {
+        auto list = Loader::GhostRegistry::All();
+        uint best = 0xFFFFFFFF;
 
-            for (uint i = 0; i < list.Length; ++i) {
-                if (list[i].durationMs < best) best = list[i].durationMs;
-            }
-            if (best < 0xFFFFFFFF) return best;
-
-            NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
-            if (mgr is null) return 0xFFFFFFFF;
-
-            for (uint i = 0; i < mgr.Ghosts.Length; ++i) {
-                auto clip = mgr.Ghosts[i]; if (clip is null) continue;
-                CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
-
-                if (!_IsPluginGhost(model.GhostNickname)) continue;
-                if (model.RaceTime < best) best = model.RaceTime;
-            }
-            return best;
+        for (uint i = 0; i < list.Length; ++i) {
+            if (list[i].durationMs < best) best = list[i].durationMs;
         }
+        if (best < 0xFFFFFFFF) return best;
 
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
+        if (mgr is null) return 0xFFFFFFFF;
+
+        for (uint i = 0; i < mgr.Ghosts.Length; ++i) {
+            auto clip = mgr.Ghosts[i]; if (clip is null) continue;
+            CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
+
+            if (!_IsPluginGhost(model.GhostNickname)) continue;
+            if (model.RaceTime < best) best = model.RaceTime;
+        }
+        return best;
+    }
 
     uint _BestGameTime() {
         NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
@@ -233,6 +233,7 @@ namespace Loader::PBMonitor {
     }
 
     void UnloadPluginGhosts() {
+        log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 236, "UnloadPluginGhosts", "", "\\$f80");
         Loader::Unloader::RemoveAll();
 
         NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());

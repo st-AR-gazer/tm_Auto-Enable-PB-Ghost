@@ -19,8 +19,8 @@ namespace logging {
     /***********************************************/ // Change this wen using _build.py
 
 
-    [Setting category="z~DEV" name="Show Custom logs"   hidden] bool DEV_S_sCustom   = true;
-    [Setting category="z~DEV" name="Show Debug logs"    hidden] bool DEV_S_sDebug    = true;
+    [Setting category="z~DEV" name="Show Custom logs"   hidden] bool DEV_S_sCustom   = false;
+    [Setting category="z~DEV" name="Show Debug logs"    hidden] bool DEV_S_sDebug    = false;
     [Setting category="z~DEV" name="Show Info logs"     hidden] bool DEV_S_sInfo     = true;
     [Setting category="z~DEV" name="Show Notice logs"   hidden] bool DEV_S_sNotice   = true;
     [Setting category="z~DEV" name="Show Warning logs" hidden] bool DEV_S_sWarning  = true;
