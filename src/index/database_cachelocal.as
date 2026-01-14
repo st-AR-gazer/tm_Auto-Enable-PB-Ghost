@@ -7,14 +7,14 @@ namespace Database {
 
         {
             EnsureOpen();
-            auto stmt = g_Db.Prepare(
-                "SELECT 1 FROM replays WHERE ReplayHash = ? LIMIT 1;");
+            auto stmt = g_Db.Prepare("SELECT 1 FROM replays WHERE ReplayHash = ? LIMIT 1;");
             stmt.Bind(1, hash);
-            stmt.Execute();
             if (stmt.NextRow()) {
-                log("Replay already present in DB (hash duplicate): " + hash, LogLevel::Info, 15, "AddRecordFromLocalFile", "", "\\$f80");
+                log("Replay already present in DB (hash duplicate): " + hash, LogLevel::Info, 13, "AddRecordFromLocalFile", "", "\\$f80");
+                stmt.Reset();
                 return;
             }
+            stmt.Reset();
         }
 
         ReplayRecord@ rec = ParseReplay(fullPath);
