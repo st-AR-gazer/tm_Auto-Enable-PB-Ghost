@@ -5,6 +5,8 @@ namespace Database {
 
     SQLite::Database@ g_Db = null;
     bool g_Ready = false;
+    uint g_LastLogMapLoadId = 0;
+    string g_LastLogMapUid = "";
 
     bool g_Adding  = false;
     uint g_AddTot  = 0;
@@ -19,7 +21,7 @@ namespace Database {
 
     void EnsureOpen() {
         if (g_Ready) return; // If g_Ready is true then the database is already open and ready to use.
-        log("Ensuring database is open...", LogLevel::Debug, 22, "EnsureOpen", "", "\\$f80");
+        log("Ensuring database is open...", LogLevel::Debug, 24, "EnsureOpen", "", "\\$f80");
 
         IO::CreateFolder(DB_DIR);
         @g_Db = SQLite::Database(DB_PATH);
@@ -73,7 +75,7 @@ namespace Database {
         if (recs is null || recs.Length == 0) return;
         EnsureOpen();
 
-        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warning, 76, "AddRecords", "", "\\$f80"); return; }
+        if (g_Adding) { log("Database import already in progress | Ignoring duplicate call.", LogLevel::Warning, 78, "AddRecords", "", "\\$f80"); return; }
 
         g_Adding   = true;
         g_AddTot   = recs.Length;
@@ -123,7 +125,7 @@ namespace Database {
         g_Db.Execute("COMMIT;");
         g_Adding = false;
         @g_Pending = null;
-        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 126, "Coro_Add", "", "\\$f80");
+        log("Database: inserted " + g_AddDone + " row(s).", LogLevel::Info, 128, "Coro_Add", "", "\\$f80");
     }
 
     void InsertOne(ReplayRecord@ rec) {
@@ -150,9 +152,9 @@ namespace Database {
             stmt.Bind(col++, int64(Time::Stamp));
             stmt.Execute();
 
-            log("Database: Inserted replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Info, 153, "InsertOne", "", "\\$f80");
+            log("Database: Inserted replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Info, 155, "InsertOne", "", "\\$f80");
         } catch {
-            log("Database: Failed to insert replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Error, 155, "InsertOne", "", "\\$f80");
+            log("Database: Failed to insert replay record for " + rec.MapUid + " | " + rec.FileName, LogLevel::Error, 157, "InsertOne", "", "\\$f80");
             return;
         }
     }
@@ -245,7 +247,13 @@ namespace Database {
             "FROM replays WHERE MapUid = ?;"
         );
         stmt.Bind(1, mapUid);
-        stmt.Execute();
+
+        uint loadId = get_MapLoadId();
+        if (loadId != g_LastLogMapLoadId || mapUid != g_LastLogMapUid) {
+            g_LastLogMapLoadId = loadId;
+            g_LastLogMapUid = mapUid;
+            log("DB GetReplays: " + stmt.GetQueryExpanded(), LogLevel::Debug, 255, "_localLogin", "", "\\$f80");
+        }
 
         while (stmt.NextRow()) {
             ReplayRecord r;
@@ -260,6 +268,7 @@ namespace Database {
             r.FoundThrough   = stmt.GetColumnString("FoundThrough");
             result.InsertLast(r);
         }
+        stmt.Reset();
         return result;
     }
 
@@ -268,10 +277,10 @@ namespace Database {
 
         auto stmt = g_Db.Prepare("SELECT COUNT(*) AS Cnt FROM replays WHERE MapUid = ?;");
         stmt.Bind(1, mapUid);
-        stmt.Execute();
 
         uint cnt = 0;
         if (stmt.NextRow()) cnt = uint(stmt.GetColumnInt("Cnt"));
+        stmt.Reset();
 
         return cnt;
     }

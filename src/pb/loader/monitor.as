@@ -136,6 +136,7 @@ namespace Loader::PBMonitor {
             CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
 
             if (!_IsPluginGhost(model.GhostNickname)) continue;
+            if (_IsPBGhost(model.GhostNickname))      continue;
 
             uint instId = GhostClipsMgr::GetInstanceIdAtIx(mgr, i);
             pluginInstIds.InsertLast(instId);
@@ -154,7 +155,6 @@ namespace Loader::PBMonitor {
     }
 
     uint _FastestStoredTime() {
-        if (get_CurrentMapUID() != get_PreviousMapUID()) return 0xFFFFFFFF;
         auto reps = Database::GetReplays(g_mapUid);
         uint best = 0xFFFFFFFF;
 
@@ -207,6 +207,7 @@ namespace Loader::PBMonitor {
 
     bool _IsPluginGhost(const string &in nick) { return nick.Contains("$g$h$o$s$t$"); }
     bool _IsGameGhost(const string &in nick) { return nick.StartsWith("") || nick.StartsWith("$7FA"); }
+    bool _IsPBGhost(const string &in nick) { return nick.Contains("Personal Best") || nick.Contains("Personal best"); }
 
     int _HintedPB() {
         int v1 = _Game::CurrentPersonalBest(g_mapUid);
@@ -233,7 +234,7 @@ namespace Loader::PBMonitor {
     }
 
     void UnloadPluginGhosts() {
-        log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 236, "UnloadPluginGhosts", "", "\\$f80");
+        log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 237, "UnloadPluginGhosts", "", "\\$f80");
         Loader::Unloader::RemoveAll();
 
         NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
@@ -247,6 +248,7 @@ namespace Loader::PBMonitor {
             CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
 
             if (!_IsPluginGhost(model.GhostNickname)) continue;
+            if (_IsPBGhost(model.GhostNickname))      continue;
 
             uint instId = GhostClipsMgr::GetInstanceIdAtIx(mgr, i);
 
@@ -268,6 +270,7 @@ namespace Loader::PBMonitor {
             CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
             if (_IsPluginGhost(model.GhostNickname)) continue;
             if (!_IsGameGhost(model.GhostNickname))  continue;
+            if (_IsPBGhost(model.GhostNickname))     continue;
 
             if (model.RaceTime > fastestAllowed) {
                 uint instId = GhostClipsMgr::GetInstanceIdAtIx(mgr, i);

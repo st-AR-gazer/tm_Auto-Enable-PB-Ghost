@@ -4,6 +4,7 @@ bool allownessPassedForCurrentFlowCall = false;
 
 namespace MapTracker {
     string oldMapUid = "";
+    uint mapLoadId = 0;
 
     void MapMonitor() {
         while (true) {
@@ -15,7 +16,8 @@ namespace MapTracker {
             if (oldMapUid != get_CurrentMapUID() && S_enableGhosts) {
                 if (get_CurrentMapUID() == "") { oldMapUid = ""; continue; }
                 while (!_Game::IsPlayingMap()) yield();
-                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 18, "MapMonitor", "", "\\$f80");
+                ++mapLoadId;
+                log("Map changed to: " + get_CurrentMapUID(), LogLevel::Debug, 20, "MapMonitor", "", "\\$f80");
                 
                 // Permission check moved to the start of the PB loading flow
 
@@ -29,6 +31,10 @@ namespace MapTracker {
 
 string get_PreviousMapUID() {
     return MapTracker::oldMapUid;
+}
+
+uint get_MapLoadId() {
+    return MapTracker::mapLoadId;
 }
 
 string get_CurrentMapUID() {
