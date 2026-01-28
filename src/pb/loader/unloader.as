@@ -13,7 +13,7 @@ namespace Loader::Unloader {
     }
 
     bool IsInstanceIdAlive(MwId id) {
-        NGameGhostClips_SMgr@ clips = GhostClipsMgr::Get(GetApp());
+        NGameGhostClips_SMgr@ clips = GhostClipsMgr::GetSafe(GetApp());
         if (clips is null) return false;
 
         auto clip = GhostClipsMgr::GetGhostFromInstanceId(clips, id.Value);

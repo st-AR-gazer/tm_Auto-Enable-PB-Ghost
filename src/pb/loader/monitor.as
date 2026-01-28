@@ -3,6 +3,7 @@ namespace Loader::PBMonitor {
     bool   g_running   = false;
     string g_mapUid    = "";
     uint64 g_lastCheck = 0;
+    uint64 g_lastMapChangeMs = 0;
 
     void Start() {
         if (!g_running) {
@@ -32,13 +33,15 @@ namespace Loader::PBMonitor {
 
     void _Tick() {
         CGameCtnApp@ app = GetApp();
-        if (app.RootMap is null) return;
-
-        _DeduplicatePluginGhosts();
+        if (app is null || app.RootMap is null) return;
 
         string curUid = app.RootMap.MapInfo.MapUid;
-        if (curUid != g_mapUid) { g_mapUid = curUid; return; }
+        if (curUid != g_mapUid) { g_mapUid = curUid; g_lastMapChangeMs = Time::Now; return; }
 
+        if (g_lastMapChangeMs > 0 && Time::Now - g_lastMapChangeMs < 1500) return;
+
+        if (app.CurrentPlayground is null || app.PlaygroundScript is null) return;
+        _DeduplicatePluginGhosts();
 
         uint storedFastest = _FastestStoredTime();    // from DB
         uint gameFastest   = _BestGameTime();         // loaded by Nadeo
@@ -121,7 +124,11 @@ namespace Loader::PBMonitor {
     }
 
     void _DeduplicatePluginGhosts() {
-        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
+        CGameCtnApp@ app = GetApp();
+        if (app is null) return;
+        if (app.GameScene is null) return;
+
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(app);
         if (mgr is null) return;
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
@@ -131,7 +138,8 @@ namespace Loader::PBMonitor {
         uint fastestInstId = uint(-1);
         array<uint> pluginInstIds;
 
-        for (uint i = 0; i < mgr.Ghosts.Length; ++i) {
+        uint ghostsLen = mgr.Ghosts.Length;
+        for (uint i = 0; i < ghostsLen; ++i) {
             auto clip = mgr.Ghosts[i]; if (clip is null) continue;
             CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
 
@@ -173,7 +181,7 @@ namespace Loader::PBMonitor {
         }
         if (best < 0xFFFFFFFF) return best;
 
-        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(GetApp());
         if (mgr is null) return 0xFFFFFFFF;
 
         for (uint i = 0; i < mgr.Ghosts.Length; ++i) {
@@ -187,7 +195,7 @@ namespace Loader::PBMonitor {
     }
 
     uint _BestGameTime() {
-        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(GetApp());
         if (mgr is null) return 0xFFFFFFFF;
 
         uint best = 0xFFFFFFFF;
@@ -237,7 +245,7 @@ namespace Loader::PBMonitor {
         log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 237, "UnloadPluginGhosts", "", "\\$f80");
         Loader::Unloader::RemoveAll();
 
-        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(GetApp());
         if (mgr is null) return;
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
@@ -258,7 +266,7 @@ namespace Loader::PBMonitor {
 
 
     void _RemoveSlowerGameGhosts(uint fastestAllowed) {
-        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::Get(GetApp());
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(GetApp());
         if (mgr is null) return;
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();

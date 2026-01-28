@@ -4,19 +4,81 @@ uint16 GetOffset(const string &in className, const string &in memberName) {
     return memberTy.Offset;
 }
 
+uint16 GhostClipsMgrOffset = 0;
+const uint16 O_ISceneVis_HackScene = GetOffset("ISceneVis", "HackScene");
+
 NGameGhostClips_SMgr@ GetGhostClipsMgr(CGameCtnApp@ app) {
-    if (app.GameScene is null) return null;
-    auto nod = Dev::GetOffsetNod(app.GameScene, 0x120);
+    if (app is null || app.GameScene is null) return null;
+    if (GhostClipsMgrOffset == 0) {
+        TryReadingGhostClipsMgrOffset();
+        if (GhostClipsMgrOffset == 0) return null;
+    }
+    auto nod = Dev::GetOffsetNod(app.GameScene, GhostClipsMgrOffset);
     if (nod is null) return null;
     return Dev::ForceCast<NGameGhostClips_SMgr@>(nod).Get();
 }
 
+void TryReadingGhostClipsMgrOffset() {
+    if (GhostClipsMgrOffset != 0) return;
+    auto gcMgrClsId = Reflection::GetType("NGameGhostClips_SMgr").ID;
+    ManagerDesc@ desc = FindManager(gcMgrClsId);
+    if (desc is null) return;
+    GhostClipsMgrOffset = desc.Offset;
+}
+
+ManagerDesc@ FindManager(uint wantedTypeId) {
+    auto app = GetApp();
+    if (app is null || app.GameScene is null) return null;
+    auto mgrsListOff = O_ISceneVis_HackScene - 0x18;
+    auto mgrs = Dev::GetOffsetNod(app.GameScene, mgrsListOff);
+    if (mgrs is null) return null;
+    auto mgrCount = Dev::GetOffsetUint32(app.GameScene, mgrsListOff + 0x8);
+    for (uint i = 0; i < mgrCount; i++) {
+        auto typeId = Dev::GetOffsetUint32(mgrs, i * 0x18);
+        if (typeId != wantedTypeId) continue;
+        auto ptr = Dev::GetOffsetUint64(mgrs, i * 0x18 + 0x8);
+        auto mgrIx = Dev::GetOffsetUint32(mgrs, i * 0x18 + 0x10);
+        auto ty = Reflection::GetType(typeId);
+        auto name = (ty is null ? "Unknown" : ty.Name) + " (" + Text::Format("%08x", typeId) + ")";
+        return ManagerDesc(name, typeId, ptr, mgrIx);
+    }
+    return null;
+}
+
+class ManagerDesc {
+    string name;
+    uint32 typeId;
+    uint64 ptr;
+    uint32 index;
+    ManagerDesc(const string &in name, uint32 typeId, uint64 ptr, uint32 index) {
+        this.name = name;
+        this.typeId = typeId;
+        this.ptr = ptr;
+        this.index = index;
+    }
+    uint16 get_Offset() {
+        return index * 0x8 + 0x10;
+    }
+}
+
 namespace GhostClipsMgr {
+    const uint MAX_GHOSTS_LEN = 100000;
     const uint16 GhostsOffset       = GetOffset("NGameGhostClips_SMgr", "Ghosts");
     const uint16 GhostInstIdsOffset = GhostsOffset + 0x10;
 
     NGameGhostClips_SMgr@ Get(CGameCtnApp@ app) {
         return GetGhostClipsMgr(app);
+    }
+
+    NGameGhostClips_SMgr@ GetSafe(CGameCtnApp@ app) {
+        NGameGhostClips_SMgr@ mgr = Get(app);
+        if (mgr is null) return null;
+        uint len = mgr.Ghosts.Length;
+        if (len > MAX_GHOSTS_LEN) {
+            log("GhostClipsMgr length looks invalid (" + len + ") treating as null.", LogLevel::Warning, 78, "get_Offset", "", "\\$f80");
+            return null;
+        }
+        return mgr;
     }
 
     // matches index of .Ghosts

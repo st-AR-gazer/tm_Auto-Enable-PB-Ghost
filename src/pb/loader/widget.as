@@ -38,19 +38,12 @@ namespace UINav {
         return p;
     }
 
-    CControlFrame@ g_cachedRoot = null;
-    uint g_cacheStamp = 0;
-
     CControlFrame@ Root() {
-        if (g_cachedRoot !is null && Time::Now - g_cacheStamp < 10) return g_cachedRoot;
-
-        @g_cachedRoot = null;
-        g_cacheStamp  = Time::Now;
-
         CGameCtnApp@ app = GetApp();
         if (app is null || app.Viewport is null) return null;
 
         CDx11Viewport@ vp = cast<CDx11Viewport>(app.Viewport); // CGameGetApp.cast<CDx11Viewport@> Viewport (CHmsViewport@)
+        if (vp is null) return null;
         for (uint i = 0; i < vp.Overlays.Length; ++i) {
             CHmsZoneOverlay@ ov = cast<CHmsZoneOverlay>(vp.Overlays[i]); // cast<CHmsZoneOverlay@> Viewport.Overlays[n]
             if (ov is null || ov.UserData is null) continue;
@@ -64,10 +57,9 @@ namespace UINav {
             CControlFrameStyled@ rootStyled = cast<CControlFrameStyled>(scene.Mobils[0]); // cast<CScenerMobil@> Scene.Mobils[0]
             if (rootStyled is null) continue;
 
-            @g_cachedRoot = cast<CControlFrame>(rootStyled);
-            break;
+            return cast<CControlFrame>(rootStyled);
         }
-        return g_cachedRoot;
+        return null;
     }
 
     CControlFrame@ Traverse(const Path &in p, CControlFrame@ start = Root(), bool skipNull = true) {
@@ -137,7 +129,28 @@ namespace UINav {
 
     /********************* utils *************************/
     
+    string g_lastMapUid = "";
+    uint64 g_lastMapChange = 0;
+
+    bool UiReadyForWidget() {
+        if (!_Game::IsPlayingMap()) return false;
+        CGameCtnApp@ app = GetApp();
+        if (app is null || app.Viewport is null) return false;
+        if (app.LocalPlayerInfo is null) return false;
+
+        string uid = get_CurrentMapUID();
+        if (uid == "") return false;
+        if (uid != g_lastMapUid) {
+            g_lastMapUid = uid;
+            g_lastMapChange = Time::Now;
+            return false;
+        }
+
+        return (Time::Now - g_lastMapChange) > 1500;
+    }
+    
     CControlFrame@ TraverseMatchLabel(const Path &in p, const string &in label, CControlFrame@ start = Root()) {
+        if (start is null) return null;
         array<CControlFrame@> layer;
         layer.InsertLast(start);
 
@@ -208,15 +221,19 @@ namespace UINav {
 */
     const Path@ RECORDS_ROWS = ParsePath("0/2/8/*/1/2/0/0/1/7/0/*");
 
-    string g_targetLabel;
-    bool   _MatchRow(CControlFrame@ n) { return HasLabel(n, g_targetLabel); }
-
     CControlFrame@ PlayerRow(const string &in name = "") {
-        g_targetLabel = (name == "") ? GetApp().LocalPlayerInfo.Name : name;
-        return TraverseMatchLabel(RECORDS_ROWS, g_targetLabel);
+        if (!UiReadyForWidget()) return null;
+        string target = name;
+        if (target == "") {
+            CGameCtnApp@ app = GetApp();
+            if (app is null || app.LocalPlayerInfo is null) return null;
+            target = app.LocalPlayerInfo.Name;
+        }
+        return TraverseMatchLabel(RECORDS_ROWS, target);
     }
 
     int WidgetPlayerPB() {
+        if (!UiReadyForWidget()) return -1;
         CControlFrame@ row = PlayerRow();        
         if (row is null || row.Childs.Length < 8) return -1;
 
