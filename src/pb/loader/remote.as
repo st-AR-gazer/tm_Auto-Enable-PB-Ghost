@@ -6,7 +6,7 @@ namespace Loader::Remote {
     void MarkAskedLB(const string &in uid) { if (!AlreadyAskedLB(uid)) g_askedMaps.InsertLast(uid); }
 
     void DownloadPBFromLeaderboard(const string &in mapUid) {
-        startnew(CoroutineFuncUserdataString(_DownloadPBWorker), mapUid);
+        startnew(_DownloadPBWorker, mapUid);
     }
 
     bool HasPersonalBest(const string &in mapUid) {

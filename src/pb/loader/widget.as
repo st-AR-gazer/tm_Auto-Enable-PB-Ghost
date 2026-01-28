@@ -136,6 +136,39 @@ namespace UINav {
     }
 
     /********************* utils *************************/
+    
+    CControlFrame@ TraverseMatchLabel(const Path &in p, const string &in label, CControlFrame@ start = Root()) {
+        array<CControlFrame@> layer;
+        layer.InsertLast(start);
+
+        for (uint depth = 0; depth < p.steps.Length; ++depth) {
+            Step@ st = p.steps[depth];
+            array<CControlFrame@> next;
+
+            for (uint i = 0; i < layer.Length; ++i) {
+                CControlFrame@ node = layer[i];
+                if (node is null) continue;
+
+                if (st.wildcard) {
+                    for (uint c = 0; c < node.Childs.Length; ++c) {
+                        next.InsertLast(cast<CControlFrame>(node.Childs[c]));
+                    }
+                } else {
+                    int idx = st.index;
+                    if (idx < 0 || idx >= int(node.Childs.Length)) continue;
+                    next.InsertLast(cast<CControlFrame>(node.Childs[idx]));
+                }
+            }
+            layer = next;
+            if (layer.Length == 0) return null;
+        }
+
+        for (uint i = 0; i < layer.Length; ++i) {
+            if (HasLabel(layer[i], label)) return layer[i];
+        }
+
+        return null;
+    }
 
     bool HasLabel(CControlFrame@ n, const string &in txt) {
         if (n is null) return false;
@@ -180,7 +213,7 @@ namespace UINav {
 
     CControlFrame@ PlayerRow(const string &in name = "") {
         g_targetLabel = (name == "") ? GetApp().LocalPlayerInfo.Name : name;
-        return Traverse(RECORDS_ROWS, FramePredicate(@_MatchRow));
+        return TraverseMatchLabel(RECORDS_ROWS, g_targetLabel);
     }
 
     int WidgetPlayerPB() {

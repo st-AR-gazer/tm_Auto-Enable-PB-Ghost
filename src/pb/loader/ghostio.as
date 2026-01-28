@@ -49,7 +49,7 @@ namespace Loader::GhostIO {
                 return false;
             }
             loadPath = dstPath;
-            startnew(CoroutineFuncUserdataString(DeleteTempFileDelayed), loadPath);
+            startnew(DeleteTempFileDelayed, loadPath);
         }
 
         CGameCtnNetwork@ net = cast<CGameCtnNetwork>(GetApp().Network);

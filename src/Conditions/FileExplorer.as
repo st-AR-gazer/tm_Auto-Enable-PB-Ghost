@@ -1597,7 +1597,7 @@ namespace FileExplorer {
         bool isMaximized = false;
 
         void MaximizeWindow() {
-            vec2 screenSize = vec2(Draw::GetWidth(), Draw::GetHeight());
+            vec2 screenSize = vec2(Display::GetWidth(), Display::GetHeight());
             if (isMaximized) {
                 UI::SetWindowPos(originalWindowPos);
                 UI::SetWindowSize(originalWindowSize);
@@ -1619,7 +1619,7 @@ namespace FileExplorer {
         }
 
         void MinimizeWindow() {
-            vec2 screenSize = vec2(Draw::GetWidth(), Draw::GetHeight());
+            vec2 screenSize = vec2(Display::GetWidth(), Display::GetHeight());
             
             isMaximized = false;
 

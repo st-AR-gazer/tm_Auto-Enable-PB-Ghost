@@ -6,7 +6,7 @@ namespace Loader {
             string uid = get_CurrentMapUID();
             if (uid == "") return;
 
-            startnew(CoroutineFuncUserdataString(_Worker), uid);
+            startnew(_Worker, uid);
         }
 
         void _Worker(const string &in mapUid) {
@@ -58,7 +58,7 @@ namespace Loader {
         }
 
         void _LoadReplayAsync(const string &in path) {
-            startnew(CoroutineFuncUserdataString(_DoLoad), path);
+            startnew(_DoLoad, path);
         }
 
         void _DoLoad(const string &in path) {
