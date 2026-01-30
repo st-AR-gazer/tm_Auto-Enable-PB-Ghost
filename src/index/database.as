@@ -180,6 +180,19 @@ namespace Database {
         return mine;
     }
 
+    void UpdatePathByHash(const string &in hash, const string &in newPath) {
+        if (hash == "" || newPath == "") return;
+        EnsureOpen();
+        auto stmt = g_Db.Prepare(
+            "UPDATE replays SET Path = ?1, FileName = ?2 WHERE ReplayHash = ?3;"
+        );
+        stmt.Bind(1, newPath);
+        stmt.Bind(2, Path::GetFileName(newPath));
+        stmt.Bind(3, hash);
+        stmt.Execute();
+        stmt.Reset();
+    }
+
     void StoreHash(const string &in hash, bool mine) {
         EnsureReady();
         if (HashExists(hash)) { return; }

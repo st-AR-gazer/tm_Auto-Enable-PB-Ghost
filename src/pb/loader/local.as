@@ -45,7 +45,7 @@ namespace Loader {
             if (bestHint > 0) {
                 for (uint i = 0; i < replays.Length; ++i) {
                     if (int(replays[i].BestTime) == bestHint) {
-                        _LoadReplayAsync(replays[i].Path);
+                        _LoadReplayAsync(replays[i]);
                         return;
                     }
                 }
@@ -53,17 +53,34 @@ namespace Loader {
 
             ReplayRecord@ fastest = _FindFastestReplay(replays);
             if (fastest !is null) {
-                _LoadReplayAsync(fastest.Path);
+                _LoadReplayAsync(fastest);
             }
         }
 
-        void _LoadReplayAsync(const string &in path) {
-            startnew(_DoLoad, path);
+        void _LoadReplayAsync(ReplayRecord@ rec) {
+            if (rec is null) return;
+            string key = rec.ReplayHash + "|" + rec.Path;
+            startnew(_DoLoadByKey, key);
         }
 
-        void _DoLoad(const string &in path) {
-            log("Loading PB replay from: " + path, LogLevel::Debug, 65, "_DoLoad", "", "\\$f80");
+        void _DoLoadByKey(const string &in key) {
+            int sep = key.IndexOf("|");
+            string hash = sep >= 0 ? key.SubStr(0, sep) : "";
+            string path = sep >= 0 ? key.SubStr(sep + 1) : key;
 
+            ReplayRecord@ rec = null;
+            if (hash.Length > 0) {
+                @rec = Database::GetReplayByHash(hash);
+            }
+
+            if (rec !is null) {
+                log("Loading PB replay from: " + rec.Path, LogLevel::Debug, 65, "_DoLoadByKey", "", "\\$f80");
+                if (!GhostIO::Load(rec)) { NotifyError("Failed to load PB replay: " + rec.Path); }
+                return;
+            }
+
+            if (path.Length == 0) return;
+            log("Loading PB replay from: " + path, LogLevel::Debug, 72, "_DoLoadByKey", "", "\\$f80");
             if (!GhostIO::Load(path)) { NotifyError("Failed to load PB replay: " + path); }
         }
 

@@ -3,6 +3,79 @@ namespace Loader::GhostIO {
     const string HOST   = "127.0.0.1";
     const uint   PORT   = 4567;
     const string SRV_FS = IO::FromUserGameFolder("Replays_Offload/AutoEnablePBGhost/ghostsrv/");
+    bool g_warnedUserPathMismatch = false;
+
+    string _NormalizePath(const string &in path) {
+        return path.Replace("\\", "/");
+    }
+
+    string _GetUserFromPath(const string &in path) {
+        string norm = _NormalizePath(path);
+        string lower = norm.ToLower();
+        int idx = lower.IndexOf("/users/");
+        if (idx < 0) return "";
+        int start = idx + 7;
+        if (start >= norm.Length) return "";
+        int relEnd = norm.SubStr(start).IndexOf("/");
+        int end = relEnd < 0 ? norm.Length : start + relEnd;
+        return norm.SubStr(start, end - start);
+    }
+
+    string _ReplaceUserInPath(const string &in path, const string &in newUser) {
+        string norm = _NormalizePath(path);
+        string lower = norm.ToLower();
+        int idx = lower.IndexOf("/users/");
+        if (idx < 0) return path;
+        int start = idx + 7;
+        int relEnd = norm.SubStr(start).IndexOf("/");
+        int end = relEnd < 0 ? norm.Length : start + relEnd;
+        string replaced = norm.SubStr(0, start) + newUser + norm.SubStr(end);
+        if (path.IndexOf("\\") >= 0) {
+            replaced = replaced.Replace("/", "\\");
+        }
+        return replaced;
+    }
+
+    void _WarnUserPathMismatchOnce(const string &in pathUser, const string &in curUser) {
+        if (g_warnedUserPathMismatch) return;
+        g_warnedUserPathMismatch = true;
+        NotifyWarning("Replay file appears to be under user '" + pathUser
+            + "', but current user is '" + curUser
+            + "'. The replay may fail to load unless you update paths or reindex.");
+    }
+
+    bool _TryResolveUserPathMismatch(ReplayRecord@ rec, string &out resolvedPath) {
+        resolvedPath = rec.Path;
+        string curUser  = _GetUserFromPath(IO::FromUserGameFolder(""));
+        string pathUser = _GetUserFromPath(rec.Path);
+        string curUserLower = curUser.ToLower();
+        string pathUserLower = pathUser.ToLower();
+        if (curUserLower == "" || pathUserLower == "" || curUserLower == pathUserLower) return false;
+
+        string candidate = _ReplaceUserInPath(rec.Path, curUser);
+        if (candidate == rec.Path) return false;
+        if (!IO::FileExists(candidate)) {
+            _WarnUserPathMismatchOnce(pathUser, curUser);
+            return false;
+        }
+        if (rec.ReplayHash == "") {
+            _WarnUserPathMismatchOnce(pathUser, curUser);
+            return false;
+        }
+
+        string buf = _IO::File::ReadFileToEnd(candidate);
+        string hash = Crypto::MD5(buf);
+        if (hash == rec.ReplayHash) {
+            Database::UpdatePathByHash(rec.ReplayHash, candidate);
+            rec.Path = candidate;
+            rec.FileName = Path::GetFileName(candidate);
+            resolvedPath = candidate;
+            return true;
+        }
+
+        _WarnUserPathMismatchOnce(pathUser, curUser);
+        return false;
+    }
 
     bool Load(const string &in filePath) {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
@@ -19,16 +92,20 @@ namespace Loader::GhostIO {
         }
     }
 
-    bool Load(const ReplayRecord@ rec) {
+    bool Load(ReplayRecord@ rec) {
+        if (rec is null) return false;
         SourceFormat fmt = FromNodeType(rec.NodeType);
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
         if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 26, "Load", "", "\\$f80"); return false; }
 
+        string resolvedPath = rec.Path;
+        _TryResolveUserPathMismatch(rec, resolvedPath);
+
         if (fmt == SourceFormat::ReplayFile) {
-            return FromReplay(rec.Path, gm);
+            return FromReplay(resolvedPath, gm);
         } else {
-            return FromGhost(rec.Path, gm);
+            return FromGhost(resolvedPath, gm);
         }
     }
 

@@ -68,7 +68,10 @@ namespace Loader::PBMonitor {
             return;
         }
 
-        if (loadedPlugin == gameFastest) { UnloadPluginGhosts(); return; }
+        if (loadedPlugin == gameFastest) {
+            if (_HasPluginGhosts()) { UnloadPluginGhosts(); }
+            return;
+        }
 
         // print(gameFastest + " vs " + loadedPlugin + " vs " + storedFastest);
         if (gameFastest < storedFastest) {
@@ -217,6 +220,20 @@ namespace Loader::PBMonitor {
     bool _IsGameGhost(const string &in nick) { return nick.StartsWith("") || nick.StartsWith("$7FA"); }
     bool _IsPBGhost(const string &in nick) { return nick.Contains("Personal Best") || nick.Contains("Personal best"); }
 
+    bool _HasPluginGhosts() {
+        if (Loader::GhostRegistry::Count() > 0) return true;
+
+        NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(GetApp());
+        if (mgr is null) return false;
+
+        for (uint i = 0; i < mgr.Ghosts.Length; ++i) {
+            auto clip = mgr.Ghosts[i]; if (clip is null) continue;
+            CGameCtnGhost@ model = clip.GhostModel; if (model is null) continue;
+            if (_IsPluginGhost(model.GhostNickname)) return true;
+        }
+        return false;
+    }
+
     int _HintedPB() {
         int v1 = _Game::CurrentPersonalBest(g_mapUid);
         int v2 = UINav::WidgetPlayerPB();
@@ -242,6 +259,7 @@ namespace Loader::PBMonitor {
     }
 
     void UnloadPluginGhosts() {
+        if (!_HasPluginGhosts()) return;
         log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 237, "UnloadPluginGhosts", "", "\\$f80");
         Loader::Unloader::RemoveAll();
 
