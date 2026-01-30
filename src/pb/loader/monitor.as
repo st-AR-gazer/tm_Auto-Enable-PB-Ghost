@@ -100,7 +100,7 @@ namespace Loader::PBMonitor {
         }
         if (ghost is null) return;
 
-        log("Caching PB ghost for " + g_mapUid + " with time " + targetTime + " ms | nickname: " + ghost.Nickname + " | trigram: " + ghost.Trigram + " | id: " + ghost.IdName + ")", LogLevel::Info, 97, "_CacheGamePB", "", "\\$f80");
+        log("Caching PB ghost for " + g_mapUid + " with time " + targetTime + " ms | nickname: " + ghost.Nickname + " | trigram: " + ghost.Trigram + " | id: " + ghost.IdName + ")", LogLevel::Info, 103, "_CacheGamePB", "", "\\$f80");
 
         string baseDir = IO::FromUserGameFolder("Replays_Offload/zzAutoEnablePBGhost/improvements/");
         IO::CreateFolder(baseDir);
@@ -123,7 +123,7 @@ namespace Loader::PBMonitor {
 
         Database::AddRecordFromLocalFile(fullPath, targetTime, g_mapUid);
 
-        log("Cached new PB replay to " + fullPath, LogLevel::Info, 120, "_CacheGamePB", "", "\\$f80");
+        log("Cached new PB replay to " + fullPath, LogLevel::Info, 126, "_CacheGamePB", "", "\\$f80");
     }
 
     void _DeduplicatePluginGhosts() {
@@ -260,7 +260,7 @@ namespace Loader::PBMonitor {
 
     void UnloadPluginGhosts() {
         if (!_HasPluginGhosts()) return;
-        log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 237, "UnloadPluginGhosts", "", "\\$f80");
+        log("Unloading plugin ghosts for map: " + g_mapUid, LogLevel::Debug, 263, "UnloadPluginGhosts", "", "\\$f80");
         Loader::Unloader::RemoveAll();
 
         NGameGhostClips_SMgr@ mgr = GhostClipsMgr::GetSafe(GetApp());

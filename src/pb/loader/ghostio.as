@@ -79,7 +79,7 @@ namespace Loader::GhostIO {
 
     bool Load(const string &in filePath) {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 9, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 82, "Load", "", "\\$f80"); return false; }
 
         string lower = filePath.ToLower();
         if (lower.EndsWith(".replay.gbx")) {
@@ -87,7 +87,7 @@ namespace Loader::GhostIO {
         } else if (lower.EndsWith(".ghost.gbx")) {
             return FromGhost(filePath, gm);
         } else {
-            log("Unsupported file type: " + filePath, LogLevel::Error, 17, "Load", "", "\\$f80");
+            log("Unsupported file type: " + filePath, LogLevel::Error, 90, "Load", "", "\\$f80");
             return false;
         }
     }
@@ -97,7 +97,7 @@ namespace Loader::GhostIO {
         SourceFormat fmt = FromNodeType(rec.NodeType);
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 26, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 100, "Load", "", "\\$f80"); return false; }
 
         string resolvedPath = rec.Path;
         _TryResolveUserPathMismatch(rec, resolvedPath);
@@ -122,7 +122,7 @@ namespace Loader::GhostIO {
             _IO::File::CopyFileTo(srcPath, dstPath);
 
             if (!WaitUntilFileExists(dstPath, 2000)) {
-                log("CopyToReplays failed: " + dstPath, LogLevel::Error, 48, "FromReplay", "", "\\$f80");
+                log("CopyToReplays failed: " + dstPath, LogLevel::Error, 125, "FromReplay", "", "\\$f80");
                 return false;
             }
             loadPath = dstPath;
@@ -130,17 +130,17 @@ namespace Loader::GhostIO {
         }
 
         CGameCtnNetwork@ net = cast<CGameCtnNetwork>(GetApp().Network);
-        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 56, "FromReplay", "", "\\$f80"); return false; }
+        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 133, "FromReplay", "", "\\$f80"); return false; }
         CGameManiaAppPlayground@ cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
-        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 58, "FromReplay", "", "\\$f80"); return false; }
+        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 135, "FromReplay", "", "\\$f80"); return false; }
         CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(cmap.DataFileMgr);
-        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 60, "FromReplay", "", "\\$f80"); return false; }
+        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 137, "FromReplay", "", "\\$f80"); return false; }
 
         auto task = dfm.Replay_Load(loadPath);
         while (task.IsProcessing) { yield(); }
 
         if (!task.HasSucceeded) {
-            log("Replay_Load failed: " + task.ErrorCode, LogLevel::Error, 66, "FromReplay", "", "\\$f80");
+            log("Replay_Load failed: " + task.ErrorCode, LogLevel::Error, 143, "FromReplay", "", "\\$f80");
             return false;
         }
 
@@ -163,17 +163,17 @@ namespace Loader::GhostIO {
         string url = "http://" + HOST + ":" + PORT + "/get_ghost/" + fname;
 
         CGameCtnNetwork@ net = cast<CGameCtnNetwork>(GetApp().Network);
-        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 89, "FromGhost", "", "\\$f80"); return false; }
+        if (net is null) { log("CGameCtnNetwork is null", LogLevel::Error, 166, "FromGhost", "", "\\$f80"); return false; }
         CGameManiaAppPlayground@ cmap = cast<CGameManiaAppPlayground>(net.ClientManiaAppPlayground);
-        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 91, "FromGhost", "", "\\$f80"); return false; }
+        if (cmap is null) { log("CGameManiaAppPlayground is null", LogLevel::Error, 168, "FromGhost", "", "\\$f80"); return false; }
         CGameDataFileManagerScript@ dfm = cast<CGameDataFileManagerScript>(cmap.DataFileMgr);
-        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 93, "FromGhost", "", "\\$f80"); return false; }
+        if (dfm is null) { log("DataFileMgr null | download skipped (cannot save locally without this)", LogLevel::Error, 170, "FromGhost", "", "\\$f80"); return false; }
 
         CWebServicesTaskResult_GhostScript@ task = dfm.Ghost_Download("", url);
         while (task.IsProcessing) { yield(); }
 
         if (!task.HasSucceeded) {
-            log("Ghost_Download failed: " + task.ErrorDescription, LogLevel::Error, 99, "FromGhost", "", "\\$f80");
+            log("Ghost_Download failed: " + task.ErrorDescription, LogLevel::Error, 176, "FromGhost", "", "\\$f80");
             return false;
         }
 

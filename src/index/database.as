@@ -264,7 +264,7 @@ namespace Database {
         if (loadId != g_LastLogMapLoadId || mapUid != g_LastLogMapUid) {
             g_LastLogMapLoadId = loadId;
             g_LastLogMapUid = mapUid;
-            log("DB GetReplays: " + stmt.GetQueryExpanded(), LogLevel::Debug, 254, "_localLogin", "", "\\$f80");
+            log("DB GetReplays: " + stmt.GetQueryExpanded(), LogLevel::Debug, 267, "_localLogin", "", "\\$f80");
         }
 
         while (stmt.NextRow()) {

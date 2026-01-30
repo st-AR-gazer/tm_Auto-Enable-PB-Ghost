@@ -74,13 +74,13 @@ namespace Loader {
             }
 
             if (rec !is null) {
-                log("Loading PB replay from: " + rec.Path, LogLevel::Debug, 65, "_DoLoadByKey", "", "\\$f80");
+                log("Loading PB replay from: " + rec.Path, LogLevel::Debug, 77, "_DoLoadByKey", "", "\\$f80");
                 if (!GhostIO::Load(rec)) { NotifyError("Failed to load PB replay: " + rec.Path); }
                 return;
             }
 
             if (path.Length == 0) return;
-            log("Loading PB replay from: " + path, LogLevel::Debug, 72, "_DoLoadByKey", "", "\\$f80");
+            log("Loading PB replay from: " + path, LogLevel::Debug, 83, "_DoLoadByKey", "", "\\$f80");
             if (!GhostIO::Load(path)) { NotifyError("Failed to load PB replay: " + path); }
         }
 
