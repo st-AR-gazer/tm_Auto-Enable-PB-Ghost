@@ -4,9 +4,49 @@ namespace Loader::GhostIO {
     const uint   PORT   = 4567;
     const string SRV_FS = IO::FromUserGameFolder("Replays_Offload/AutoEnablePBGhost/ghostsrv/");
     bool g_warnedUserPathMismatch = false;
+    uint64 g_lastGhostMgrWarn = 0;
+
+    void _LogGhostMgrUnavailable(const string &in fnName, int line) {
+        uint64 now = Time::Now;
+        if (now - g_lastGhostMgrWarn < 2000) return;
+        g_lastGhostMgrWarn = now;
+        log("GhostMgr unavailable.", LogLevel::Warning, line, fnName, "", "\\$f80");
+    }
 
     string _NormalizePath(const string &in path) {
         return path.Replace("\\", "/");
+    }
+
+    bool _PathStartsWith(const string &in path, const string &in root) {
+        string p = _NormalizePath(path).ToLower();
+        string r = _NormalizePath(root).ToLower();
+        return p.StartsWith(r);
+    }
+
+    string _MakeTempReplayName(const string &in srcPath) {
+        string ext = ".Replay.Gbx";
+        string lower = srcPath.ToLower();
+        if (lower.EndsWith(".ghost.gbx")) ext = ".Ghost.Gbx";
+        return "tmp_" + tostring(Time::Now) + "_" + Math::Rand(0, 9999) + ext;
+    }
+
+    bool _CopyReplayToTmp(const string &in srcPath, const string &in tmpDir, string &out dstPath) {
+        if (!IO::FileExists(srcPath)) {
+            log("Source replay missing: " + srcPath, LogLevel::Error, 24, "_CopyReplayToTmp", "", "\\$f80");
+            return false;
+        }
+
+        dstPath = tmpDir + _MakeTempReplayName(srcPath);
+        IO::Copy(srcPath, dstPath);
+        if (!IO::FileExists(dstPath)) {
+            _IO::File::CopyFileTo(srcPath, dstPath);
+        }
+
+        if (!WaitUntilFileExists(dstPath, 5000)) {
+            log("CopyToReplays failed: " + dstPath + " (src=" + srcPath + ")", LogLevel::Error, 33, "_CopyReplayToTmp", "", "\\$f80");
+            return false;
+        }
+        return true;
     }
 
     string _GetUserFromPath(const string &in path) {
@@ -79,7 +119,7 @@ namespace Loader::GhostIO {
 
     bool Load(const string &in filePath) {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 82, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { _LogGhostMgrUnavailable("Load", 82); return false; }
 
         string lower = filePath.ToLower();
         if (lower.EndsWith(".replay.gbx")) {
@@ -97,7 +137,7 @@ namespace Loader::GhostIO {
         SourceFormat fmt = FromNodeType(rec.NodeType);
 
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
-        if (gm is null) { log("GhostMgr unavailable.", LogLevel::Warning, 100, "Load", "", "\\$f80"); return false; }
+        if (gm is null) { _LogGhostMgrUnavailable("Load", 100); return false; }
 
         string resolvedPath = rec.Path;
         _TryResolveUserPathMismatch(rec, resolvedPath);
@@ -114,15 +154,12 @@ namespace Loader::GhostIO {
         string replayDir = IO::FromUserGameFolder("Replays/");
         string loadPath  = srcPath;
 
-        if (!srcPath.StartsWith(replayDir)) {
+        if (!_PathStartsWith(srcPath, replayDir)) {
             string tmpDir = replayDir + "zzAutoEnablePBGhost/tmp/";
-            IO::CreateFolder(tmpDir);
+            IO::CreateFolder(tmpDir, true);
 
-            string dstPath = tmpDir + Path::GetFileName(srcPath);
-            _IO::File::CopyFileTo(srcPath, dstPath);
-
-            if (!WaitUntilFileExists(dstPath, 2000)) {
-                log("CopyToReplays failed: " + dstPath, LogLevel::Error, 125, "FromReplay", "", "\\$f80");
+            string dstPath;
+            if (!_CopyReplayToTmp(srcPath, tmpDir, dstPath)) {
                 return false;
             }
             loadPath = dstPath;

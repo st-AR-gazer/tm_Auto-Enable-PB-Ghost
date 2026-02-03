@@ -129,8 +129,13 @@ namespace UINav {
 
     /********************* utils *************************/
     
+    const uint64 WIDGET_READY_DELAY_MS   = 4500;
+    const uint64 WIDGET_PREV_PB_GRACE_MS = 12000;
+
     string g_lastMapUid = "";
     uint64 g_lastMapChange = 0;
+    int    g_lastWidgetPb = -1;
+    int    g_prevMapPb = -1;
 
     bool UiReadyForWidget() {
         if (!_Game::IsPlayingMap()) return false;
@@ -141,12 +146,14 @@ namespace UINav {
         string uid = get_CurrentMapUID();
         if (uid == "") return false;
         if (uid != g_lastMapUid) {
+            g_prevMapPb = g_lastWidgetPb;
+            g_lastWidgetPb = -1;
             g_lastMapUid = uid;
             g_lastMapChange = Time::Now;
             return false;
         }
 
-        return (Time::Now - g_lastMapChange) > 1500;
+        return (Time::Now - g_lastMapChange) > WIDGET_READY_DELAY_MS;
     }
     
     CControlFrame@ TraverseMatchLabel(const Path &in p, const string &in label, CControlFrame@ start = Root()) {
@@ -239,7 +246,16 @@ namespace UINav {
 
         CControlLabel@ lbl = cast<CControlLabel>(row.Childs[7]);
         if (lbl is null) return -1;
-        return ToMs(lbl.Label);
+        int pb = ToMs(lbl.Label);
+        if (pb < 0) return -1;
+
+        uint64 sinceChange = Time::Now - g_lastMapChange;
+        if (g_prevMapPb > 0 && pb == g_prevMapPb && sinceChange < WIDGET_PREV_PB_GRACE_MS) {
+            return -1;
+        }
+
+        g_lastWidgetPb = pb;
+        return pb;
     }
 
     // OOPS: WidgetPlayerPB seems to sometimes be returning the time set on the previous map, not the current one.
