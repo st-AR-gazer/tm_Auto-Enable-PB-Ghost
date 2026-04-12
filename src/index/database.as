@@ -193,6 +193,24 @@ namespace Database {
         stmt.Reset();
     }
 
+    void DeleteByHash(const string &in hash) {
+        if (hash == "") return;
+        EnsureOpen();
+        auto stmt = g_Db.Prepare("DELETE FROM replays WHERE ReplayHash = ?1;");
+        stmt.Bind(1, hash);
+        stmt.Execute();
+        stmt.Reset();
+    }
+
+    void DeleteByPath(const string &in path) {
+        if (path == "") return;
+        EnsureOpen();
+        auto stmt = g_Db.Prepare("DELETE FROM replays WHERE Path = ?1;");
+        stmt.Bind(1, path);
+        stmt.Execute();
+        stmt.Reset();
+    }
+
     void StoreHash(const string &in hash, bool mine) {
         EnsureReady();
         if (HashExists(hash)) { return; }

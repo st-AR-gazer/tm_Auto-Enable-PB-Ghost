@@ -5,6 +5,9 @@ namespace Loader::GhostIO {
     const string SRV_FS = IO::FromUserGameFolder("Replays_Offload/AutoEnablePBGhost/ghostsrv/");
     bool g_warnedUserPathMismatch = false;
     uint64 g_lastGhostMgrWarn = 0;
+    bool g_warnedDbMissing = false;
+    uint64 g_lastDbMissingNotify = 0;
+    const uint kDbMissingNotifyCooldownMs = 15000;
 
     void _LogGhostMgrUnavailable(const string &in fnName, int line) {
         uint64 now = Time::Now;
@@ -32,7 +35,6 @@ namespace Loader::GhostIO {
 
     bool _CopyReplayToTmp(const string &in srcPath, const string &in tmpDir, string &out dstPath) {
         if (!IO::FileExists(srcPath)) {
-            log("Source replay missing: " + srcPath, LogLevel::Error, 24, "_CopyReplayToTmp", "", "\\$f80");
             return false;
         }
 
@@ -84,6 +86,68 @@ namespace Loader::GhostIO {
             + "'. The replay may fail to load unless you update paths or reindex.");
     }
 
+    void _NotifyDbMissingOnce(const string &in filePath) {
+        uint64 now = Time::Now;
+        if (g_warnedDbMissing && now - g_lastDbMissingNotify < kDbMissingNotifyCooldownMs) return;
+        g_warnedDbMissing = true;
+        g_lastDbMissingNotify = now;
+
+        string name = Path::GetFileName(filePath);
+        string suffix = name.Length > 0 ? " (" + name + ")" : "";
+        NotifyWarning("A replay file referenced in the PB Ghost database was not found" + suffix
+            + ". Consider refreshing the database when convenient.");
+    }
+
+    void _RemoveStaleRecord(ReplayRecord@ rec, const string &in reason, const string &in pathForLog) {
+        string path = pathForLog.Length > 0 ? pathForLog : rec.Path;
+        log("DB replay invalid (" + reason + "): " + path, LogLevel::Warning, -1, "_RemoveStaleRecord", "", "\\$f80");
+
+        if (rec.ReplayHash.Length > 0) {
+            Database::DeleteByHash(rec.ReplayHash);
+        } else if (rec.Path.Length > 0) {
+            Database::DeleteByPath(rec.Path);
+        }
+
+        _NotifyDbMissingOnce(path);
+    }
+
+    bool _ValidateReplayRecord(ReplayRecord@ rec, string &out resolvedPath) {
+        if (rec is null) return false;
+
+        resolvedPath = rec.Path;
+        if (resolvedPath.Length == 0) {
+            _RemoveStaleRecord(rec, "empty path", resolvedPath);
+            return false;
+        }
+
+        if (!IO::FileExists(resolvedPath)) {
+            _TryResolveUserPathMismatch(rec, resolvedPath);
+        }
+
+        if (!IO::FileExists(resolvedPath)) {
+            _RemoveStaleRecord(rec, "missing file", resolvedPath);
+            return false;
+        }
+
+        if (rec.FileName.Length > 0) {
+            string actualName = Path::GetFileName(resolvedPath);
+            if (actualName.ToLower() != rec.FileName.ToLower()) {
+                _RemoveStaleRecord(rec, "filename mismatch", resolvedPath);
+                return false;
+            }
+        }
+
+        if (rec.ReplayHash.Length > 0) {
+            string hash = Crypto::MD5(_IO::File::ReadFileToEnd(resolvedPath));
+            if (hash.ToLower() != rec.ReplayHash.ToLower()) {
+                _RemoveStaleRecord(rec, "hash mismatch", resolvedPath);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     bool _TryResolveUserPathMismatch(ReplayRecord@ rec, string &out resolvedPath) {
         resolvedPath = rec.Path;
         string curUser  = _GetUserFromPath(IO::FromUserGameFolder(""));
@@ -121,6 +185,11 @@ namespace Loader::GhostIO {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
         if (gm is null) { _LogGhostMgrUnavailable("Load", 82); return false; }
 
+        if (!IO::FileExists(filePath)) {
+            log("Source replay missing: " + filePath, LogLevel::Warning, 85, "Load", "", "\\$f80");
+            return false;
+        }
+
         string lower = filePath.ToLower();
         if (lower.EndsWith(".replay.gbx")) {
             return FromReplay(filePath, gm);
@@ -139,8 +208,8 @@ namespace Loader::GhostIO {
         CGameGhostMgrScript@ gm = GhostMgrHelper::Get();
         if (gm is null) { _LogGhostMgrUnavailable("Load", 100); return false; }
 
-        string resolvedPath = rec.Path;
-        _TryResolveUserPathMismatch(rec, resolvedPath);
+        string resolvedPath;
+        if (!_ValidateReplayRecord(rec, resolvedPath)) return false;
 
         if (fmt == SourceFormat::ReplayFile) {
             return FromReplay(resolvedPath, gm);
@@ -151,6 +220,11 @@ namespace Loader::GhostIO {
 
     // .Replay.Gbx
     bool FromReplay(const string &in srcPath, CGameGhostMgrScript@ gm) {
+        if (!IO::FileExists(srcPath)) {
+            log("Source replay missing: " + srcPath, LogLevel::Warning, 121, "FromReplay", "", "\\$f80");
+            return false;
+        }
+
         string replayDir = IO::FromUserGameFolder("Replays/");
         string loadPath  = srcPath;
 
@@ -194,6 +268,11 @@ namespace Loader::GhostIO {
 
     // .Ghost.Gbx
     bool FromGhost(const string &in path, CGameGhostMgrScript@ gm) {
+        if (!IO::FileExists(path)) {
+            log("Source ghost missing: " + path, LogLevel::Warning, 152, "FromGhost", "", "\\$f80");
+            return false;
+        }
+
         string fname = Path::GetFileName(path);
         _IO::File::CopyFileTo(path, SRV_FS + fname);
 
